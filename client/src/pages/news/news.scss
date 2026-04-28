@@ -1,0 +1,22 @@
+.c-news {
+  padding: 20px;
+  margin: 10px;
+  background: #ffffffe3;
+  border-radius: 8px;
+  border-bottom: 1px solid #045b8526;
+  h3 {
+    font-size: 24px;
+    color: var(--darkBlue);
+    font-weight: normal;
+  }
+  .date {
+    font-size: 14px;
+    color: #666;
+  }
+  .text {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-top: 10px;
+  }
+
+}

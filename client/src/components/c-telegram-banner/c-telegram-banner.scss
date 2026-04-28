@@ -1,0 +1,32 @@
+// client/src/components/c-telegram-banner/c-telegram-banner.scss
+
+.tg-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #e8f4fd;
+  border: 1px solid #b3d9f7;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+
+  p {
+    margin: 0;
+    color: var(--color-text);
+  }
+
+  &__btn {
+    white-space: nowrap;
+    padding: 0.5rem 1rem;
+    background: #2AABEE;
+    color: white;
+    border-radius: 6px;
+    font-weight: 500;
+
+    &:hover {
+      background: #1a9bd8;
+      text-decoration: none;
+    }
+  }
+}

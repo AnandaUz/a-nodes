@@ -1,0 +1,28 @@
+{
+  "name": "a-nodes",
+  "version": "0.1.0",
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "build:client": "npm run build --workspace=client",
+    "build:server": "npm run build --workspace=server",
+    "build": "npm run build --workspaces --if-present",
+    "snap:all": "tsx .tools/snap.ts",
+    "snap:server": "tsx .tools/snap.ts --dir ./server --ext .ts,.json",
+    "snap:client": "tsx .tools/snap.ts --dir ./client --ext .ts,.json"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "telegraf": "^4.16.3",
+    "@base/shared": "*"
+  }
+}

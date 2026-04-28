@@ -1,0 +1,18 @@
+.google-btn {
+    cursor: pointer;
+    background-color: #ff682ce7;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    transition: background-color 0.3s ease;
+    &:hover {
+        background-color: #dd4600;
+    }
+    &:active {
+        background-color: #9b3201;
+    }
+    &:disabled {
+        background-color: #ccc;
+    }
+}

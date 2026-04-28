@@ -1,0 +1,22 @@
+// src/styles/breakpoints.scss
+
+$bp-mobile:  480px;
+$bp-tablet:  768px;
+$bp-laptop:  1024px;
+$bp-desktop: 1280px;
+
+@mixin mobile {
+  @media (max-width: #{$bp-mobile}) { @content; }
+}
+
+@mixin tablet {
+  @media (min-width: #{$bp-tablet}) { @content; }
+}
+
+@mixin laptop {
+  @media (min-width: #{$bp-laptop}) { @content; }
+}
+
+@mixin desktop {
+  @media (min-width: #{$bp-desktop}) { @content; }
+}

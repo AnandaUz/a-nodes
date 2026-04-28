@@ -1,0 +1,124 @@
+/* ── обёртка ── */
+.avatar-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+/* невидимый мостик — заполняет зазор между аватаркой и меню,
+    чтобы hover не прерывался при переходе курсора вниз */
+.avatar-wrap::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 12px; /* должно совпадать с отступом меню от аватарки */
+}
+
+/* ── аватарка ── */
+.avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #e8f0fe;
+    color: #3b5bdb;
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    user-select: none;
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+}
+
+/* ── выпадающее меню ── */
+.dropdown {
+    position: absolute;
+    top: calc(100% + 0px); /* 10px зазор = высоте мостика::after - 2px */
+    right: 0;
+    transform: translateY(-6px);
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    min-width: 180px;
+    padding: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    z-index: 100;
+
+    a {
+        width: 100%;
+        display: inline-block;
+        text-decoration: none;
+        color: #1a1a1a;
+        padding: 8px 10px;
+        border-radius: 8px;
+        &:hover {
+            background: #e8f0fe;
+        }
+    }
+}
+
+/* ── десктоп: hover ── */
+@media (hover: hover) {
+    .avatar-wrap:hover .avatar {
+    border-color: #7c8ef5;
+    }
+    .avatar-wrap:hover .dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: all;
+    }
+}
+
+/* ── мобилка + десктоп: класс .open от JS ── */
+.avatar-wrap.open .avatar {
+    border-color: #7c8ef5;
+}
+.avatar-wrap.open .dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+/* ── пункты меню ── */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px; 
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.dropdown-item:hover {
+    background: #f4f4f4;
+}
+.dropdown-item.danger {
+    color: #d63031;
+}
+.dropdown-item.danger:hover {
+    background: #fff0f0;
+}
+.dropdown-divider {
+    height: 1px;
+    background: #efefef;
+    margin: 4px 0;
+}

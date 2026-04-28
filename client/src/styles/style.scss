@@ -1,0 +1,172 @@
+@use "./breakpoints";
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;  
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+:root {
+  --darkBlue: rgba(0, 46, 80, 0.95);
+}
+/* Базовые настройки */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+body {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400; /* обычный */
+  line-height: 1.2;
+  color: rgba(88, 21, 0, 0.8);
+  font-size: 18px;  
+}
+main {
+  
+}
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(187, 211, 227, 0.3);
+  height: 15px;
+  font-size: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: l;
+}
+header {
+  position: fixed;
+  top: 0;
+  // left: 0;
+  right: 0;
+  z-index: 100;
+  a {
+    color: #939393;
+    text-decoration: none;
+    &.active {
+      color: #646cff;
+    }
+  }
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    padding: 5px;
+  }
+  .logo {
+    background: url('@assets/i_home.svg') no-repeat center center;
+    background-size: contain;
+    width: 35px;
+    height: 35px;
+    display: inline-block;
+  }
+}
+h1 {
+  color: rgba(255, 68, 0, 0.75);
+  font-size: 28px;
+  text-align: center;
+  font-weight: normal;
+  position: relative;
+  line-height: 0.9;
+  padding: 0 2px 4px;
+
+  &:before {
+    content: "";
+    display: block;
+    position: absolute;
+
+    width: 80%;
+    height: 1px;
+    bottom: 1px;
+
+    background: rgba(89, 0, 0, 0.35);
+  }
+}
+.login {
+  text-align: right;
+  padding: 5px;
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  a {
+    background: #298bbb;
+    padding: 5px 10px;
+    margin: 0 0 0 10px;
+    border-radius: 11px;
+    text-decoration: none;
+    color: #fff;
+    opacity: 0.8;
+    &:hover {
+      opacity: 1;
+    }
+    &.in {
+      background: #e7673f;
+    }
+  }
+}
+.user-info {
+  font-size: 12px;
+  padding: 10px;
+}
+.register-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  margin: 0;
+}
+.register-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+.user-list {
+  a {
+    color: var(--darkBlue);
+  }
+}
+.ul-level {
+  list-style-type: circle;
+  padding: 0 0 0 25px;
+  li {
+    margin-bottom: 5px;
+  }
+  &.l2 {
+    padding: 0 0 0 50px;
+    font-size: 14px;
+  }
+}
+.right-bl {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.btn-settings {
+  background: url('@assets/i_settings.svg') no-repeat center center;
+  background-size: contain;
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+  &:hover {
+    opacity: 1;
+  }
+}
+p {
+  margin: 10px 20px;
+}
+.center-bl {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

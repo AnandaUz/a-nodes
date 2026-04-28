@@ -1,0 +1,79 @@
+.vNode {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    // Позиционирование через transform — быстрее чем top/left (GPU)
+    will-change: transform;
+
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    cursor: default;
+    box-sizing: border-box;
+    padding: 12px;
+    overflow: visible; // якоря выглядывают за края
+
+    transition: box-shadow 0.15s ease;
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+        border-color: #aaa;
+    }
+
+    &.is-selected {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+    }
+
+    &.is-dragging {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+        opacity: 0.92;
+        cursor: grabbing;
+        z-index: 100;
+    }
+
+    &.is-editing {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+        z-index: 50;
+
+        .desk-node__text {
+            pointer-events: auto;
+            cursor: text;
+            outline: none;
+        }
+    }
+
+    &__text {
+        font-family: monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #222;
+        white-space: pre-wrap;
+        word-break: break-word;
+        pointer-events: none; // Во время drag текст не мешает
+    }
+}
+
+// ─── Якоря ───────────────────────────────────────────────────────────────────
+
+.desk-anchor {
+    position: absolute;
+    width:  12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #4a90e2;
+    cursor: crosshair;
+    z-index: 200;
+    box-sizing: border-box;
+    transition: transform 0.1s ease, background 0.1s ease;
+
+    &:hover {
+        transform: scale(1.4);
+        background: #4a90e2;
+    }
+}

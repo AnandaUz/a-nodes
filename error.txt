@@ -1,0 +1,3 @@
+client/src/features/desk/desk.store.ts(14,45): error TS2344: Type 'DeskEvents' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'DeskEvents'.
+client/src/features/desk/desk.types.ts(1,35): error TS2307: Cannot find module '@shared/types/desk' or its corresponding type declarations.
