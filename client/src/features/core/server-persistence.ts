@@ -1,121 +1,116 @@
-import { Store, type DeskSnapshot } from './store';
-import { fetchWithAuth } from '@services/api';
-import { NODE_EVENTS } from '@features/events';
-import type { INode } from '@shared/types';
+// import { store, type DeskSnapshot } from "./store";
+
+import type { INode } from "@shared/types";
+import api from "@/features/core/api";
+// import type { DeskSnapshot } from "./interfaces";
+import { core, EVENTS } from "./core";
 
 interface ServerPersistenceOptions {
-    apiUrl:  string;  // например '/api/desks'
-    deskId:  string;
-    token?:  string | undefined;  // JWT из твоей auth-системы
+  apiUrl: string; // например '/api/desks'
+  deskId: string;
+  token?: string | undefined; // JWT из твоей auth-системы
 }
 
 export class ServerPersistence {
-    private store:   Store;
-    private opts:    ServerPersistenceOptions;
+  private opts: ServerPersistenceOptions;
 
-    private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    private unsubscribers: Array<() => void> = [];
-    private isSaving = false;
+  data: INode[] = [];
+  private dirtyNodes: Set<string> = new Set();
 
-    private readonly DEBOUNCE_MS = 1000; // серверу даём чуть больше времени
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  // private unsubscribers: Array<() => void> = [];
+  private isSaving = false;
 
-    constructor(store: Store, opts: ServerPersistenceOptions) {
-        this.store = store;
-        this.opts  = opts;
+  private readonly DEBOUNCE_MS = 1000; // серверу даём чуть больше времени
+
+  constructor(opts: ServerPersistenceOptions) {
+    this.opts = opts;
+  }
+  async init(): Promise<void> {
+    await this.load();
+    // this.bindStore();
+  }
+  private async load(): Promise<void> {
+    const snapshot = await api.loadNodes();
+    core.store.emit(EVENTS.server.loaded, snapshot);
+  }
+
+  // ─── Save ─────────────────────────────────────────────────────
+  // private async saveNode(data: INode): Promise<void> {
+  //   if (this.isSaving) return;
+  //   this.isSaving = true;
+
+  //   try {
+  //     const nodes = { nodes: [data] };
+  //     // await fetchWithAuth(this.opts.apiUrl+'/saveNodes', {
+  //     //     method: 'PUT',
+  //     //     body: JSON.stringify(nodes),
+  //     // });
+  //   } catch (err) {
+  //     console.warn("[saveNode] Ошибка сохранения:", err);
+  //   } finally {
+  //     this.isSaving = false;
+  //   }
+  // }
+  async createNode(node: INode): Promise<string> {
+    const _id = await api.saveNode(node);
+    node._id = _id;
+    this.data.push(node);
+    return _id;
+  }
+  async updateNode(node: INode): Promise<void> {
+    const now = new Date();
+    const index = this.data.findIndex((n) => n._id === node._id);
+
+    let _node: INode;
+    if (index === -1) {
+      _node = { ...node, lastUpdate: now };
+      this.data.push(_node);
+    } else {
+      _node = { ...this.data[index], ...node, lastUpdate: now };
+      this.data[index] = _node;
     }
 
-    // ─── Init ─────────────────────────────────────────────────────
+    if (_node._id) this.dirtyNodes.add(_node._id);
+    this.scheduleSave();
+  }
+  private async save(): Promise<void> {
+    if (this.isSaving || this.dirtyNodes.size === 0) return;
+    this.isSaving = true;
 
-    async init(): Promise<void> {
-        await this.load();
-        this.bindStore();
+    const snapshot = this.data.filter((n) => this.dirtyNodes.has(n._id || ""));
+    this.dirtyNodes.clear();
+
+    try {
+      await api.saveNodes(snapshot);
+    } catch (err) {
+      // при ошибке возвращаем ноды обратно в dirty
+      snapshot.forEach((n) => this.dirtyNodes.add(n._id || ""));
+      console.warn("[ServerPersistence] Ошибка сохранения:", err);
+    } finally {
+      this.isSaving = false;
     }
+  }
 
-    // ─── Load ─────────────────────────────────────────────────────
+  scheduleSave(): void {
+    if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => {
+      void this.save();
+      this.debounceTimer = null;
+    }, this.DEBOUNCE_MS);
+  }
 
-    private async load(): Promise<void> {
-        try {
-            const res = await fetchWithAuth(this.url());
+  // ─── Store subscription ───────────────────────────────────────
 
-            if (!res.ok) {
-                console.warn('[ServerPersistence] Ошибка загрузки:', res.status);
-                return;
-            }
+  // private bindStore(): void {
+  //   const save = (data: any) => this.scheduleSave(data);
+  //   const saveNode = (data: any) => this.saveNode(data);
 
-            const snapshot = await res.json() as DeskSnapshot;
-            this.store.loadSnapshot(snapshot);
-        } catch (err) {
-            console.warn('[ServerPersistence] Нет соединения с сервером:', err);
-        }
-    }
-
-    // ─── Save ─────────────────────────────────────────────────────
-    private async saveNode(data: INode): Promise<void> {
-        if (this.isSaving) return;
-        this.isSaving = true;
-
-        try {             
-            const nodes = {nodes: [data]};        
-            await fetchWithAuth(this.opts.apiUrl+'/saveNodes', {
-                method: 'PUT',
-                body: JSON.stringify(nodes),
-            });
-        } catch (err) {
-            console.warn('[saveNode] Ошибка сохранения:', err);
-        } finally {
-            this.isSaving = false;
-        }
-    }
-    // private async save(data: any): Promise<void> {
-    //     if (this.isSaving) return;
-    //     this.isSaving = true;
-
-    //     try {
-    //         const snapshot = this.store.getSnapshot();            
-
-    //         await fetchWithAuth(this.url(), {
-    //             method: 'PUT',
-    //             body: JSON.stringify(snapshot),
-    //         });
-    //     } catch (err) {
-    //         console.warn('[ServerPersistence] Ошибка сохранения:', err);
-    //     } finally {
-    //         this.isSaving = false;
-    //     }
-    // }
-
-    private scheduleSave(data: any): void {
-        if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-            // void this.save(data);
-            this.debounceTimer = null;
-        }, this.DEBOUNCE_MS);
-    }
-
-    // ─── Store subscription ───────────────────────────────────────
-
-    private bindStore(): void {
-        const save = (data: any) => this.scheduleSave(data);
-        const saveNode = (data: any) => this.saveNode(data);
-
-        this.unsubscribers = [
-            this.store.on(NODE_EVENTS.Created,      saveNode),
-            // this.store.on(NODE_EVENTS.Moved,        save),
-            this.store.on(NODE_EVENTS.Updated,      save),
-            this.store.on(NODE_EVENTS.Deleted,      save),
-        ];
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────
-
-    private url(): string {
-        return `${this.opts.apiUrl}/${this.opts.deskId}`;
-    }
-
-    // ─── Destroy ──────────────────────────────────────────────────
-
-    destroy(): void {
-        if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
-        this.unsubscribers.forEach(unsub => unsub());
-    }
+  //   // this.unsubscribers = [
+  //   //     this.store.on(NODE_EVENTS.Created,      saveNode),
+  //   //     // this.store.on(NODE_EVENTS.Moved,        save),
+  //   //     this.store.on(NODE_EVENTS.Updated,      save),
+  //   //     this.store.on(NODE_EVENTS.Deleted,      save),
+  //   // ];
+  // }
 }

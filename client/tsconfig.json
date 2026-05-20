@@ -3,7 +3,9 @@
   "compilerOptions": {
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client","google.accounts"],
+    "types": ["vite/client"],
+
+    "moduleResolution": "bundler",
 
     /* Bundler mode */
     "allowImportingTsExtensions": true,
@@ -17,17 +19,17 @@
     "erasableSyntaxOnly": true,
     "noUncheckedSideEffectImports": true,
 
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
-      "@pages/*": ["src/pages/*"],
-      "@assets/*": ["src/assets/*"],
-      "@styles/*": ["src/styles/*"],
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@assets/*": ["./src/assets/*"],
+      "@styles/*": ["./src/styles/*"],
       "@shared/*": ["../shared/*"],
-      "@services/*": ["src/services/*"],
-      "@features/*": ["src/features/*"]
+      "@base/*": ["../_base/*"],
+      "@features/*": ["./src/features/*"],
+      "@services/*": ["./src/services/*"]
     }
-  },
-  "include": ["src", "../shared"]
+  }
+
 }

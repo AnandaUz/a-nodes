@@ -1,26 +1,29 @@
-import type { Page, Routes } from './types';
+import type { Page, Routes } from "./types";
 
-import { homePage } from './pages/home';
-import { settingsPage } from './pages/settings';
-import { newsPage } from './pages/news/news';
-import { userPage } from './pages/user';
-import { notFoundPage } from './pages/notFound';
-import { welcomePage } from './pages/welcome/welcome';
-import { registerPage } from './pages/register/register';
-import { deskPage } from './pages/desk';
+import { homePage } from "./pages/home";
+import { settingsPage } from "./pages/settings";
+import { newsPage } from "./pages/news/news";
+import { userPage } from "./pages/user";
+import { notFoundPage } from "./pages/notFound";
+import { welcomePage } from "./pages/welcome/welcome";
+import { registerPage } from "./pages/register/register";
+import { deskPage } from "./pages/desk";
 
 const routes: Routes = {
-  '/':           homePage,
-  '/settings':   settingsPage,
-  '/news':       newsPage,
-  '/user/:id':   userPage,
-  '/welcome':    welcomePage,
-  '/register':   registerPage,
-  '/desk':       deskPage,
-  '/desk/:id':   deskPage, // вложенный desk — тот же компонент, другой deskId
+  "/": homePage,
+  "/settings": settingsPage,
+  "/news": newsPage,
+  "/user/:id": userPage,
+  "/welcome": welcomePage,
+  "/register": registerPage,
+  "/desk": deskPage,
+  "/desk/:id": deskPage, // вложенный desk — тот же компонент, другой deskId
 };
 
-function matchRoute(routes: Routes, path: string): { page: Page; params: Record<string, string> } {
+function matchRoute(
+  routes: Routes,
+  path: string,
+): { page: Page; params: Record<string, string> } {
   // Сначала ищем точное совпадение
   if (routes[path]) {
     return { page: routes[path], params: {} };
@@ -31,7 +34,7 @@ function matchRoute(routes: Routes, path: string): { page: Page; params: Record<
     const paramNames: string[] = [];
     const regexStr = pattern.replace(/:([^/]+)/g, (_, name) => {
       paramNames.push(name);
-      return '([^/]+)';
+      return "([^/]+)";
     });
 
     const match = path.match(new RegExp(`^${regexStr}$`));
@@ -52,14 +55,14 @@ export function render(): void {
   const { page, params } = matchRoute(routes, path);
 
   try {
-    const main = document.querySelector('main');
-    if (!main) throw new Error('Элемент main не найден в DOM');
+    const main = document.querySelector("main");
+    if (!main) throw new Error("Элемент main не найден в DOM");
 
     const { html, title, init } = page(params);
     main.innerHTML = html;
-    document.title = title ?? 'Liner';
+    document.title = title ?? "a-nodes";
     init?.();
   } catch (e) {
-    console.error('Ошибка роутера:', e);
+    console.error("Ошибка роутера:", e);
   }
 }

@@ -1,105 +1,81 @@
-import { EventEmitter } from './event-emitter';
+import { EventEmitter } from "@base/client/features/event-emitter";
 
-import { ObjectId } from 'bson';
-import type { INode } from '@shared/types';
-import { NODE_EVENTS, type DeskEvents } from '@features/events';
+import type { INode } from "@shared/types";
+import type { DeskSnapshot } from "./interfaces";
 
-import {Core } from './core';
-import type { VNode } from '../nodes/VNode';
+export const EVENTS = {
+  page: {
+    loaded: "page:loaded",
+  },
+  renderer: {
+    refreshAll: "renderer:refreshAll",
+  },
+  nodes: {
+    created: "node:created",
+    updated: "node:updated",
+    moved: "node:moved",
+    deleted: "node:deleted",
+    mouse: {
+      down: "mouse:down",
+      move: "mouse:move",
+      up: "mouse:up",
+    },
+  },
+  server: {
+    updated: "server:updated",
+    loaded: "server:loaded",
+    error: "server:error",
+  },
+} as const;
 
-function generateId(): string {
-    return new ObjectId().toHexString();
+export type DeskEvents = {
+  [EVENTS.nodes.created]: INode;
+  [EVENTS.nodes.updated]: INode;
+  [EVENTS.nodes.moved]: INode;
+  [EVENTS.nodes.deleted]: { id: string };
+  [EVENTS.server.loaded]: DeskSnapshot;
+  [EVENTS.server.updated]: DeskSnapshot;
+  [EVENTS.server.error]: Error;
+  [EVENTS.renderer.refreshAll]: void;
+  [EVENTS.nodes.mouse.down]: PointerEvent;
+  [EVENTS.nodes.mouse.move]: PointerEvent;
+  [EVENTS.nodes.mouse.up]: PointerEvent;
+};
+
+export class Store extends EventEmitter<DeskEvents> {
+  // private nodes: Map<string, INode> = new Map();
+  // Возвращает полное состояние стола — для сохранения
+  // getSnapshot(): DeskSnapshot {
+  //   return {
+  //     nodes: this.getAllNodes(),
+  //   };
+  // }
+  // Загружает состояние и эмитит события — рендер обновится сам
+  // loadSnapshot(snapshot: DeskSnapshot): void {
+  //   // this.nodes.clear();
+  //   // this.connectors.clear();
+  //   for (const data of snapshot.nodes as INode[]) {
+  //     if (this.nodes.has(data._id)) {
+  //       const exNode = this.nodes.get(data._id)!;
+  //       if (
+  //         data.lastUpdate &&
+  //         exNode.lastUpdate &&
+  //         exNode.lastUpdate < data.lastUpdate
+  //       ) {
+  //         this.updateNode(data._id, data);
+  //         continue;
+  //       }
+  //     } else {
+  //       const node: INode = {
+  //         _id: data._id || generateId(),
+  //         x: data.x ?? 0,
+  //         y: data.y ?? 0,
+  //         lastUpdate: data.lastUpdate ?? new Date(),
+  //       };
+  //       this.nodes.set(node._id, node);
+  //       this.emit(NODE_EVENTS.Created, { ...node });
+  //     }
+  //   }
+  // }
 }
-
-export interface DeskSnapshot {
-    nodes:      INode[];
-}
-export class Store extends EventEmitter<DeskEvents>
- {
-    private nodes:      Map<string, INode>      = new Map();   
-
-    // ─── Snapshot ─────────────────────────────────────────────────
-
-    // Возвращает полное состояние стола — для сохранения
-    getSnapshot(): DeskSnapshot {
-        return {
-            nodes:      this.getAllNodes(),            
-        };
-    }
-
-    // Загружает состояние и эмитит события — рендер обновится сам
-    loadSnapshot(snapshot: DeskSnapshot): void {
-        // this.nodes.clear();
-        // this.connectors.clear();
-
-        for (const data of (snapshot.nodes as INode[])) {
-
-            if (this.nodes.has(data._id)) {
-                const exNode = this.nodes.get(data._id)!;
-                if (data.lastUpdate && exNode.lastUpdate && exNode.lastUpdate < data.lastUpdate) {
-                    this.updateNode(data._id, data);
-                    continue;
-                }
-            } else {
-
-                const node: INode = {
-                    _id: data._id || generateId(),
-                    x: data.x ?? 0,
-                    y: data.y ?? 0,
-                    lastUpdate: data.lastUpdate ?? new Date()
-                }         
-                this.nodes.set(node._id, node);
-                this.emit(NODE_EVENTS.Created, { ...node });
-            }         
-        }        
-    }
-
-    // ─── Nodes: Read ──────────────────────────────────────────────
-
-    getNode(_id: string): INode | undefined {
-        return this.nodes.get(_id);
-    }
-
-    getAllNodes(): INode[] {
-        return Array.from(this.nodes.values());
-    }
-
-    // ─── Nodes: Write ─────────────────────────────────────────────
-
-    createNode(x: number, y: number): INode {
-        const node: INode = {
-            _id: generateId(),
-            x, y,            
-            lastUpdate: new Date(),      
-        };
-        this.nodes.set(node._id, node);
-        this.emit(NODE_EVENTS.Created, { ...node });
-        return node;
-    }
-
-    moveNode(_id:string,x:number,y:number): void {
-        const node = this.nodes.get(_id);
-        if (!node) return;
-        node.x = x;
-        node.y = y;
-        this.emit(NODE_EVENTS.Moved, { ...node });
-    }
-
-    updateNode(_id:string,node:INode): void {
-        const exNode = this.nodes.get(_id);
-        if (!exNode) return;
-        exNode.x = node.x ?? 0;
-        exNode.y = node.y ?? 0;
-        exNode.lastUpdate = new Date();
-        this.emit(NODE_EVENTS.Updated, { ...exNode });
-    }
-
-    deleteNode(id: string): void {
-        if (!this.nodes.has(id)) return;
-        this.nodes.delete(id);
-        this.emit(NODE_EVENTS.Deleted, { id });
-      
-    }
-
-
-}
+export const store = new Store();

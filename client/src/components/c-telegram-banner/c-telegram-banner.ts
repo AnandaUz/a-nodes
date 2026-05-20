@@ -1,16 +1,16 @@
-import { fetchWithAuth } from '@services/api';
-import './c-telegram-banner.scss';
-import { getUser } from '@services/auth.service';
+import api from "@/features/core/api";
+import "./c-telegram-banner.scss";
+import { getUser } from "@/services/auth.service";
 
 class CTelegramBanner extends HTMLElement {
   async connectedCallback() {
     const user = getUser();
-    
+
     if (user?.telegramId) return; // уже привязан — ничего не показываем
 
     try {
-      const response = await fetchWithAuth('/api/telegram/link');
-      const { link } = await response.json() as { link: string };
+      const response = await api.fetchWithAuth("/api/telegram/link");
+      const { link } = (await response.json()) as { link: string };
 
       this.innerHTML = `
         <div class="tg-banner">
@@ -21,9 +21,9 @@ class CTelegramBanner extends HTMLElement {
         </div>
       `;
     } catch (e) {
-      console.error('Ошибка получения ссылки:', e);
+      console.error("Ошибка получения ссылки:", e);
     }
   }
 }
 
-customElements.define('c-telegram-banner', CTelegramBanner);
+customElements.define("c-telegram-banner", CTelegramBanner);
