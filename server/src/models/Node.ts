@@ -1,11 +1,11 @@
 import mongoose, { Model, Document } from "mongoose";
-import type { INode } from "../../../shared/types/desk.js";
+import type { INode } from "../../../shared/types/INode.js";
 
 export interface INodeDocument
-  extends Omit<INode, "_id" | "ownerId" | "parentId">, Document {
+  extends Omit<INode, "_id" | "ownerId" | "pageId">, Document {
   _id: mongoose.Types.ObjectId;
   ownerId: mongoose.Types.ObjectId;
-  parentId?: mongoose.Types.ObjectId | null;
+  pageId?: mongoose.Types.ObjectId | null;
 }
 
 const nodeSchema = new mongoose.Schema<INodeDocument>({
@@ -16,17 +16,19 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
   },
-  parentId: {
+  pageId: {
     type: mongoose.Schema.Types.ObjectId,
   },
   x: { type: Number },
   y: { type: Number },
+  type: { type: Number },
   inTrash: { type: Boolean },
   lastUpdate: { type: Date },
+  title: { type: String },
 });
 
 // Ключевой индекс — запрос "все ноды юзера на этом уровне" будет мгновенным
-nodeSchema.index({ ownerId: 1, parentId: 1 });
+nodeSchema.index({ ownerId: 1, pageId: 1 });
 
 export const Node: Model<INodeDocument> =
   mongoose.models["Nodes"] ||

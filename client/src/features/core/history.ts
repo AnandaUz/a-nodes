@@ -5,7 +5,7 @@ export class History {
   private future: Command[] = [];
 
   execute(command: Command): void {
-    command.execute();
+    // command.execute();
     this.past.push(command);
     this.future = []; // новое действие сбрасывает future
   }

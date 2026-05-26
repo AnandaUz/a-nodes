@@ -53,7 +53,7 @@ export class ServerPersistence {
   //   }
   // }
   async createNode(node: INode): Promise<string> {
-    const _id = await api.saveNode(node);
+    const _id = await api.saveNodes([node]);
     node._id = _id;
     this.data.push(node);
     return _id;

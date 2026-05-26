@@ -51,20 +51,22 @@ class API {
   }
   async saveNodes(nodes: INode[]) {
     const data = { nodes };
-    await this.fetchWithAuth("/nodes/saveNodes", {
+    const response = await this.fetchWithAuth("/nodes/saveNodes", {
       method: "PUT",
       body: JSON.stringify(data),
     });
+    const result = (await response.json()) as { ids: string[] };
+    return result.ids;
   }
-  async saveNode(node: INode): Promise<string> {
-    const data = { node };
-    const response = await this.fetchWithAuth("/nodes/saveNode", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-    const result = (await response.json()) as { node: INode };
-    return result.node?._id ?? "";
-  }
+  // async saveNode(node: INode): Promise<string> {
+  //   const data = { node };
+  //   const response = await this.fetchWithAuth("/nodes/saveNode", {
+  //     method: "PUT",
+  //     body: JSON.stringify(data),
+  //   });
+  //   const result = (await response.json()) as { node: INode };
+  //   return result.node?._id ?? "";
+  // }
 }
 
 const api = new API();

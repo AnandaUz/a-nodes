@@ -50,124 +50,115 @@ export const getNodesByParentNodeId = async (
   }
 };
 
-export const saveNode = async (req: AuthRequest, res: Response) => {
-  try {
-    const { node } = req.body;
+// export const saveNode = async (req: AuthRequest, res: Response) => {
+//   try {
+//     const { node } = req.body;
 
-    let updatedNode;
+//     let updatedNode;
 
-    if (node._id) {
-      // Обновляем существующую
-      updatedNode = await Node.findByIdAndUpdate(
-        node._id,
-        { $set: { ...node } },
-        { new: true },
-      );
-    } else {
-      // Создаём новую — MongoDB сам сгенерирует _id
-      updatedNode = await Node.create(node);
-    }
+//     if (node._id) {
+//       // Обновляем существующую
+//       updatedNode = await Node.findByIdAndUpdate(
+//         node._id,
+//         { $set: { ...node } },
+//         { new: true },
+//       );
+//     } else {
+//       // Создаём новую — MongoDB сам сгенерирует _id
+//       updatedNode = await Node.create(node);
+//     }
 
-    res.status(200).json({ node: updatedNode });
-  } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-};
+//     res.status(200).json({ node: updatedNode });
+//   } catch (error) {
+//     res.status(500).json({ error: "Server error" });
+//   }
+// };
 
 export const saveNodes = async (req: AuthRequest, res: Response) => {
   try {
-    // const ownerId = req.user!.id;
-    const { nodes } = req.body; // Ожидаем массив нод в теле запроса
+    const { nodes } = req.body;
 
     if (!Array.isArray(nodes)) {
       return res.status(400).json({ message: "Ожидался массив нод" });
     }
 
-    // Формируем операции для bulkWrite
     const operations = nodes.map((node: any) => ({
       updateOne: {
-        // Критерий поиска: ищем по _id и ownerId (для безопасности)
         filter: {
           _id: node._id || new mongoose.Types.ObjectId(),
-          // ownerId,
         },
-        // Что обновляем:
         update: {
-          $set: {
-            ...node,
-            // ownerId, // Принудительно ставим текущего владельца
-          },
+          $set: { ...node },
         },
-        // Магия: если не найдено — создать
         upsert: true,
       },
     }));
 
-    const result = await Node.bulkWrite(operations);
+    const result = await Node.bulkWrite(operations, { ordered: true });
 
-    res.json({
-      message: "Сохранение завершено",
-      matched: result.matchedCount,
-      upserted: result.upsertedCount,
-      modified: result.modifiedCount,
+    // Собираем _id в той же последовательности что и nodes
+    const ids = nodes.map((node: any, index: number) => {
+      // если нода была создана (upsert) — берём из результата
+      const upsertedId = result.upsertedIds[index];
+      return upsertedId ? upsertedId.toString() : node._id;
     });
+
+    res.json({ ids });
   } catch (err: any) {
     console.error("[saveNodes Error]:", err);
-    res
-      .status(500)
-      .json({ message: "Ошибка сохранения нод", error: err?.message });
+    res.status(500).json({ message: "Ошибка сохранения нод", error: err?.message });
   }
 };
 
 // ─── PUT /api/desk/:deskId ────────────────────────────────────────
 // Сохраняем весь снапшот desk'а — заменяем ноды и коннекторы
-export const saveDesk = async (req: AuthRequest, res: Response) => {
-  try {
-    const ownerId = req.user!.id;
-    const deskId = req.params["deskId"];
+// export const saveDesk = async (req: AuthRequest, res: Response) => {
+//   try {
+//     const ownerId = req.user!.id;
+//     const deskId = req.params["deskId"];
 
-    if (!deskId) {
-      res.status(400).json({ message: "Не указан ID стола" });
-      return;
-    }
+//     if (!deskId) {
+//       res.status(400).json({ message: "Не указан ID стола" });
+//       return;
+//     }
 
-    const { nodes } = req.body as {
-      nodes: Array<{
-        id: string;
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        text: string;
-        type: string;
-      }>;
-      // connectors: Array<{ id: string; fromId: string; toId: string }>;
-    };
+//     const { nodes } = req.body as {
+//       nodes: Array<{
+//         id: string;
+//         x: number;
+//         y: number;
+//         width: number;
+//         height: number;
+//         text: string;
+//         type: string;
+//       }>;
+//       // connectors: Array<{ id: string; fromId: string; toId: string }>;
+//     };
 
-    const parentId = deskId === "root" ? null : deskId;
+//     const parentId = deskId === "root" ? null : deskId;
 
-    if (nodes && nodes.length > 0) {
-      await Node.insertMany(
-        nodes.map((n) => ({
-          _id: n.id,
-          ownerId,
-          ...(parentId !== null ? { parentId } : {}),
-          type: n.type || "default",
-          x: n.x,
-          y: n.y,
-          width: n.width,
-          height: n.height,
-          text: n.text,
-        })) as any[],
-      );
-    }
+//     if (nodes && nodes.length > 0) {
+//       await Node.insertMany(
+//         nodes.map((n) => ({
+//           _id: n.id,
+//           ownerId,
+//           ...(parentId !== null ? { parentId } : {}),
+//           type: n.type || "default",
+//           x: n.x,
+//           y: n.y,
+//           width: n.width,
+//           height: n.height,
+//           text: n.text,
+//         })) as any[],
+//       );
+//     }
 
-    res.json({ ok: true });
-  } catch (err: any) {
-    console.error("[saveDesk Error]:", err);
-    res.status(500).json({
-      message: "Ошибка сохранения desk",
-      error: err?.message || String(err),
-    });
-  }
-};
+//     res.json({ ok: true });
+//   } catch (err: any) {
+//     console.error("[saveDesk Error]:", err);
+//     res.status(500).json({
+//       message: "Ошибка сохранения desk",
+//       error: err?.message || String(err),
+//     });
+//   }
+// };

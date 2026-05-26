@@ -26,9 +26,12 @@ const commands: Command[] = [
     label: "Нода",
     children: [
       {
-        label: "Создать",
-        shortcuts: ["ctrl+n"],
-        execute: () => nodeStore.createNode(),
+        label: "Создать текстовую ноду",
+        shortcuts: ["1"],
+        execute: async () => {
+          const { x, y } = core.desk.viewport.screenToWorld(core.desk.mouse.x, core.desk.mouse.y);
+          await core.nodeManager.createNode(1, x, y); //создание текстовой ноды
+        },
       },
       {
         label: "Дублировать",
@@ -40,6 +43,15 @@ const commands: Command[] = [
         shortcuts: ["x"],
         execute: () => {
           console.log("delete");
+        },
+      },
+      {
+        label: "Двигать ноду(ы)",
+        shortcuts: ["g"],
+        execute: () => {
+          console.log("move");
+
+          core.selectManager.transformMove.start()
         },
       },
     ],

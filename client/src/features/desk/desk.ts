@@ -8,8 +8,15 @@ export class Desk {
   nodesEl!: HTMLElement;
   private sceneEl!: HTMLElement;
   viewport!: Viewport;
+  mouse = { x: 0, y: 0 };
 
-  constructor() {}
+  constructor() {
+
+    window.addEventListener('mousemove', (e) => {
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
+    });
+  }
 
   mount(container: HTMLElement) {
     container.innerHTML = html;
@@ -27,12 +34,9 @@ export class Desk {
     // };
 
     // Двойной клик по пустому столу — новая нода
-    this.sceneEl.addEventListener("dblclick", async (e) => {
-      if ((e.target as HTMLElement).closest(".desk-node")) return;
-      const { x, y } = this.viewport.screenToWorld(e.clientX, e.clientY);
+    // this.sceneEl.addEventListener("dblclick", async (e) => {
 
-      await core.nodeManager.createNode(x, y);
-    });
+    // });
   }
 
   unmount() {

@@ -8,16 +8,26 @@ import { ServerPersistence } from "./server-persistence";
 import { NodeManager } from "@features/nodes/NodeManager";
 import { initCommands } from "./comands";
 import { History } from "@features/core/history";
+import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 
 export { EVENTS };
 export class Core {
   store: Store;
   nodeManager: NodeManager;
   nodeRenderer: NodeRenderer;
+  selectManager: SelectManager;
   desk: Desk;
   // localPersistence: LocalPersistence;
   serverPersistence: ServerPersistence = null!;
   history: History;
+
+  mode = {
+    textEditing: false,
+    selectMoving: false,
+    textNode: false,
+    threads: false,
+    threads_selected: false,
+  }
 
   constructor() {
     this.history = new History();
@@ -26,6 +36,7 @@ export class Core {
     this.desk = new Desk();
 
     this.nodeRenderer = new NodeRenderer();
+    this.selectManager = new SelectManager();
 
     // this.renderer = new NodeRenderer();
     // this.desk = new Desk();

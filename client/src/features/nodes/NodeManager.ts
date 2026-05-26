@@ -26,20 +26,20 @@ export class NodeManager {
     core.store.emit(EVENTS.renderer.refreshAll, undefined);
   }
 
-  async createNode(x: number, y: number): Promise<INode | null> {
-    const node: INode = {
+  async createNode(type: number = 1, x: number = 0, y: number = 0): Promise<INode | null> {
+    const nodeEss: INode = {
       x,
       y,
+      type,
     };
 
-    const id = await core.serverPersistence.createNode(node);
+    const id = await core.serverPersistence.createNode(nodeEss);
 
     if (!id) return null;
 
-    node._id = id;
-    this.nodes.set(id, node);
-    core.store.emit(EVENTS.nodes.created, node);
-    return node;
+    this.nodes.set(id, nodeEss);
+    core.store.emit(EVENTS.nodes.created, nodeEss);
+    return nodeEss;
   }
   getNode(_id: string): INode | undefined {
     return this.nodes.get(_id);

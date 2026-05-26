@@ -1,11 +1,12 @@
 import type { INode } from "@shared/types";
 
-import "./node.scss";
+import "./vNode.scss";
 import { VNode } from "./VNode";
 import { core, EVENTS } from "../core/core";
+import { NODE_REGISTRY } from "./node-registry";
 
 export class NodeRenderer {
-  private elements: Map<string, VNode> = new Map();
+  elements: Map<string, VNode> = new Map();
   private unsubscribers: Array<() => void> = [];
 
   private nodesEl!: HTMLElement;
@@ -36,9 +37,11 @@ export class NodeRenderer {
   //   ];
   // }
 
-  createElement(node: INode): VNode {
-    const vNode = new VNode(node, this.nodesEl);
-    this.elements.set(node._id || "", vNode);
+  createElement(nodeEss: INode): VNode | null {
+    const NodeClass = NODE_REGISTRY[nodeEss.type || 1];
+    if (!NodeClass) return null;
+    const vNode = new NodeClass(nodeEss, this.nodesEl);
+    this.elements.set(nodeEss._id || "", vNode);
     return vNode;
   }
   removeElement(id: string) {
