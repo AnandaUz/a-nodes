@@ -31,15 +31,15 @@ export const getNodesByParentNodeId = async (
     const nodeId = req.params["nodeId"];
 
     // Создаем массив для поиска, исключая undefined
-    let parentId: string | null = null;
+    let pageId: string | null = null;
     if (typeof nodeId === "string" && nodeId !== "root") {
-      parentId = nodeId;
+      pageId = nodeId;
     }
 
     const nodes = await Node.find({
-      // ownerId,
-      parentId: { $in: [null, parentId] },
-    });
+      pageId: { $in: [null, pageId] },
+      inTrash: { $ne: true },
+    }).lean();
 
     res.json({ nodes });
   } catch (err: any) {
@@ -82,17 +82,20 @@ export const saveNodes = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Ожидался массив нод" });
     }
 
-    const operations = nodes.map((node: any) => ({
-      updateOne: {
-        filter: {
-          _id: node._id || new mongoose.Types.ObjectId(),
+    const operations = nodes.map((node: any) => {
+      const { _id, ...updateData } = node;
+      return {
+        updateOne: {
+          filter: {
+            _id: _id || new mongoose.Types.ObjectId(),
+          },
+          update: {
+            $set: updateData,
+          },
+          upsert: true,
         },
-        update: {
-          $set: { ...node },
-        },
-        upsert: true,
-      },
-    }));
+      };
+    });
 
     const result = await Node.bulkWrite(operations, { ordered: true });
 
@@ -106,7 +109,9 @@ export const saveNodes = async (req: AuthRequest, res: Response) => {
     res.json({ ids });
   } catch (err: any) {
     console.error("[saveNodes Error]:", err);
-    res.status(500).json({ message: "Ошибка сохранения нод", error: err?.message });
+    res
+      .status(500)
+      .json({ message: "Ошибка сохранения нод", error: err?.message });
   }
 };
 

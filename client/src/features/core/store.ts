@@ -2,6 +2,7 @@ import { EventEmitter } from "@base/client/features/event-emitter";
 
 import type { INode } from "@shared/types";
 import type { DeskSnapshot } from "./interfaces";
+import type { VNode } from "../nodes/VNode";
 
 export const EVENTS = {
   page: {
@@ -14,6 +15,7 @@ export const EVENTS = {
     created: "node:created",
     updated: "node:updated",
     moved: "node:moved",
+    moving: "node:moving",
     deleted: "node:deleted",
     mouse: {
       down: "mouse:down",
@@ -32,14 +34,15 @@ export type DeskEvents = {
   [EVENTS.nodes.created]: INode;
   [EVENTS.nodes.updated]: INode;
   [EVENTS.nodes.moved]: INode;
-  [EVENTS.nodes.deleted]: { id: string };
+  [EVENTS.nodes.moving]: INode;
+  [EVENTS.nodes.deleted]: INode;
   [EVENTS.server.loaded]: DeskSnapshot;
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;
   [EVENTS.renderer.refreshAll]: void;
-  [EVENTS.nodes.mouse.down]: PointerEvent;
-  [EVENTS.nodes.mouse.move]: PointerEvent;
-  [EVENTS.nodes.mouse.up]: PointerEvent;
+  [EVENTS.nodes.mouse.down]: VNode;
+  [EVENTS.nodes.mouse.move]: VNode;
+  [EVENTS.nodes.mouse.up]: VNode;
 };
 
 export class Store extends EventEmitter<DeskEvents> {

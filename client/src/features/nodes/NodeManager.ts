@@ -1,4 +1,4 @@
-import type { INode } from "@shared/types/desk";
+import type { INode } from "@shared/types/INode";
 import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot } from "../core/interfaces";
 
@@ -12,7 +12,11 @@ export class NodeManager {
 
     core.store.on(EVENTS.nodes.updated, (node) => {
       core.serverPersistence.updateNode(node);
-      core.serverPersistence.scheduleSave();
+    });
+
+    core.store.on(EVENTS.nodes.deleted, (node) => {
+      node.inTrash = true;
+      core.serverPersistence.updateNode(node);
     });
   }
 
@@ -26,13 +30,7 @@ export class NodeManager {
     core.store.emit(EVENTS.renderer.refreshAll, undefined);
   }
 
-  async createNode(type: number = 1, x: number = 0, y: number = 0): Promise<INode | null> {
-    const nodeEss: INode = {
-      x,
-      y,
-      type,
-    };
-
+  async createNode(nodeEss: INode): Promise<INode | null> {
     const id = await core.serverPersistence.createNode(nodeEss);
 
     if (!id) return null;
@@ -67,7 +65,8 @@ export class NodeManager {
 
   deleteNode(id: string): void {
     if (!this.nodes.has(id)) return;
+    const nodeEss = this.nodes.get(id)!;
     this.nodes.delete(id);
-    core.store.emit(EVENTS.nodes.deleted, { id });
+    core.store.emit(EVENTS.nodes.deleted, nodeEss);
   }
 }

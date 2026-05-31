@@ -34,29 +34,12 @@ export class ServerPersistence {
     const snapshot = await api.loadNodes();
     core.store.emit(EVENTS.server.loaded, snapshot);
   }
-
-  // ─── Save ─────────────────────────────────────────────────────
-  // private async saveNode(data: INode): Promise<void> {
-  //   if (this.isSaving) return;
-  //   this.isSaving = true;
-
-  //   try {
-  //     const nodes = { nodes: [data] };
-  //     // await fetchWithAuth(this.opts.apiUrl+'/saveNodes', {
-  //     //     method: 'PUT',
-  //     //     body: JSON.stringify(nodes),
-  //     // });
-  //   } catch (err) {
-  //     console.warn("[saveNode] Ошибка сохранения:", err);
-  //   } finally {
-  //     this.isSaving = false;
-  //   }
-  // }
   async createNode(node: INode): Promise<string> {
-    const _id = await api.saveNodes([node]);
-    node._id = _id;
+    const _ids = await api.saveNodes([node]);
+    if (!_ids || _ids.length === 0) return "";
+    node._id = _ids[0] || "";
     this.data.push(node);
-    return _id;
+    return node._id;
   }
   async updateNode(node: INode): Promise<void> {
     const now = new Date();

@@ -25,6 +25,12 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   inTrash: { type: Boolean },
   lastUpdate: { type: Date },
   title: { type: String },
+  exData: {
+    ownerNodesIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      default: undefined,
+    },
+  },
 });
 
 // Ключевой индекс — запрос "все ноды юзера на этом уровне" будет мгновенным

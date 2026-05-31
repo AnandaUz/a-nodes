@@ -1,21 +1,18 @@
 import { getUser } from "@/services/auth.service";
 import "./c-user-menu.scss";
+import Tools from "@/features/core/Tools";
 class CUserMenu extends HTMLElement {
-    
- 
-
   connectedCallback() {
-
     const user = getUser();
     const content = this.innerHTML;
 
-
-    const str =`
+    const str = `
 <div class="avatar-wrap" id="avatarWrap" tabindex="0">
     <div class="avatar">
-        ${user?.picture
+        ${
+          user?.picture
             ? `<img class="header-avatar" src="${user.picture}" alt="${user.name}" />`
-            : ''
+            : ""
         }
     </div>
     <div class="dropdown">
@@ -24,33 +21,30 @@ class CUserMenu extends HTMLElement {
       <a id="logout-btn" href="#">выйти</a>
     </div>
   </div>
-    `
+    `;
 
     this.innerHTML = str;
 
-    const wrap = document.getElementById('avatarWrap');
+    const wrap = document.getElementById("avatarWrap");
 
     if (wrap) {
       // клик на аватарке — переключает меню
-      wrap.addEventListener('click', function (e) {
-        e.stopPropagation(); // не даём клику всплыть до document
-        wrap.classList.toggle('open');
-      });
- 
-      // клик в любом другом месте — закрывает меню
-      document.addEventListener('click', function () {
-        wrap.classList.remove('open');
-      });
- 
-      // ESC тоже закрывает
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') wrap.classList.remove('open');
+      wrap.addEventListener("click", function (e) {
+        Tools.stopEvent(e); // не даём клику всплыть до document
+        wrap.classList.toggle("open");
       });
 
-    };
- 
-    
+      // клик в любом другом месте — закрывает меню
+      document.addEventListener("click", function () {
+        wrap.classList.remove("open");
+      });
+
+      // ESC тоже закрывает
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") wrap.classList.remove("open");
+      });
+    }
   }
 }
 
-customElements.define('c-user-menu', CUserMenu);
+customElements.define("c-user-menu", CUserMenu);

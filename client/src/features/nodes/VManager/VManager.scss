@@ -1,0 +1,87 @@
+.vnode-m-area {
+     background: url(@assets/btn-bg-b.svg) bottom repeat-x,
+          url(@assets/btn-bg-t.svg) top repeat-x,
+          url(@assets/bg-m-2.svg) top left repeat;
+     background-color: #ddede38f;
+     background-size: auto 20px, auto, 35px 35px;
+     width: 600px;
+     height: 2000px;
+     border-radius: 5px;
+     z-index: 5;
+
+     .top-block {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background-color: rgba(106, 143, 160, 0.219);
+          border-radius: 5px 5px 0 0;
+
+          .elTitle {
+               background: none;
+               color: #164b6bc2;
+          }
+     }
+
+     .menu-block {
+          display: flex;
+          gap: 2px;
+
+
+     }
+
+     .btn {
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          background-color: #fff0;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+
+          &:hover {
+               background-color: #fff1;
+          }
+     }
+}
+
+.vnode-m-sub {
+     background: url(@assets/btn-bg-b.svg) bottom repeat-x,
+          url(@assets/btn-bg-t.svg) top repeat-x,
+          url(@assets/bg-m-3.svg) top left repeat;
+     background-color: #ddeced8f;
+     background-size: auto 20px, auto, 35px 35px;
+     width: 700px;
+     height: 500px;
+
+}
+
+.vnode-helper {
+     width: 20px;
+     height: 10px;
+     // background-color: rgb(211, 211, 211);
+     position: absolute;
+     top: 0;
+     left: 0;
+     z-index: 10;
+
+
+     .bt {
+          --w1: 10px;
+          --m1: -22px;
+
+          width: var(--w1);
+          height: var(--w1);
+          border: 1px solid rgb(255, 166, 0);
+          margin: 7px 0 0 var(--m1);
+          cursor: pointer;
+          border-radius: calc(var(--w1) / 2);
+
+          &.active {
+               background: rgb(255, 166, 0);
+
+          }
+
+          &:hover {
+               background-color: rgb(255, 216, 0);
+          }
+     }
+}

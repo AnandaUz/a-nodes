@@ -5,6 +5,7 @@ import { renderHeader } from "./components/header"; // добавить
 import { renderFooter } from "./components/footer"; // добавить
 import { authGuard } from "./services/auth.guard";
 import { handleCredential } from "./services/auth.service";
+import Tools from "./features/core/Tools";
 
 (window as any).google?.accounts?.id?.initialize({
   client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -26,7 +27,7 @@ document.addEventListener("click", (e) => {
     target.tagName === "A" &&
     target.href.startsWith(window.location.origin)
   ) {
-    e.preventDefault();
+    Tools.stopEvent(e);
     history.pushState({}, "", target.href);
     authGuard().then(() => {
       renderHeader();

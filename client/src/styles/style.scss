@@ -1,32 +1,67 @@
 @use "./breakpoints";
+
+@use "@base/client/scss/ico";
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
-  font-weight: 400;  
+  font-weight: 400;
+  --darkBlue: rgba(0, 46, 80, 0.95);
 }
+
+/* montserrat-regular - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('@assets/fonts/montserrat-v31-cyrillic_latin-regular.woff2') format('woff2');
+}
+
+/* montserrat-italic - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Montserrat';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('@assets/fonts/montserrat-v31-cyrillic_latin-italic.woff2') format('woff2');
+}
+
+/* montserrat-600 - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('@assets/fonts/montserrat-v31-cyrillic_latin-600.woff2') format('woff2');
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-:root {
-  --darkBlue: rgba(0, 46, 80, 0.95);
-}
+
 /* Базовые настройки */
 html {
   font-size: 16px;
   scroll-behavior: smooth;
 }
+
 body {
   font-family: 'Montserrat', sans-serif;
-  font-weight: 400; /* обычный */
+  font-weight: 400;
+  /* обычный */
   line-height: 1.2;
   color: rgba(88, 21, 0, 0.8);
-  font-size: 18px;  
+  font-size: 18px;
 }
-main {
-  
-}
+
+main {}
+
 footer {
   position: fixed;
   bottom: 0;
@@ -40,25 +75,30 @@ footer {
   align-items: center;
   justify-content: l;
 }
+
 header {
   position: fixed;
   top: 0;
   // left: 0;
   right: 0;
   z-index: 100;
+
   a {
     color: #939393;
     text-decoration: none;
+
     &.active {
       color: #646cff;
     }
   }
+
   nav {
     display: flex;
     justify-content: space-between;
     align-items: start;
     padding: 5px;
   }
+
   .logo {
     background: url('@assets/i_home.svg') no-repeat center center;
     background-size: contain;
@@ -67,6 +107,7 @@ header {
     display: inline-block;
   }
 }
+
 h1 {
   color: rgba(255, 68, 0, 0.75);
   font-size: 28px;
@@ -88,12 +129,14 @@ h1 {
     background: rgba(89, 0, 0, 0.35);
   }
 }
+
 .login {
   text-align: right;
   padding: 5px;
   display: flex;
   justify-content: end;
   align-items: center;
+
   a {
     background: #298bbb;
     padding: 5px 10px;
@@ -102,18 +145,22 @@ h1 {
     text-decoration: none;
     color: #fff;
     opacity: 0.8;
+
     &:hover {
       opacity: 1;
     }
+
     &.in {
       background: #e7673f;
     }
   }
 }
+
 .user-info {
   font-size: 12px;
   padding: 10px;
 }
+
 .register-container {
   display: flex;
   align-items: center;
@@ -121,6 +168,7 @@ h1 {
   min-height: 80vh;
   margin: 0;
 }
+
 .register-card {
   background: white;
   padding: 2rem;
@@ -129,27 +177,33 @@ h1 {
   width: 100%;
   max-width: 400px;
 }
+
 .user-list {
   a {
     color: var(--darkBlue);
   }
 }
+
 .ul-level {
   list-style-type: circle;
   padding: 0 0 0 25px;
+
   li {
     margin-bottom: 5px;
   }
+
   &.l2 {
     padding: 0 0 0 50px;
     font-size: 14px;
   }
 }
+
 .right-bl {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
+
 .btn-settings {
   background: url('@assets/i_settings.svg') no-repeat center center;
   background-size: contain;
@@ -158,13 +212,16 @@ h1 {
   display: inline-block;
   opacity: 0.5;
   transition: opacity 0.3s ease;
+
   &:hover {
     opacity: 1;
   }
 }
+
 p {
   margin: 10px 20px;
 }
+
 .center-bl {
   display: flex;
   justify-content: center;

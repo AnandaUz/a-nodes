@@ -2,6 +2,7 @@ import type { INode } from "@shared/types";
 
 import "./vNode.scss";
 import { VNode } from "./VNode";
+import VTextEdit from "./VTextEdit";
 import { core, EVENTS } from "../core/core";
 import { NODE_REGISTRY } from "./node-registry";
 
@@ -21,7 +22,12 @@ export class NodeRenderer {
     });
 
     core.store.on(EVENTS.nodes.created, (node) => {
-      this.createElement(node);
+      const vNode = this.createElement(node);
+
+      if (vNode instanceof VTextEdit) {
+        vNode.turnOn_EditTitleMode();
+        vNode.elTitle.focus();
+      }
     });
   }
 
@@ -37,10 +43,10 @@ export class NodeRenderer {
   //   ];
   // }
 
-  createElement(nodeEss: INode): VNode | null {
-    const NodeClass = NODE_REGISTRY[nodeEss.type || 1];
-    if (!NodeClass) return null;
+  createElement(nodeEss: INode): VNode {
+    const NodeClass = NODE_REGISTRY[nodeEss.type || 1]!;
     const vNode = new NodeClass(nodeEss, this.nodesEl);
+    vNode.init();
     this.elements.set(nodeEss._id || "", vNode);
     return vNode;
   }

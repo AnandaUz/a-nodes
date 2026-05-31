@@ -2,7 +2,7 @@ import { Viewport } from "./desk.viewport";
 import "./desk.scss";
 
 import html from "./desk.html?raw";
-import { core } from "../core/core";
+// import { core } from "../core/core";
 
 export class Desk {
   nodesEl!: HTMLElement;
@@ -11,8 +11,7 @@ export class Desk {
   mouse = { x: 0, y: 0 };
 
   constructor() {
-
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener("mousemove", (e) => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
     });

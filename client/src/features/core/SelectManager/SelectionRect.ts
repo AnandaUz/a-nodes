@@ -1,3 +1,5 @@
+import { core } from "../core";
+
 export default class SelectionRect {
   private el: HTMLDivElement;
   private p1 = { x: 0, y: 0 };
@@ -5,7 +7,7 @@ export default class SelectionRect {
 
   constructor(
     container: HTMLElement,
-    onComplete: (rect: DOMRect, event: MouseEvent) => void
+    onComplete: (rect: DOMRect, event: MouseEvent) => void,
   ) {
     this.onComplete = onComplete;
     this.el = document.createElement("div");
@@ -16,6 +18,7 @@ export default class SelectionRect {
 
   private onMouseDown = (e: PointerEvent) => {
     if (e.buttons !== 1) return;
+    if (core.mode.textEditing) return;
 
     this.p1 = { x: e.clientX, y: e.clientY };
     this.el.style.display = "block";

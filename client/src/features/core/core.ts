@@ -9,6 +9,7 @@ import { NodeManager } from "@features/nodes/NodeManager";
 import { initCommands } from "./comands";
 import { History } from "@features/core/history";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
+import type { ManagerCore } from "../nodes/VManager/ManagerCore";
 
 export { EVENTS };
 export class Core {
@@ -20,6 +21,7 @@ export class Core {
   // localPersistence: LocalPersistence;
   serverPersistence: ServerPersistence = null!;
   history: History;
+  managerCore?: ManagerCore;
 
   mode = {
     textEditing: false,
@@ -27,7 +29,7 @@ export class Core {
     textNode: false,
     threads: false,
     threads_selected: false,
-  }
+  };
 
   constructor() {
     this.history = new History();

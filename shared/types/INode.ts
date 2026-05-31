@@ -1,5 +1,3 @@
-
-
 export interface INode {
   _id?: string;
   ownerId?: string;
@@ -10,4 +8,7 @@ export interface INode {
   x?: number;
   y?: number;
   title?: string | undefined;
+  exData?: {
+    ownerNodesIds?: string[];
+  };
 }
