@@ -19,8 +19,16 @@ export class VNode {
   public y: number;
   public isSelected = false;
   // private isSelectAble = true;
-  private isMoved = false;
-  movingElement!: HTMLElement;
+  protected isMoved = false;
+  protected movingElement!: HTMLElement;
+  protected unsubscribers: Array<() => void> = [];
+
+  private lastClickTime: number = 0;
+  private lastClickPos: { x: number; y: number } = { x: 0, y: 0 };
+
+  // Константы для настройки чувствительности
+  private readonly DBL_CLICK_DELAY = 300; // Максимальное время между кликами (мс)
+  private readonly DBL_CLICK_DISTANCE = 5;
 
   constructor(nodeEss: INode, container: HTMLElement) {
     this.nodeEss = nodeEss;
@@ -38,9 +46,21 @@ export class VNode {
     this.applyPosition();
     this.container.appendChild(this.body);
   }
+
   init() {
+    this.bodyInit();
     this.initMovingElement();
     this.movingElement?.classList.add("moving-element");
+
+    this.unsubscribers.push(
+      core.store.on(EVENTS.nodes.updated, (nodeEss) => {
+        if (nodeEss._id !== this._id) return;
+        this.nodeEss = nodeEss;
+        this.x = nodeEss.x ?? 0;
+        this.y = nodeEss.y ?? 0;
+        this.applyPosition();
+      }),
+    );
 
     this.bind();
   }
@@ -57,6 +77,8 @@ export class VNode {
   }
   remove() {
     this.body.remove();
+    this.unsubscribers.forEach((unsub) => unsub());
+    this.unbind();
   }
   bind() {
     this.movingElement.addEventListener("pointerdown", this.onPointerDown);
@@ -72,6 +94,26 @@ export class VNode {
   onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
     if (core.mode.textEditing) return;
+
+    // --- КАТАЛИЗАТОР ДВОЙНОГО КЛИКА ---
+    const currentTime = Date.now();
+    const timeDiff = currentTime - this.lastClickTime;
+
+    // Проверяем расстояние между первым и вторым кликом (на случай если пользователь дернул мышкой)
+    const distance = Math.hypot(
+      e.clientX - this.lastClickPos.x,
+      e.clientY - this.lastClickPos.y,
+    );
+
+    if (timeDiff < this.DBL_CLICK_DELAY && distance < this.DBL_CLICK_DISTANCE) {
+      this.onDoubleClick(e); // Вызываем наш кастомный метод двойного клика
+      return; // Прерываем выполнение, чтобы не начинать тащить ноду при двойном клике
+    }
+
+    // Сохраняем текущее время и координаты для следующей проверки
+    this.lastClickTime = currentTime;
+    this.lastClickPos = { x: e.clientX, y: e.clientY };
+    // ---------------------------------
 
     this.isMoved = false;
 
@@ -90,6 +132,12 @@ export class VNode {
 
     this.movingElement.setPointerCapture(e.pointerId);
   };
+  onDoubleClick(e: PointerEvent) {
+    // Tools.stopEvent(e);
+    // // Сбрасываем флаги перетаскивания на всякий случай
+    // this.isDragging = false;
+    // this.movingElement.releasePointerCapture(e.pointerId);
+  }
 
   onPointerMove = (e: PointerEvent) => {
     if (!this.isDragging) return;
@@ -115,24 +163,16 @@ export class VNode {
 
     this.x = Math.round(worldPos.x - this.pointerOffset.x);
     this.y = Math.round(worldPos.y - this.pointerOffset.y);
+
     this.applyPosition();
     core.store.emit(EVENTS.nodes.moving, this);
   };
 
   private moveTo(position: Position) {
-    this.nodeEss.x = Math.round(position.x);
-    this.nodeEss.y = Math.round(position.y);
-    this.x = this.nodeEss.x;
-    this.y = this.nodeEss.y;
+    this.x = position.x;
+    this.y = position.y;
     this.applyPosition();
-    core.store.emit(EVENTS.nodes.updated, this.nodeEss);
-  }
-
-  delete() {
-    this.unbind();
-    this.body.remove();
-
-    core.store.emit(EVENTS.nodes.deleted, this.nodeEss);
+    core.nodeManager.moveToNode(this.nodeEss, this.x, this.y);
   }
 
   select() {
@@ -152,18 +192,13 @@ export class VNode {
 
   onPointerUp = (e: PointerEvent) => {
     if (!this.isDragging) return;
-
     this.body.classList.remove("is-dragging");
     this.isDragging = false;
-
     if (!this.isMoved) {
       this.toggleSelect();
-
       core.selectManager.onVNodeClick(e, this);
-
       return;
     }
-
     this.moveTo({ x: this.x, y: this.y });
 
     const moveCommand = (from: Position, to: Position): Command => ({
@@ -174,9 +209,11 @@ export class VNode {
     core.history.execute(moveCommand(this.startPos, { x: this.x, y: this.y }));
 
     core.store.emit(EVENTS.nodes.moved, this);
+
+    core.mode.selectMoving = false;
   };
   checkPointOver(x: number, y: number) {
-    const rect = this.movingElement.getBoundingClientRect(); // Получаем координаты и размеры элемента
+    const rect = this.body.getBoundingClientRect(); // Получаем координаты и размеры элемента
 
     // Проверяем, находится ли точка внутри границ элемента
     return (

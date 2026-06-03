@@ -29,6 +29,7 @@ export class Core {
     textNode: false,
     threads: false,
     threads_selected: false,
+    selectedVNodeCount: 0,
   };
 
   constructor() {

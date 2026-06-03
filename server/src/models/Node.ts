@@ -2,9 +2,9 @@ import mongoose, { Model, Document } from "mongoose";
 import type { INode } from "../../../shared/types/INode.js";
 
 export interface INodeDocument
-  extends Omit<INode, "_id" | "ownerId" | "pageId">, Document {
+  extends Omit<INode, "_id" | "userId" | "pageId">, Document {
   _id: mongoose.Types.ObjectId;
-  ownerId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   pageId?: mongoose.Types.ObjectId | null;
 }
 
@@ -13,7 +13,7 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   //     type: mongoose.Schema.Types.ObjectId,
   //     required: true,s
   //   },
-  ownerId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
   },
   pageId: {
@@ -25,11 +25,13 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   inTrash: { type: Boolean },
   lastUpdate: { type: Date },
   title: { type: String },
+  ok: { type: Boolean },
   exData: {
     ownerNodesIds: {
       type: [mongoose.Schema.Types.ObjectId],
       default: undefined,
     },
+    color: { type: String },
   },
 });
 

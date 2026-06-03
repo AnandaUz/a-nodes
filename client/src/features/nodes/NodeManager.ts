@@ -3,20 +3,15 @@ import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot } from "../core/interfaces";
 
 export class NodeManager {
-  nodes = new Map<string, INode>();
+  private nodes = new Map<string, INode>();
 
   init() {
     core.store.on(EVENTS.server.loaded, (snapshot) => {
       this.loadSnapshot(snapshot);
     });
 
-    core.store.on(EVENTS.nodes.updated, (node) => {
-      core.serverPersistence.updateNode(node);
-    });
-
-    core.store.on(EVENTS.nodes.deleted, (node) => {
-      node.inTrash = true;
-      core.serverPersistence.updateNode(node);
+    core.store.on(EVENTS.nodes.updated, (nodeEss) => {
+      core.serverPersistence.updateNode(nodeEss);
     });
   }
 
@@ -27,7 +22,7 @@ export class NodeManager {
       if (!_id) continue;
       this.nodes.set(_id, node);
     }
-    core.store.emit(EVENTS.renderer.refreshAll, undefined);
+    core.store.emit(EVENTS.NodeManager.reInitAllNodes, undefined);
   }
 
   async createNode(nodeEss: INode): Promise<INode | null> {
@@ -46,13 +41,11 @@ export class NodeManager {
   getAllNodes(): INode[] {
     return Array.from(this.nodes.values());
   }
-  // move(_id: string, x: number, y: number): void {
-  //   const node = this.nodes.get(_id);
-  //   if (!node) return;
-  //   node.x = x;
-  //   node.y = y;
-  //   this.core.store.emit(EVENTS.nodes.moved, { ...node });
-  // }
+  moveToNode(nodeEss: INode, x: number, y: number): void {
+    nodeEss.x = x;
+    nodeEss.y = y;
+    core.store.emit(EVENTS.nodes.updated, nodeEss);
+  }
 
   // updateNode(_id: string, node: INode): void {
   //   const exNode = this.nodes.get(_id);
@@ -62,11 +55,22 @@ export class NodeManager {
   //   exNode.lastUpdate = new Date();
   //   this.core.store.emit(EVENTS.nodes.updated, { ...exNode });
   // }
+  okNode(id: string): void {
+    if (!this.nodes.has(id)) return;
 
+    const nodeEss = this.nodes.get(id)!;
+    nodeEss.ok = true;
+    core.store.emit(EVENTS.nodes.updated, nodeEss);
+    core.store.emit(EVENTS.nodes.deleted, nodeEss);
+    this.nodes.delete(id);
+  }
   deleteNode(id: string): void {
     if (!this.nodes.has(id)) return;
+
     const nodeEss = this.nodes.get(id)!;
-    this.nodes.delete(id);
+    nodeEss.inTrash = true;
+    core.store.emit(EVENTS.nodes.updated, nodeEss);
     core.store.emit(EVENTS.nodes.deleted, nodeEss);
+    this.nodes.delete(id);
   }
 }

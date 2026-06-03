@@ -1,3 +1,4 @@
+import { core, EVENTS } from "@/features/core/core";
 import VM_area_main from "./VM_area_main";
 import type VM_area_sub from "./VM_area_sub";
 
@@ -6,7 +7,15 @@ export class ManagerCore {
     main: new Map<string, VM_area_main>(),
     subs: new Map<string, VM_area_sub>(),
   };
-  constructor() {}
+  constructor() {
+    // core.store.on(EVENTS.renderer.refreshAll, () => {
+    //   this.init();
+    // });
+  }
 
-  init() {}
+  // init() {
+  //   // this.areas.subs.forEach((area) => {
+  //   //   // subArea.init();
+  //   // });
+  // }
 }

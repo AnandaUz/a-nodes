@@ -39,6 +39,7 @@ export const getNodesByParentNodeId = async (
     const nodes = await Node.find({
       pageId: { $in: [null, pageId] },
       inTrash: { $ne: true },
+      ok: { $ne: true },
     }).lean();
 
     res.json({ nodes });

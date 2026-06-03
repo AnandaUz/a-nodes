@@ -48,11 +48,11 @@
         }
     }
 
-    .moving-element {
+    &.moving-element {
         cursor: pointer;
     }
 
-    .elTitle {
+    .title-el {
         outline: none;
         min-width: 10px;
 

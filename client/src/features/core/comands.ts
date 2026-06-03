@@ -1,6 +1,8 @@
 import { core } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
 import type { INode } from "@shared/types";
+import type VTextEdit from "../nodes/VTextEdit";
+import { GRID } from "./CONST";
 
 interface Command {
   label: string;
@@ -45,7 +47,13 @@ const commands: Command[] = [
                 type: NODE_TYPES.TEXT_EDIT.id,
                 exData: {},
               };
-              await core.nodeManager.createNode(newNodeEss); //создание текстовой ноды
+              const vnode = await core.nodeManager.createNode(newNodeEss); //создание текстовой ноды
+              if (vnode) {
+                const vnode1 = core.nodeRenderer.getVNode(vnode._id || "");
+                if (vnode1) {
+                  (vnode1 as VTextEdit).turnOn_EditTitleMode();
+                }
+              }
             },
           },
           {
@@ -63,7 +71,13 @@ const commands: Command[] = [
                 type: NODE_TYPES.MANAGER.area_main,
                 exData: {},
               };
-              await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер
+              const vnode = await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер
+              if (vnode) {
+                const vnode1 = core.nodeRenderer.getVNode(vnode._id || "");
+                if (vnode1) {
+                  (vnode1 as VTextEdit).turnOn_EditTitleMode();
+                }
+              }
             },
           },
         ],
@@ -74,7 +88,7 @@ const commands: Command[] = [
         execute: async () => {
           if (core.mode.textEditing) return;
           core.selectManager.selectedNodes.forEach((node) => {
-            node.delete();
+            core.nodeManager.deleteNode(node._id || "");
           });
         },
       },
@@ -89,6 +103,42 @@ const commands: Command[] = [
         execute: () => {
           if (core.mode.textEditing) return;
           core.selectManager.transformMove.start();
+        },
+      },
+    ],
+  },
+  {
+    label: "Трансформации",
+
+    children: [
+      {
+        label: "Порядок ступеньками",
+        shortcuts: ["alt+q"],
+        execute: () => {
+          if (core.mode.textEditing) return;
+          if (core.mode.selectedVNodeCount < 1) return;
+          const paddingBottom = 2;
+          const paddingLeft = GRID.H;
+          const m = [...core.selectManager.selectedNodes.values()];
+          m.sort((a, b) => a.y - b.y);
+
+          let x = 0,
+            y = -1000000;
+          for (const vNode of m) {
+            if (y === -1000000) {
+              y = vNode.y;
+              x = vNode.x;
+            } else {
+              const xx = Math.round((vNode.x - x) / paddingLeft);
+              core.nodeManager.moveToNode(
+                vNode.nodeEss,
+                x + xx * paddingLeft,
+                y,
+              );
+            }
+
+            y += vNode.body.offsetHeight + paddingBottom;
+          }
         },
       },
     ],
