@@ -1,9 +1,9 @@
 import type { INode } from "@shared/types";
-import {
-  getToken,
-  refreshAccessToken,
-  removeTokens,
-} from "../../services/auth.service";
+// import {
+//   getToken,
+//   refreshAccessToken,
+//   removeTokens,
+// } from "../../services/auth.service";
 
 class API {
   private API_URL = import.meta.env.VITE_API_URL;
@@ -12,33 +12,43 @@ class API {
     path: string,
     options: RequestInit = {},
   ): Promise<Response> {
-    const token = getToken();
     const headers = new Headers(options.headers);
-
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
-    if (token && !headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-
+    // const token = getToken();
+    // if (token && !headers.has("Authorization")) {
+    //   headers.set("Authorization", `Bearer ${token}`);
+    // }
     const config: RequestInit = { method: "GET", ...options, headers };
+    return fetch(`${this.API_URL}${path}`, config);
 
-    const response = await fetch(`${this.API_URL}${path}`, config);
+    // const token = getToken();
 
-    if (response.status === 401) {
-      const newToken = await refreshAccessToken();
-      if (!newToken) {
-        removeTokens();
-        history.pushState({}, "", "/welcome");
-        // render();
-        throw new Error("Сессия истекла");
-      }
-      headers.set("Authorization", `Bearer ${newToken}`);
-      return fetch(`${this.API_URL}${path}`, { ...config, headers });
-    }
+    // if (!headers.has("Content-Type")) {
+    //   headers.set("Content-Type", "application/json");
+    // }
+    // if (token && !headers.has("Authorization")) {
+    //   headers.set("Authorization", `Bearer ${token}`);
+    // }
 
-    return response;
+    // // const config: RequestInit = { method: "GET", ...options, headers };
+
+    // const response = await fetch(`${this.API_URL}${path}`, config);
+
+    // if (response.status === 401) {
+    //   const newToken = await refreshAccessToken();
+    //   if (!newToken) {
+    //     removeTokens();
+    //     history.pushState({}, "", "/welcome");
+    //     // render();
+    //     throw new Error("Сессия истекла");
+    //   }
+    //   headers.set("Authorization", `Bearer ${newToken}`);
+    //   return fetch(`${this.API_URL}${path}`, { ...config, headers });
+    // }
+
+    // return response;
   }
 
   async loadNodes(parentId?: string) {

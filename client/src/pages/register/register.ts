@@ -1,5 +1,5 @@
 import html from "./register.html?raw";
-import { render } from "../../router";
+import { router } from "../../router";
 import api from "@/features/core/api";
 import { saveTokens } from "@/services/auth.service";
 import "./register.scss";
@@ -34,7 +34,7 @@ export function registerPage() {
           saveTokens(data.token, data.refreshToken);
 
           history.pushState({}, "", "/");
-          render();
+          router.render();
         } catch (e) {
           console.error("Ошибка регистрации:", e);
         }

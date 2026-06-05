@@ -62,7 +62,7 @@ export default class VM_area_sub extends VM_area {
         ownerNodesIds: [nodeEss._id || ""],
       },
     };
-    const vnode = await core.nodeManager.createNode(newNodeEss);
+    await core.nodeManager.createNode(newNodeEss);
 
     this.initHelpers();
   }

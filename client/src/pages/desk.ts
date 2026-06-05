@@ -4,7 +4,10 @@ export function deskPage(params: Record<string, string>) {
   return {
     html: ``,
     async init() {
-      core.init(params);
+      await core.init(params);
+    },
+    unmount() {
+      core.unmount();
     },
   };
 }

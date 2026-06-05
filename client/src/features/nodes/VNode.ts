@@ -132,7 +132,7 @@ export class VNode {
 
     this.movingElement.setPointerCapture(e.pointerId);
   };
-  onDoubleClick(e: PointerEvent) {
+  onDoubleClick(_e: PointerEvent) {
     // Tools.stopEvent(e);
     // // Сбрасываем флаги перетаскивания на всякий случай
     // this.isDragging = false;

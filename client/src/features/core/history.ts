@@ -23,4 +23,8 @@ export class History {
     command.execute();
     this.past.push(command);
   }
+  clear() {
+    this.past = [];
+    this.future = [];
+  }
 }

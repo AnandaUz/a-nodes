@@ -76,7 +76,7 @@ export default class VM_area_main extends VM_area {
       y: this.y,
       title: "Сортировщик",
     };
-    const vNode = core.nodeManager.createNode(newNode);
+    core.nodeManager.createNode(newNode);
     // if (vNode instanceof VM_area) {
     //   vNode.render();
     // }

@@ -4,6 +4,7 @@ import type { VNode } from "./VNode";
 import VTextEdit from "./VTextEdit";
 import type { INode } from "@shared/types";
 import VTextEditClone from "./VTextEditClone";
+import { VPage } from "./VPage";
 export const NODE_TYPES = {
   TEXT_EDIT: {
     id: 1,
@@ -14,6 +15,9 @@ export const NODE_TYPES = {
   },
   TEXT_EDIT_CLONE: {
     id: 3,
+  },
+  PAGE: {
+    id: 4,
   },
 };
 export type NodeType = (typeof NODE_TYPES)[keyof typeof NODE_TYPES];
@@ -26,4 +30,5 @@ export const NODE_REGISTRY: Record<
   [NODE_TYPES.MANAGER.area_main]: VM_area_main,
   [NODE_TYPES.MANAGER.area_sub]: VM_area_sub,
   [NODE_TYPES.TEXT_EDIT_CLONE.id]: VTextEditClone,
+  [NODE_TYPES.PAGE.id]: VPage,
 };

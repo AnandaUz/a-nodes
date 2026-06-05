@@ -91,40 +91,5 @@ export type DeskEvents = {
   };
 };
 
-export class Store extends EventEmitter<DeskEvents> {
-  // private nodes: Map<string, INode> = new Map();
-  // Возвращает полное состояние стола — для сохранения
-  // getSnapshot(): DeskSnapshot {
-  //   return {
-  //     nodes: this.getAllNodes(),
-  //   };
-  // }
-  // Загружает состояние и эмитит события — рендер обновится сам
-  // loadSnapshot(snapshot: DeskSnapshot): void {
-  //   // this.nodes.clear();
-  //   // this.connectors.clear();
-  //   for (const data of snapshot.nodes as INode[]) {
-  //     if (this.nodes.has(data._id)) {
-  //       const exNode = this.nodes.get(data._id)!;
-  //       if (
-  //         data.lastUpdate &&
-  //         exNode.lastUpdate &&
-  //         exNode.lastUpdate < data.lastUpdate
-  //       ) {
-  //         this.updateNode(data._id, data);
-  //         continue;
-  //       }
-  //     } else {
-  //       const node: INode = {
-  //         _id: data._id || generateId(),
-  //         x: data.x ?? 0,
-  //         y: data.y ?? 0,
-  //         lastUpdate: data.lastUpdate ?? new Date(),
-  //       };
-  //       this.nodes.set(node._id, node);
-  //       this.emit(NODE_EVENTS.Created, { ...node });
-  //     }
-  //   }
-  // }
-}
+export class Store extends EventEmitter<DeskEvents> {}
 export const store = new Store();

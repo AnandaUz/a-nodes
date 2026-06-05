@@ -1,7 +1,7 @@
 // client/src/services/auth.service.ts
 
-import type { IUser } from '@shared/types';
-import { render } from '../router';
+import type { IUser } from "@shared/types";
+import { router } from "../router";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -15,30 +15,30 @@ export interface AuthResponse {
 // --- токены ---
 
 export function saveTokens(token: string, refreshToken: string): void {
-  localStorage.setItem('token', token);
-  localStorage.setItem('refreshToken', refreshToken);
+  localStorage.setItem("token", token);
+  localStorage.setItem("refreshToken", refreshToken);
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem('token');
+  return localStorage.getItem("token");
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem('refreshToken');
+  return localStorage.getItem("refreshToken");
 }
 
 export function removeTokens(): void {
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
-  removeUser(); 
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  removeUser();
 }
 
 // --- авторизация ---
 
 export async function googleAuth(credential: string): Promise<AuthResponse> {
   const response = await fetch(`${API_URL}/api/auth/google`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ credential }),
   });
 
@@ -51,23 +51,23 @@ export async function googleAuth(credential: string): Promise<AuthResponse> {
 
 export async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
-  console.log('refreshToken из localStorage:', refreshToken);
-  
+  console.log("refreshToken из localStorage:", refreshToken);
+
   if (!refreshToken) {
-    console.log('refresh токен не найден');
+    console.log("refresh токен не найден");
     return null;
   }
 
   try {
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     });
 
-    console.log('статус ответа /refresh:', response.status);
+    console.log("статус ответа /refresh:", response.status);
     const data = await response.json();
-    console.log('ответ /refresh:', data);
+    console.log("ответ /refresh:", data);
 
     if (!response.ok) {
       removeTokens();
@@ -77,7 +77,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     saveTokens(data.token, data.refreshToken);
     return data.token;
   } catch (e) {
-    console.error('ошибка refresh запроса:', e);
+    console.error("ошибка refresh запроса:", e);
     return null;
   }
 }
@@ -89,40 +89,42 @@ export async function logout(): Promise<void> {
 
   try {
     await fetch(`${API_URL}/api/auth/logout`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     });
   } finally {
-    removeUser()
+    removeUser();
     removeTokens();
-    history.pushState({}, '', '/welcome');
-    render();
+    history.pushState({}, "", "/welcome");
+    router.render();
   }
 }
 
 export function saveUser(user: IUser): void {
-  localStorage.setItem('user', JSON.stringify(user));
+  localStorage.setItem("user", JSON.stringify(user));
 }
 
 export function getUser(): IUser | null {
-  const raw = localStorage.getItem('user');
+  const raw = localStorage.getItem("user");
   if (!raw) return null;
   return JSON.parse(raw) as IUser;
 }
 
 export function removeUser(): void {
-  localStorage.removeItem('user');
+  localStorage.removeItem("user");
 }
 
-export async function handleCredential(response: { credential: string }): Promise<void> {
+export async function handleCredential(response: {
+  credential: string;
+}): Promise<void> {
   const result = await googleAuth(response.credential);
   saveTokens(result.token, result.refreshToken);
   saveUser(result.user);
 
   if (result.isNew) {
-    history.pushState({}, '', '/register');
+    history.pushState({}, "", "/register");
   } else {
-    history.pushState({}, '', '/');
+    history.pushState({}, "", "/");
   }
-  render();
+  router.render();
 }

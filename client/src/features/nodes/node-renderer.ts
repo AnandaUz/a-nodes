@@ -8,19 +8,26 @@ export class NodeRenderer {
   private vNodes = new Map<string, VNode>();
 
   private nodesEl!: HTMLElement;
+  unsubscribers: (() => void)[] = [];
+  unmount() {
+    this.unsubscribers.forEach((fn) => fn());
+    this.vNodes.forEach((vnode) => vnode.remove());
+    this.vNodes.clear();
+  }
+
   init() {
     this.nodesEl = core.desk.nodesEl;
-    core.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
-      this.renderAll();
-    });
-
-    core.store.on(EVENTS.nodes.created, (node) => {
-      this.createVNode(node);
-    });
-
-    core.store.on(EVENTS.nodes.deleted, (node) => {
-      this.removeVNode(node._id || "");
-    });
+    this.unsubscribers.push(
+      core.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
+        this.renderAll();
+      }),
+      core.store.on(EVENTS.nodes.created, (node) => {
+        this.createVNode(node);
+      }),
+      core.store.on(EVENTS.nodes.deleted, (node) => {
+        this.removeVNode(node._id || "");
+      }),
+    );
   }
 
   createVNode(nodeEss: INode): VNode {

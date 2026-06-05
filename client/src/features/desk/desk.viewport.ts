@@ -1,3 +1,4 @@
+import { core } from "../core/core";
 import Tools from "../core/Tools";
 
 export interface ViewportState {
@@ -35,7 +36,7 @@ export class Viewport {
     this.bindEvents();
     this.applyTransform();
 
-    const st = localStorage.getItem("viewport-state");
+    const st = localStorage.getItem("viewport-state" + core.mode.deskId);
     if (st) {
       this.state = JSON.parse(st);
       this.applyTransform();
@@ -54,11 +55,6 @@ export class Viewport {
     const bgY = y % bgSize;
     this.scene.style.backgroundSize = `${bgSize}px ${bgSize}px`;
     this.scene.style.backgroundPosition = `${bgX}px ${bgY}px`;
-
-    // this.el.style.willChange = "auto";
-    // requestAnimationFrame(() => {
-    //   this.el.style.willChange = "transform";
-    // });
   }
 
   getState(): Readonly<ViewportState> {
@@ -114,10 +110,11 @@ export class Viewport {
     this.isPanning = false;
     this.scene.style.cursor = this.isSpaceDown ? "grab" : "";
 
-    localStorage.setItem("viewport-state", JSON.stringify(this.state));
+    localStorage.setItem(
+      "viewport-state" + core.mode.deskId,
+      JSON.stringify(this.state),
+    );
   };
-
-  // ─── Zoom (Ctrl + wheel) ──────────────────────────────────────
 
   private onWheel = (e: WheelEvent) => {
     if (!e.ctrlKey) return;
@@ -127,7 +124,10 @@ export class Viewport {
     const rect = this.scene.getBoundingClientRect();
     this.applyZoom(factor, e.clientX - rect.left, e.clientY - rect.top);
 
-    localStorage.setItem("viewport-state", JSON.stringify(this.state));
+    localStorage.setItem(
+      "viewport-state" + core.mode.deskId,
+      JSON.stringify(this.state),
+    );
   };
 
   private applyZoom(factor: number, originX: number, originY: number) {

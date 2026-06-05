@@ -16,7 +16,7 @@ class Btn {
     this.body.className = "bt";
     helperMain.elBtBlock.appendChild(this.body);
 
-    this.body.addEventListener("click", async (e) => {
+    this.body.addEventListener("click", async () => {
       this.active = !this.active;
     });
   }

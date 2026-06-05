@@ -6,7 +6,8 @@
     "dev:server": "cd server && npm run dev",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build:client": "cd client && npm run build",
-    "build:server": "cd server && npm run build"
+    "build:server": "cd server && npm run build",
+    "deploy": "tsx ./deploy_project.ts"
   },
   "workspaces": [
     "client",
@@ -21,10 +22,6 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.34.8"
-  },
-  "dependencies": {
-    "google-auth-library": "^10.6.2",
-    "jsonwebtoken": "^9.0.3",
-    "zod": "^4.3.6"
   }
+
 }

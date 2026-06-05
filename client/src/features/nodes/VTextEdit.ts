@@ -7,9 +7,7 @@ export default class VTextEdit extends VNode {
 
   init(): void {
     super.init();
-
     this.titleEl = this.body.querySelector(".title-el") as HTMLInputElement;
-
     this.titleEl.addEventListener("input", () => {
       this.title = this.titleEl.innerText;
     });
@@ -18,6 +16,7 @@ export default class VTextEdit extends VNode {
       this.turnOff_EditTitleMode();
     });
   }
+
   onDoubleClick(e: PointerEvent): void {
     super.onDoubleClick(e);
     this.turnOn_EditTitleMode();

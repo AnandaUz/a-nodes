@@ -1,50 +1,32 @@
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { Node } from "../models/Node";
-import type { AuthRequest } from "../middleware/auth.middleware";
+// import type { AuthRequest } from "../middleware/auth.middleware";
 import mongoose from "mongoose";
 
-// ─── GET /api/desk/root ───────────────────────────────────────────
-// Корневой уровень — все ноды у которых parentId = null
-// export const getRootDesk = async (req: AuthRequest, res: Response) => {
-//     try {
-//         const ownerId = req.user!.id;
-
-//          Node.find({ ownerId, parentId: null } as any),
-//             DeskConnector.find({ ownerId, deskId: 'root' } as any),
-//         ]);
-
-//         res.json({ nodes, connectors });
-//     } catch (err: any) {
-//         console.error('[getRootDesk Error]:', err);
-//         res.status(500).json({ message: 'Ошибка загрузки корневого desk', error: err?.message });
-//     }
-// };
-
-// ─── GET /api/desk/:nodeId ────────────────────────────────────────
-// Вложенный уровень — все ноды у которых parentId = :nodeId
-export const getNodesByParentNodeId = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const getNodesByParentNodeId = async (req: Request, res: Response) => {
   try {
-    const ownerId = req.user!.id;
-    const nodeId = req.params["nodeId"];
+    const nodeId = req.params["nodeId"] as string;
+    const isRoot = nodeId === "root";
 
-    // Создаем массив для поиска, исключая undefined
-    let pageId: string | null = null;
-    if (typeof nodeId === "string" && nodeId !== "root") {
-      pageId = nodeId;
-    }
+    const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(nodeId);
 
-    const nodes = await Node.find({
-      pageId: { $in: [null, pageId] },
-      inTrash: { $ne: true },
-      ok: { $ne: true },
-    }).lean();
+    const exStr = "-__v -inTrash -ok";
 
-    res.json({ nodes });
+    const [nodes, pageNode] = await Promise.all([
+      Node.find({
+        pageId: pageFilter as any,
+        inTrash: { $ne: true },
+        ok: { $ne: true },
+      })
+        .select(exStr)
+        .lean(),
+
+      isRoot ? null : Node.findById(nodeId).select(exStr).lean(),
+    ]);
+
+    res.json({ nodes, pageNode });
   } catch (err: any) {
-    console.error("[getDeskByNodeId Error]:", err);
+    console.error("[getNodesByParentNodeId Error]:", err);
     res
       .status(500)
       .json({ message: "Ошибка загрузки desk", error: err?.message });
@@ -75,7 +57,7 @@ export const getNodesByParentNodeId = async (
 //   }
 // };
 
-export const saveNodes = async (req: AuthRequest, res: Response) => {
+export const saveNodes = async (req: Request, res: Response) => {
   try {
     const { nodes } = req.body;
 

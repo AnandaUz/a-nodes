@@ -73,7 +73,6 @@ export const googleAuth = async (req: Request, res: Response) => {
                 name: user.name,
                 picture: payload.picture,
                 isRegistered: user.isRegistered,
-                weightStart: user.settings.account.weightStart,
                 telegramId: user.telegramId
             }
         });

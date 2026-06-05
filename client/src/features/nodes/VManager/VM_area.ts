@@ -1,16 +1,10 @@
 import type { INode } from "@shared/types";
-// import { VNode } from "@features/nodes/VNode";
-// import { core, EVENTS } from "@features/core/core";
 import VTextEdit from "../VTextEdit";
 import "./VManager.scss";
 import { core, EVENTS } from "@/features/core/core";
-// import { EVENTS } from "@/features/core/store";
-// import type { VNode } from "../VNode";
-// import { NODE_TYPES } from "../node-registry";
 import { ManagerCore } from "./ManagerCore";
 import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
-// import { EventEmitter } from "@base/client/features/event-emitter";
 
 export default class VM_area extends VTextEdit {
   helpers = new Map<string, Helper>();

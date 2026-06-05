@@ -1,28 +1,49 @@
-import { core, EVENTS } from "@/features/core/core";
-import VM_area_main from "./VManager/VM_area_main";
-import type VM_area_sub from "./VManager/VM_area_sub";
-import { VTextEdit } from "./VTextEdit";
+import { router } from "@/router";
+import Tools from "../core/Tools";
+import VTextEdit from "./VTextEdit";
 
 export class VPage extends VTextEdit {
   init() {
-    const elBtn = this.body.querySelector(".elBtn");
-    elBtn.innerHTML = "🔗";
+    super.init();
 
-    elBtn.addEventListener("mousedown", (e) => {
-      this.buttons = e.buttons;
-    });
-    elBtn.addEventListener("mouseup", (e) => {
-      const ess = this.cItem.originalItem.ess;
-      const url = "/nodes/" + ess._id;
-      switch (this.buttons) {
-        case 1:
-          console.log(url);
-          location.assign(url);
+    const btnEl = this.body.querySelector(".btn-el") as HTMLElement;
+
+    // btnEl.addEventListener("mousedown", (e) => {
+    //   // this.buttons = e.buttons;
+    // });
+    btnEl.addEventListener("mouseup", (e) => {
+      Tools.stopEvent(e);
+      const _id = this.nodeEss._id;
+      const url = "/desk/" + _id;
+      console.log("mouse UP", e.buttons);
+      switch (e.buttons) {
+        case 0:
+          router.navigate(url);
           break;
         case 4:
           window.open(url, "_blank");
           break;
       }
     });
+  }
+  initMovingElement(): void {
+    this.titleEl = this.body.querySelector(".title-el") as HTMLInputElement;
+    this.movingElement = this.titleEl;
+  }
+  onSelectedDrop() {
+    // for (const sNode of __selection.selectedNodes) {
+    //   console.log(sNode.title);
+    //   sNode.moving.stepBack();
+    //   const sItem = sNode.cItem.originalItem;
+    //   sItem.ess.pageId = this.cItem.originalItem.ess._id;
+    //   sItem.save(false);
+    //   sNode.removeFromPage();
+    // }
+    // __selection.selectedNodes = [];
+  }
+  bodyInit() {
+    super.bodyInit();
+    this.body.classList.add("v-n-page");
+    this.body.innerHTML += `<div class="btn-el btn">🔗</div>`;
   }
 }

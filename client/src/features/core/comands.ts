@@ -57,6 +57,29 @@ const commands: Command[] = [
             },
           },
           {
+            label: "страничную ноду",
+            shortcuts: ["2"],
+            execute: async () => {
+              if (core.mode.textEditing) return;
+              const { x, y } = core.desk.viewport.screenToWorld(
+                core.desk.mouse.x,
+                core.desk.mouse.y,
+              );
+              const newNodeEss: INode = {
+                x,
+                y,
+                type: NODE_TYPES.PAGE.id,
+              };
+              const vnode = await core.nodeManager.createNode(newNodeEss); //создание текстовой ноды
+              if (vnode) {
+                const vnode1 = core.nodeRenderer.getVNode(vnode._id || "");
+                if (vnode1) {
+                  (vnode1 as VTextEdit).turnOn_EditTitleMode();
+                }
+              }
+            },
+          },
+          {
             label: "Менеджер",
             shortcuts: ["3"],
             execute: async () => {

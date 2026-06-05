@@ -13,14 +13,14 @@ import type { ManagerCore } from "../nodes/VManager/ManagerCore";
 
 export { EVENTS };
 export class Core {
-  store: Store;
-  nodeManager: NodeManager;
-  nodeRenderer: NodeRenderer;
-  selectManager: SelectManager;
-  desk: Desk;
+  store!: Store;
+  nodeManager!: NodeManager;
+  nodeRenderer!: NodeRenderer;
+  selectManager!: SelectManager;
+  desk!: Desk;
   // localPersistence: LocalPersistence;
-  serverPersistence: ServerPersistence = null!;
-  history: History;
+  serverPersistence!: ServerPersistence;
+  history!: History;
   managerCore?: ManagerCore;
 
   mode = {
@@ -30,9 +30,16 @@ export class Core {
     threads: false,
     threads_selected: false,
     selectedVNodeCount: 0,
+    deskId: "root",
   };
 
-  constructor() {
+  constructor() {}
+
+  async init(_params: Record<string, string>) {
+    const currentPath = window.location.pathname;
+    const deskId = currentPath.split("/").pop() || "root";
+    this.mode.deskId = deskId;
+
     this.history = new History();
     this.store = new Store();
     this.nodeManager = new NodeManager();
@@ -41,15 +48,7 @@ export class Core {
     this.nodeRenderer = new NodeRenderer();
     this.selectManager = new SelectManager();
 
-    // this.renderer = new NodeRenderer();
-    // this.desk = new Desk();
-    // // this.localPersistence = new LocalPersistence();
-    // this.serverPersistence = new ServerPersistence();
-  }
-
-  async init(params: Record<string, string>) {
     const container = document.getElementById("main")!;
-    const deskId = params["id"] ?? "root";
 
     const token = getToken() ?? undefined;
 
@@ -57,12 +56,6 @@ export class Core {
     this.nodeManager.init();
     this.nodeRenderer.init();
 
-    // const nodeRender = new NodeRenderer();
-
-    // Core.renderer.bindStore();
-
-    // this.localPersistence = new LocalPersistence(store, deskId);
-    // this.localPersistence.init();
     this.serverPersistence = new ServerPersistence({
       apiUrl: "/api/nodes",
       deskId: deskId,
@@ -71,6 +64,13 @@ export class Core {
     await this.serverPersistence.init();
 
     initCommands();
+  }
+  unmount() {
+    this.history.clear();
+    this.store.clear();
+    this.nodeManager.unmount();
+    this.nodeRenderer.unmount();
+    this.desk.unmount();
   }
 }
 

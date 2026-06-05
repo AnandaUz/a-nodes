@@ -2,7 +2,7 @@
 
 import { getToken } from "./auth.service";
 import api from "@/features/core/api";
-import { render } from "../router";
+import { router } from "../router";
 
 export async function authGuard(): Promise<void> {
   const token = getToken();
@@ -13,13 +13,13 @@ export async function authGuard(): Promise<void> {
 
   if (!token && !isPublic) {
     history.pushState({}, "", "/welcome");
-    render();
+    router.render();
     return;
   }
 
   if (token && path === "/welcome") {
     history.pushState({}, "", "/");
-    render();
+    router.render();
     return;
   }
 

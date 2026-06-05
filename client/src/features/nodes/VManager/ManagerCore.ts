@@ -1,4 +1,3 @@
-import { core, EVENTS } from "@/features/core/core";
 import VM_area_main from "./VM_area_main";
 import type VM_area_sub from "./VM_area_sub";
 

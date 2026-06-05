@@ -4,15 +4,22 @@ import type { DeskSnapshot } from "../core/interfaces";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
+  private unsubscribers: (() => void)[] = [];
+
+  unmount() {
+    this.unsubscribers.forEach((fn) => fn());
+    this.nodes.clear();
+  }
 
   init() {
-    core.store.on(EVENTS.server.loaded, (snapshot) => {
-      this.loadSnapshot(snapshot);
-    });
-
-    core.store.on(EVENTS.nodes.updated, (nodeEss) => {
-      core.serverPersistence.updateNode(nodeEss);
-    });
+    this.unsubscribers.push(
+      core.store.on(EVENTS.server.loaded, (snapshot) => {
+        this.loadSnapshot(snapshot);
+      }),
+      core.store.on(EVENTS.nodes.updated, (nodeEss) => {
+        core.serverPersistence.updateNode(nodeEss);
+      }),
+    );
   }
 
   loadSnapshot(snapshot: DeskSnapshot): void {

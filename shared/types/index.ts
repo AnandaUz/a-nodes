@@ -1,2 +1,2 @@
-export * from './user';
-export * from './INode';
+export * from "./IUser";
+export * from "./INode";

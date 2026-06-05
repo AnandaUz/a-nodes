@@ -4,6 +4,8 @@ dist/
 dist-client/
 dist-server/
 
+scripts/
+
 # Конфиденциальные данные
 .env
 .env.local

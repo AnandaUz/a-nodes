@@ -31,10 +31,13 @@ export class ServerPersistence {
     // this.bindStore();
   }
   private async load(): Promise<void> {
-    const snapshot = await api.loadNodes();
+    const snapshot = await api.loadNodes(this.opts.deskId);
     core.store.emit(EVENTS.server.loaded, snapshot);
   }
   async createNode(node: INode): Promise<string> {
+    if (this.opts.deskId !== "root") {
+      node.pageId = this.opts.deskId;
+    }
     const _ids = await api.saveNodes([node]);
     if (!_ids || _ids.length === 0) return "";
     node._id = _ids[0] || "";

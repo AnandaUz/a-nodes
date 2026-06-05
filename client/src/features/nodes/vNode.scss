@@ -10,6 +10,8 @@
     padding: 1px;
     overflow: visible; // якоря выглядывают за края
 
+
+
     // -webkit-font-smoothing: antialiased;
     // -moz-osx-font-smoothing: grayscale;
     // transform: translateZ(0);
@@ -52,22 +54,26 @@
         cursor: pointer;
     }
 
+    &.v-n-page {
+        display: flex;
+
+        .btn-el {
+            cursor: pointer;
+        }
+    }
+
     .title-el {
         outline: none;
         min-width: 10px;
-
         width: max-content;
-
-        white-space: nowrap;
-
-        background: #ffffff;
+        text-indent: -36px;
+        max-width: 560px;
+        background: #ffffffd6;
         min-width: 10px;
         min-height: 10px;
-
-        padding: 1px 4px;
-
+        padding: 3px 4px 3px 43px;
         border-radius: 9px;
-        line-height: 1;
+        line-height: 0.9;
     }
 
     &__text {
