@@ -15,7 +15,7 @@ export class TransformMove {
   start() {
     if (this.selectManager.selectedNodes.size === 0) return;
     this.active = true;
-    core.mode.selectMoving = true;
+
     window.addEventListener("pointermove", this.onMouseMove);
     window.addEventListener("pointerup", this.onMouseUp);
 
@@ -29,11 +29,14 @@ export class TransformMove {
     this.selectManager.selectedNodes.forEach((node) => {
       node.onPointerDown(pEvent);
     });
+    core.mode.selectMoving = true;
 
     // this.startMouse = { x: pEvent.clientX, y: pEvent.clientY };
   }
   private onMouseMove = (e: PointerEvent) => {
     if (!this.active) return;
+
+    core.mode.wasMoving = true;
 
     this.selectManager.selectedNodes.forEach((node) => {
       node.onPointerMove(e);

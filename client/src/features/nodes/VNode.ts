@@ -22,6 +22,7 @@ export class VNode {
   protected isMoved = false;
   protected movingElement!: HTMLElement;
   protected unsubscribers: Array<() => void> = [];
+  private animationId: number | null = null;
 
   private lastClickTime: number = 0;
   private lastClickPos: { x: number; y: number } = { x: 0, y: 0 };
@@ -94,6 +95,7 @@ export class VNode {
   onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
     if (core.mode.textEditing) return;
+    if (core.mode.selectMoving && core.mode.selectedVNodeCount > 1) return;
 
     // --- КАТАЛИЗАТОР ДВОЙНОГО КЛИКА ---
     const currentTime = Date.now();
@@ -178,11 +180,13 @@ export class VNode {
   select() {
     this.isSelected = true;
     this.body.classList.add("is-selected");
+    core.store.emit(EVENTS.nodes.selected, this);
   }
 
   unselect() {
     this.isSelected = false;
     this.body.classList.remove("is-selected");
+    core.store.emit(EVENTS.nodes.unselected, this);
   }
 
   toggleSelect() {
@@ -211,6 +215,8 @@ export class VNode {
     core.store.emit(EVENTS.nodes.moved, this);
 
     core.mode.selectMoving = false;
+
+    this.onStop();
   };
   checkPointOver(x: number, y: number) {
     const rect = this.body.getBoundingClientRect(); // Получаем координаты и размеры элемента
@@ -257,4 +263,55 @@ export class VNode {
     return f_x && f_y;
   }
   render() {}
+
+  moveAniTo(x: number | null = null, y: number | null = null, delay = 0) {
+    if (x === null && y === null) return;
+
+    // отменяем предыдущую анимацию
+    if (this.animationId !== null) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+
+    const targetX = x ?? this.x;
+    const targetY = y ?? this.y;
+    const startX = this.x;
+    const startY = this.y;
+    const duration = 200;
+
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const start = () => {
+      const startTime = performance.now();
+
+      const step = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = easeOut(t);
+
+        const newX = startX + (targetX - startX) * ease;
+        const newY = startY + (targetY - startY) * ease;
+
+        this.x = newX;
+        this.y = newY;
+        this.applyPosition();
+
+        if (t < 1) {
+          this.animationId = requestAnimationFrame(step);
+        } else {
+          this.moveTo({ x: targetX, y: targetY });
+          this.animationId = null;
+        }
+      };
+
+      this.animationId = requestAnimationFrame(step);
+    };
+
+    if (delay > 0) {
+      setTimeout(start, delay);
+    } else {
+      start();
+    }
+  }
+  onStop() {}
 }

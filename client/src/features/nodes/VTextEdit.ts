@@ -1,3 +1,4 @@
+import VM_area from "./VManager/VM_area";
 import { VNode } from "./VNode";
 import { core, EVENTS } from "@features/core/core";
 
@@ -94,6 +95,58 @@ export default class VTextEdit extends VNode {
         this.titleEl.innerHTML = str;
         // this.onChange()
       }
+    }
+  }
+  onStop() {
+    if (this instanceof VM_area) return;
+    const selectedVNodes = core.selectManager.selectedNodes;
+    const isMulti = selectedVNodes.size > 1;
+
+    const putBlocks: VNode[] = isMulti ? [...selectedVNodes.values()] : [this];
+    const exNodes: VNode[] = [...putBlocks];
+
+    const baseRect = isMulti
+      ? core.selectManager.getSelectedNodeRect()
+      : this.body.getBoundingClientRect();
+
+    const overRect = {
+      x: baseRect.x,
+      y: baseRect.y,
+      width: 200,
+      height: baseRect.height,
+    } as DOMRect;
+
+    const candidates = core.selectManager
+      .getNodeOverRect(overRect)
+      .filter((node) => !exNodes.includes(node) && node !== this);
+
+    if (!candidates.length) return;
+
+    // сначала ищем по тонкой полосе, потом первый попавшийся
+    const rectIn = { ...overRect, height: 5 };
+    const byNode =
+      candidates.find((node) => node.checkInRect(rectIn)) ?? candidates[0];
+
+    if (!byNode) return;
+    if (byNode instanceof VM_area) return;
+
+    exNodes.push(byNode);
+
+    const y0 = overRect.y;
+    const byNodeRect = byNode.body.getBoundingClientRect();
+    const y1 = byNodeRect.y;
+
+    if (y0 + overRect.height - y1 > byNodeRect.height * 0.5) {
+      const dy0 = y1 + byNodeRect.height - y0;
+      putBlocks.forEach((node) => {
+        node.moveAniTo(null, node.y + dy0);
+      });
+
+      overRect.y += dy0 - 1;
+
+      core.nodeRenderer.moveOverNodes(overRect, overRect.height, exNodes);
+    } else {
+      this.moveAniTo(null, byNode.y - this.body.offsetHeight);
     }
   }
 }

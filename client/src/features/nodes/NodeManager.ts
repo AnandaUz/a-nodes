@@ -4,6 +4,7 @@ import type { DeskSnapshot } from "../core/interfaces";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
+  pageNode: INode | undefined;
   private unsubscribers: (() => void)[] = [];
 
   unmount() {
@@ -28,6 +29,9 @@ export class NodeManager {
       const { _id } = node;
       if (!_id) continue;
       this.nodes.set(_id, node);
+    }
+    if (snapshot.pageNode) {
+      this.pageNode = snapshot.pageNode;
     }
     core.store.emit(EVENTS.NodeManager.reInitAllNodes, undefined);
   }

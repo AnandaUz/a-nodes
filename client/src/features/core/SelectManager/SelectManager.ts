@@ -7,19 +7,7 @@ import { TransformMove } from "./TransformMove";
 
 export class SelectManager {
   private body: HTMLElement;
-  // is_mdown = false
 
-  // p1 = {x:0,y:0}
-  // p2 =  {x:0,y:0}
-
-  // private is_on = true
-  // m_sel = []
-  // is_multi_sel = false
-  // is_sel = false
-  // is_moved = false
-  // wasSelecting = false
-  // wasButtons: number = 0
-  // onMove
   selectedNodes = new Map<string, VNode>();
 
   transformMove: TransformMove = new TransformMove(this);
@@ -47,7 +35,10 @@ export class SelectManager {
 
     new SelectionRect(mainBlock, (rect, mouseEvent) => {
       if (!core.mode.selectMoving && (rect.width < 10 || rect.height < 10)) {
-        this.clearSelection();
+        if (!core.mode.wasMoving) {
+          this.clearSelection();
+        }
+        core.mode.wasMoving = false;
         return;
       }
 
@@ -64,9 +55,37 @@ export class SelectManager {
       core.mode.selectMoving = false;
     });
   }
+
+  getNodeOverRect(rect: DOMRect) {
+    return core.nodeRenderer.getAllNodes().filter((node) => {
+      const r = node.body.getBoundingClientRect();
+      return (
+        r.x < rect.x + rect.width &&
+        r.x + r.width > rect.x &&
+        r.y < rect.y + rect.height &&
+        r.y + r.height > rect.y
+      );
+    });
+  }
   clearSelection() {
     this.selectedNodes.forEach((node) => node.unselect());
     this.selectedNodes.clear();
     core.mode.selectedVNodeCount = 0;
+  }
+  getSelectedNodeRect() {
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+
+    this.selectedNodes.forEach((node) => {
+      const r = node.body.getBoundingClientRect();
+      x0 = Math.min(x0, r.x);
+      y0 = Math.min(y0, r.y);
+      x1 = Math.max(x1, r.x + r.width);
+      y1 = Math.max(y1, r.y + r.height);
+    });
+
+    return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } as DOMRect;
   }
 }

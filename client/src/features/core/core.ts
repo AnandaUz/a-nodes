@@ -31,6 +31,7 @@ export class Core {
     threads_selected: false,
     selectedVNodeCount: 0,
     deskId: "root",
+    wasMoving: false, //переменная для того чтобы клик не снимал выделения
   };
 
   constructor() {}

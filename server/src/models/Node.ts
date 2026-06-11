@@ -32,6 +32,8 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
       default: undefined,
     },
     color: { type: String },
+    repeatMode: { type: String },
+    repeatDay: { type: Date },
   },
 });
 

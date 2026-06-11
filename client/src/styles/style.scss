@@ -60,8 +60,6 @@ body {
   font-size: 18px;
 }
 
-main {}
-
 footer {
   position: fixed;
   bottom: 0;
@@ -74,60 +72,6 @@ footer {
   display: flex;
   align-items: center;
   justify-content: l;
-}
-
-header {
-  position: fixed;
-  top: 0;
-  // left: 0;
-  right: 0;
-  z-index: 100;
-
-  a {
-    color: #939393;
-    text-decoration: none;
-
-    &.active {
-      color: #646cff;
-    }
-  }
-
-  nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    padding: 5px;
-  }
-
-  .logo {
-    background: url('@assets/i_home.svg') no-repeat center center;
-    background-size: contain;
-    width: 35px;
-    height: 35px;
-    display: inline-block;
-  }
-}
-
-h1 {
-  color: rgba(255, 68, 0, 0.75);
-  font-size: 28px;
-  text-align: center;
-  font-weight: normal;
-  position: relative;
-  line-height: 0.9;
-  padding: 0 2px 4px;
-
-  &:before {
-    content: "";
-    display: block;
-    position: absolute;
-
-    width: 80%;
-    height: 1px;
-    bottom: 1px;
-
-    background: rgba(89, 0, 0, 0.35);
-  }
 }
 
 .login {

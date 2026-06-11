@@ -26,6 +26,8 @@ export const EVENTS = {
     moving: "node:moving",
     // movingById: "node:moving:${string}",
     deleted: "node:deleted",
+    selected: "node:selected",
+    unselected: "node:unselected",
     mouse: {
       down: "mouse:down",
       move: "mouse:move",
@@ -63,6 +65,8 @@ export type DeskEvents = {
   [EVENTS.nodes.moved]: INode;
   [EVENTS.nodes.moving]: INode;
   [EVENTS.nodes.deleted]: INode;
+  [EVENTS.nodes.selected]: INode;
+  [EVENTS.nodes.unselected]: INode;
   [EVENTS.server.loaded]: DeskSnapshot;
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;

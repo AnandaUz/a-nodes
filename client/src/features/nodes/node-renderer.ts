@@ -3,6 +3,7 @@ import "./vNode.scss";
 import { VNode } from "./VNode";
 import { core, EVENTS } from "../core/core";
 import { NODE_REGISTRY } from "./node-registry";
+import VM_area from "./VManager/VM_area";
 
 export class NodeRenderer {
   private vNodes = new Map<string, VNode>();
@@ -55,5 +56,38 @@ export class NodeRenderer {
   }
   getAllNodes() {
     return Array.from(this.vNodes.values());
+  }
+  moveOverNodes(overRect: DOMRect, dy0: number, exNodes: VNode[] = []) {
+    if (dy0 === 0) return;
+
+    const exSet = new Set<VNode>(exNodes); // Set вместо массива — поиск O(1)
+    const mRes: VNode[] = [];
+
+    const collect = (node: VNode) => {
+      if (node instanceof VM_area) return;
+      if (exSet.has(node)) return;
+      exSet.add(node);
+      mRes.push(node);
+
+      const r = node.body.getBoundingClientRect();
+      const rect = {
+        x: r.x,
+        y: r.y,
+        width: 200, // переопределяем
+        height: r.height,
+      } as DOMRect;
+
+      rect.height += overRect.height + 50;
+
+      core.selectManager.getNodeOverRect(rect).forEach(collect);
+    };
+
+    core.selectManager.getNodeOverRect(overRect).forEach(collect);
+
+    mRes
+      .sort((a, b) => a.y - b.y)
+      .forEach((node, i) => {
+        node.moveAniTo(null, node.y + dy0, i * 50);
+      });
   }
 }

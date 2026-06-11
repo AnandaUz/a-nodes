@@ -12,5 +12,7 @@ export interface INode {
   exData?: {
     ownerNodesIds?: string[];
     color?: string;
+    repeatMode?: string;
+    repeatDay?: Date;
   };
 }

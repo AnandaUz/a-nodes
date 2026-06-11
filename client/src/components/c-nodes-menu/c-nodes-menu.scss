@@ -1,0 +1,59 @@
+c-nodes-menu {
+    border-radius: 5px;
+    position: fixed;
+    right: 3px;
+    top: 50px;
+
+    background: #fffe;
+    z-index: 10000;
+    box-shadow: 0px 0px 7px #0003;
+    padding: 5px;
+
+    &>div {
+        display: none;
+        width: 240px;
+
+        &.active {
+            display: block;
+        }
+    }
+
+    .title {
+        font-size: 12px;
+        background: #b8d6d7;
+        color: #59618b;
+        margin: 0px -5px 5px;
+        padding: 1px 5px;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 1px 4px;
+        cursor: pointer;
+        text-align: center;
+        border-radius: 5px;
+        font-size: 12px;
+        color: #888;
+        background: #f1f1f1;
+
+        &:hover,
+        &.active {
+            background: #d4e9e0;
+            color: #4a90e2;
+        }
+    }
+
+    .repeat-block {
+        .days-block {
+            display: flex;
+            gap: 2px;
+
+        }
+
+        .time-block {
+            text-align: center;
+            font-size: 15px;
+            padding: 4px 0;
+        }
+    }
+}
