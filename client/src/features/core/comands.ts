@@ -7,7 +7,7 @@ import { GRID } from "./CONST";
 interface Command {
   label: string;
   shortcuts?: string[];
-  execute?: () => void;
+  execute?: (e: KeyboardEvent) => void;
   children?: Command[];
 }
 const commands: Command[] = [
@@ -23,6 +23,14 @@ const commands: Command[] = [
         label: "Вперед",
         shortcuts: ["ctrl+shift+z", "cmd+shift+z"],
         execute: () => core.history.redo(),
+      },
+      {
+        label: "Enter",
+        shortcuts: ["enter"],
+        execute: (e: KeyboardEvent) => {
+          console.log("Enter");
+          core.nodeManager.addTextEditNode_byEnter(e);
+        },
       },
     ],
   },
@@ -204,6 +212,6 @@ export function initCommands() {
       .filter(Boolean)
       .join("+");
 
-    flatCommands.find((c) => c.shortcuts?.includes(pressed))?.execute?.();
+    flatCommands.find((c) => c.shortcuts?.includes(pressed))?.execute?.(e);
   });
 }

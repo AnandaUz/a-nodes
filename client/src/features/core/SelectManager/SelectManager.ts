@@ -24,6 +24,25 @@ export class SelectManager {
       vnode.select();
       this.selectedNodes.set(vnode._id, vnode);
     }
+    core.mode.selectedVNodeCount = this.selectedNodes.size;
+  }
+  selectNodyById(
+    id: string,
+    options?: {
+      ctrlKey?: boolean;
+    },
+  ): VNode | null {
+    const vnode = core.nodeRenderer.getVNode(id);
+    if (!vnode) return null;
+    if (options?.ctrlKey) {
+      this.selectedNodes.set(id, vnode);
+    } else {
+      this.clearSelection();
+      this.selectedNodes.set(id, vnode);
+    }
+    vnode.select();
+    core.mode.selectedVNodeCount = this.selectedNodes.size;
+    return vnode;
   }
 
   constructor() {

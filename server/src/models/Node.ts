@@ -19,21 +19,24 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   pageId: {
     type: mongoose.Schema.Types.ObjectId,
   },
-  x: { type: Number },
-  y: { type: Number },
-  type: { type: Number },
+  x: { type: mongoose.Schema.Types.Int32 },
+  y: { type: mongoose.Schema.Types.Int32 },
+  type: { type: mongoose.Schema.Types.Int32 },
   inTrash: { type: Boolean },
   lastUpdate: { type: Date },
   title: { type: String },
   ok: { type: Boolean },
   exData: {
-    ownerNodesIds: {
-      type: [mongoose.Schema.Types.ObjectId],
-      default: undefined,
+    type: {
+      ownerNodesIds: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: undefined,
+      },
+      color: { type: String },
+      repeatMode: { type: String },
+      repeatDay: { type: Date },
     },
-    color: { type: String },
-    repeatMode: { type: String },
-    repeatDay: { type: Date },
+    default: undefined, // не записывать если пустой
   },
 });
 

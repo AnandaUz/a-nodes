@@ -279,7 +279,7 @@ export class VNode {
     const startY = this.y;
     const duration = 200;
 
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 2);
 
     const start = () => {
       const startTime = performance.now();
