@@ -6,11 +6,18 @@ import { ManagerCore } from "./ManagerCore";
 import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
 
+const GRID = {
+  H_STEP: 50,
+  V_STEP: 30,
+};
+
 export default class VM_area extends VTextEdit {
-  helpers = new Map<string, Helper>();
+  helpers: Helper[] = [];
+  helpersById: Record<string, Helper> = {};
   elSubTitle?: HTMLElement;
   elBtnsBlock?: HTMLElement;
-  helperType = Helper;
+  subAreas: Map<string, VM_area> = new Map();
+  helperType: new (vnode: VNode, mainArea: VM_area) => Helper = Helper as any;
   // events = new EventEmitter<VNodeEvents>();
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
@@ -18,9 +25,23 @@ export default class VM_area extends VTextEdit {
 
     if (!core.managerCore) core.managerCore = new ManagerCore();
 
-    core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
-      this.initHelpers();
-    });
+    this.unsubscribers.push(
+      core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
+        this.initHelpers();
+      }),
+      core.store.on(EVENTS.nodes.created, (_nodeEss: INode) => {
+        this.initHelpers();
+      }),
+      core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
+        this.refreshHelpers();
+      }),
+      core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
+        if (mainArea !== this) return;
+        if (this.subAreas.has(subArea.nodeEss._id || "")) return;
+        this.subAreas.set(subArea.nodeEss._id || "", subArea);
+        this.initHelpers();
+      }),
+    );
   }
   // init() {
   //   super.init();
@@ -45,6 +66,29 @@ export default class VM_area extends VTextEdit {
   // render() {
   //   super.render();
   // }
+  refreshHelpers() {
+    this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
+
+    let levelPrev = 0;
+    this.helpers.forEach((h, _i) => {
+      let sdvigX = Math.round((h.mainNode.x - this.x) / GRID.H_STEP);
+      sdvigX = Math.min(sdvigX, levelPrev + 1);
+
+      levelPrev = sdvigX;
+
+      const x = this.x + sdvigX * GRID.H_STEP;
+      const y = h.mainNode.y;
+
+      // h.body.style.transform = `translate(${x}px, ${y}px)`;
+
+      h.mainNode.moveTo({ x, y });
+
+      // h.mainNode.x = this.x + GRID.H_STEP * i;
+      // h.mainNode.y = this.y + GRID.V_STEP * i;
+      h.render();
+    });
+  }
+
   initHelpers() {
     core.nodeRenderer.getAllNodes().forEach((vnode) => {
       if (vnode instanceof VTextEdit && vnode !== this) {
@@ -52,8 +96,8 @@ export default class VM_area extends VTextEdit {
         if (x === undefined || y === undefined) return;
 
         if (this.checkPointOver(x, y)) {
-          if (vnode instanceof VTextEdit) {
-            let h = this.helpers.get(vnode._id);
+          if (vnode instanceof VTextEdit && !(vnode instanceof VM_area)) {
+            let h = this.helpersById[vnode._id];
             if (!h) {
               h = this.addHelper(vnode);
             } else {
@@ -65,10 +109,17 @@ export default class VM_area extends VTextEdit {
         }
       }
     });
+    this.refreshHelpers();
   }
   addHelper(vnode: VNode) {
     const helper = new this.helperType(vnode, this);
-    this.helpers.set(vnode._id, helper);
+    this.helpers.push(helper);
+    this.helpersById[helper._id] = helper;
     return helper;
+  }
+
+  removeHelper(_id: string) {
+    this.helpers = this.helpers.filter((h) => h._id !== _id);
+    delete this.helpersById[_id];
   }
 }

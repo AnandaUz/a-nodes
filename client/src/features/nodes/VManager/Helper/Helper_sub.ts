@@ -4,8 +4,8 @@ import type { VNode } from "../../VNode";
 import { core, EVENTS } from "@/features/core/core";
 
 export default class Helper_sub extends Helper {
-  constructor(vnode: VNode, areaMain: VM_area_sub) {
-    super(vnode, areaMain);
+  constructor(vnode: VNode, mainArea: VM_area_sub) {
+    super(vnode, mainArea);
     this.body.classList.add("helper-sub");
   }
 
@@ -20,11 +20,11 @@ export default class Helper_sub extends Helper {
     bt.addEventListener("click", async () => {
       core.store.emit(EVENTS.helper.sub.btnOk, { helperSub: this });
 
-      // const mainNode = this.nodeMain;
+      // const mainNode = this.mainNode;
       // mainNode.nodeEss.ok = true;
       // mainNode.save();
 
-      core.nodeManager.okNode(this.nodeMain.nodeEss._id || "");
+      core.nodeManager.okNode(this.mainNode.nodeEss._id || "");
     });
   }
 }

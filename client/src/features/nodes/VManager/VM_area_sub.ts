@@ -2,16 +2,20 @@ import type { INode } from "@shared/types";
 
 import VM_area from "./VM_area";
 import { core, EVENTS } from "@/features/core/core";
-import Helper_sub from "./Helper/Helper_sub";
+// import Helper_sub from "./Helper/Helper_sub";
 import { NODE_TYPES } from "../node-registry";
+// import type { Helper } from "./Helper/Helper";
 // import VTextEdit from "../VTextEdit";
 
 export default class VM_area_sub extends VM_area {
   areasMain = new Map<string, VM_area>();
+  // helperType: typeof Helper_sub = Helper_sub;
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-m-sub");
-    this.helperType = Helper_sub;
+
+    const t = this.helperType;
+    // this.helperType = Helper_sub;
 
     core.managerCore?.areas.subs.set(node._id!, this);
 
@@ -21,13 +25,13 @@ export default class VM_area_sub extends VM_area {
 
     core.store.on(
       EVENTS.helper.main.btnConnection,
-      ({ helperMain, areaSub }) => {
-        if (this !== areaSub) return;
-        this.addNodeClone(helperMain.nodeMain.nodeEss);
+      ({ helperMain, subArea }) => {
+        if (this !== subArea) return;
+        this.addNodeClone(helperMain.mainNode.nodeEss);
       },
     );
     core.store.on(EVENTS.nodes.deleted, (nodeEss) => {
-      const h = this.helpers.get(nodeEss._id || "");
+      const h = this.helpersById[nodeEss._id || ""];
       if (h) {
         h.remove();
       }
@@ -43,12 +47,12 @@ export default class VM_area_sub extends VM_area {
     this.movingElement.style.backgroundColor = `hsl(${this.nodeEss.exData?.color || 0},60%,70%)`;
 
     ids.forEach((id) => {
-      const areaMain = core.managerCore?.areas.main.get(id);
-      if (!areaMain) return;
-      this.areasMain.set(id, areaMain);
-      this.elSubTitle!.innerHTML = areaMain.nodeEss.title || "";
+      const mainArea = core.managerCore?.areas.main.get(id);
+      if (!mainArea) return;
+      this.areasMain.set(id, mainArea);
+      this.elSubTitle!.innerHTML = mainArea.nodeEss.title || "";
 
-      core.store.emit(EVENTS.area.sub.connected, { areaSub: this, areaMain });
+      core.store.emit(EVENTS.area.sub.connected, { subArea: this, mainArea });
     });
   }
   async addNodeClone(nodeEss: INode) {

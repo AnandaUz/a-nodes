@@ -15,8 +15,12 @@ export const getNodesByParentNodeId = async (req: Request, res: Response) => {
     const [nodes, pageNode] = await Promise.all([
       Node.find({
         pageId: pageFilter as any,
-        inTrash: { $ne: true },
-        ok: { $ne: true },
+        $or: [
+          // обычные ноды — без мусора
+          { inTrash: { $ne: true }, ok: { $ne: true } },
+          // просроченные — выдаём всегда
+          { "exData.repeatDay": { $lt: new Date() } },
+        ],
       })
         .select(exStr)
         .lean(),

@@ -14,7 +14,6 @@ class Btn {
     this.helperMain = helperMain;
     this.body = document.createElement("div");
     this.body.className = "bt";
-    helperMain.elBtBlock.appendChild(this.body);
 
     this.body.addEventListener("click", async () => {
       this.active = !this.active;
@@ -33,51 +32,56 @@ class Btn {
 
 export default class Helper_main extends Helper {
   subHelper?: Helper_sub;
-  btnsConnection = new Map<string, Btn>();
+  btns = new Map<string, Btn>();
   //   init() {
   //     super.init();
 
   //   }
-  constructor(nodeMain: VNode, _areaMain: VM_area_main) {
-    super(nodeMain, _areaMain);
+  render() {
+    super.render();
+    // if (mainArea !== _mainArea) return;
 
-    this.unsubscribers.push(
-      core.store.on(EVENTS.area.sub.connected, ({ areaSub, areaMain }) => {
-        if (areaMain !== _areaMain) return;
+    this.btnBlockEl.innerHTML = "";
+    this.btns.clear();
 
-        let btn = this.btnsConnection.get(areaSub.nodeEss._id || "");
-        if (!btn) {
-          btn = new Btn(this);
-          this.btnsConnection.set(areaSub.nodeEss._id || "", btn);
-          btn.body.style.setProperty(
-            "--color",
-            `hsl(${areaSub.nodeEss.exData?.color || 0}, 100%, 50%)`,
-          );
-          btn.body.addEventListener("click", async () => {
-            core.store.emit(EVENTS.helper.main.btnConnection, {
-              helperMain: this,
-              areaSub,
-            });
-          });
-        }
-        const helper_sub = [...areaSub.helpers.values()].find((helper) =>
-          helper.nodeMain.nodeEss.exData?.ownerNodesIds?.includes(
-            this.nodeMain.nodeEss._id || "",
-          ),
-        );
-        if (helper_sub) {
-          btn.active = true;
-        }
-      }),
-    );
+    this.mainArea.subAreas.forEach((subArea) => {
+      const btn = new Btn(this);
+      this.btns.set(subArea.nodeEss._id || "", btn);
+      btn.body.style.setProperty(
+        "--color",
+        `hsl(${subArea.nodeEss.exData?.bgColor || 0}, 100%, 50%)`,
+      );
+      btn.body.addEventListener("click", async () => {
+        // core.store.emit(EVENTS.helper.main.btnConnection, {
+        //   helperMain: this,
+        //   subArea,
+        // });
+      });
+      this.btnBlockEl.appendChild(btn.body);
+    });
+    // const helper_sub = [...subArea.helpers.values()].find((helper) =>
+    //   helper.mainNode.nodeEss.exData?.ownerNodesIds?.includes(
+    //     this.mainNode.nodeEss._id || "",
+    //   ),
+    // );
+    // if (helper_sub) {
+    //   btn.active = true;
+    // }
+  }
+  constructor(mainNode: VNode, _mainArea: VM_area_main) {
+    super(mainNode, _mainArea);
+
+    // this.unsubscribers.push(
+
+    // );
     this.unsubscribers.push(
       core.store.on(EVENTS.helper.sub.btnOk, ({ helperSub }) => {
-        const subId = helperSub.nodeMain.nodeEss.exData?.ownerNodesIds?.[0];
+        const subId = helperSub.mainNode.nodeEss.exData?.ownerNodesIds?.[0];
         if (!subId) return;
-        if (this.nodeMain.nodeEss._id !== subId) return;
+        if (this.mainNode.nodeEss._id !== subId) return;
 
         const btn = this.btnsConnection.get(
-          helperSub.areaMain.nodeEss._id || "",
+          helperSub.mainArea.nodeEss._id || "",
         );
         if (btn) {
           btn.active = false;
@@ -88,7 +92,7 @@ export default class Helper_main extends Helper {
           f = f || btn.active;
         });
         if (!f) {
-          core.nodeManager.okNode(this.nodeMain.nodeEss._id || "");
+          core.nodeManager.okNode(this.mainNode.nodeEss._id || "");
 
           return;
         }

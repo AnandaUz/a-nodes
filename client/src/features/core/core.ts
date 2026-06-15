@@ -32,6 +32,7 @@ export class Core {
     selectedVNodeCount: 0,
     deskId: "root",
     wasMoving: false, //переменная для того чтобы клик не снимал выделения
+    scale: 1,
   };
 
   constructor() {}

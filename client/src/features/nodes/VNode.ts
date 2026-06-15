@@ -7,6 +7,8 @@ interface Position {
   x: number;
   y: number;
 }
+const DBL_CLICK_DELAY = 300; // Максимальное время между кликами (мс)
+const DBL_CLICK_DISTANCE = 5;
 export class VNode {
   private container: HTMLElement;
   body: HTMLElement;
@@ -28,8 +30,6 @@ export class VNode {
   private lastClickPos: { x: number; y: number } = { x: 0, y: 0 };
 
   // Константы для настройки чувствительности
-  private readonly DBL_CLICK_DELAY = 300; // Максимальное время между кликами (мс)
-  private readonly DBL_CLICK_DISTANCE = 5;
 
   constructor(nodeEss: INode, container: HTMLElement) {
     this.nodeEss = nodeEss;
@@ -72,6 +72,9 @@ export class VNode {
     this.body.style.transform = `translate(${this.x}px, ${this.y}px)`;
   }
   bodyInit() {}
+  save() {
+    core.store.emit(EVENTS.nodes.updated, this.nodeEss);
+  }
 
   updatePosition() {
     this.applyPosition();
@@ -107,7 +110,7 @@ export class VNode {
       e.clientY - this.lastClickPos.y,
     );
 
-    if (timeDiff < this.DBL_CLICK_DELAY && distance < this.DBL_CLICK_DISTANCE) {
+    if (timeDiff < DBL_CLICK_DELAY && distance < DBL_CLICK_DISTANCE) {
       this.onDoubleClick(e); // Вызываем наш кастомный метод двойного клика
       return; // Прерываем выполнение, чтобы не начинать тащить ноду при двойном клике
     }
@@ -155,8 +158,8 @@ export class VNode {
     }
 
     if (!this.isSelected) {
-      this.select();
       core.selectManager.onVNodeClick(e, this);
+      // this.select();
     }
 
     this.isMoved = true;
@@ -170,9 +173,9 @@ export class VNode {
     core.store.emit(EVENTS.nodes.moving, this);
   };
 
-  private moveTo(position: Position) {
-    this.x = position.x;
-    this.y = position.y;
+  moveTo(position: { x: number | undefined; y: number | undefined }) {
+    if (position.x !== undefined) this.x = Math.round(position.x);
+    if (position.y !== undefined) this.y = Math.round(position.y);
     this.applyPosition();
     core.nodeManager.moveToNode(this.nodeEss, this.x, this.y);
   }
@@ -180,7 +183,6 @@ export class VNode {
   select() {
     this.isSelected = true;
     this.body.classList.add("is-selected");
-    core.store.emit(EVENTS.nodes.selected, this);
   }
 
   unselect() {
@@ -262,7 +264,23 @@ export class VNode {
     }
     return f_x && f_y;
   }
-  render() {}
+  render() {
+    const idx = parseInt(this.nodeEss.exData?.repeatMode || "");
+    const iconBlock = this.body.querySelector(".repeat-icon");
+    if (!isNaN(idx) || this.nodeEss.exData?.repeatDay) {
+      this.body.classList.add("repeat-day");
+      if (!iconBlock) {
+        const el = document.createElement("div");
+        el.classList.add("repeat-icon");
+        this.body.appendChild(el);
+      }
+    } else {
+      this.body.classList.remove("repeat-day");
+      if (iconBlock) {
+        iconBlock.remove();
+      }
+    }
+  }
 
   moveAniTo(x: number | null = null, y: number | null = null, delay = 0) {
     if (x === null && y === null) return;
@@ -275,6 +293,7 @@ export class VNode {
 
     const targetX = x ?? this.x;
     const targetY = y ?? this.y;
+
     const startX = this.x;
     const startY = this.y;
     const duration = 200;

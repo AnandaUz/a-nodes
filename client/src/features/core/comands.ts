@@ -3,6 +3,7 @@ import { NODE_TYPES } from "../nodes/node-registry";
 import type { INode } from "@shared/types";
 import type VTextEdit from "../nodes/VTextEdit";
 import { GRID } from "./CONST";
+import VM_area from "../nodes/VManager/VM_area";
 
 interface Command {
   label: string;
@@ -45,23 +46,9 @@ const commands: Command[] = [
             shortcuts: ["1"],
             execute: async () => {
               if (core.mode.textEditing) return;
-              const { x, y } = core.desk.viewport.screenToWorld(
-                core.desk.mouse.x,
-                core.desk.mouse.y,
+              core.nodeManager.createNodeWithTypeAndPositionFromCursor(
+                NODE_TYPES.TEXT_EDIT.id,
               );
-              const newNodeEss: INode = {
-                x,
-                y,
-                type: NODE_TYPES.TEXT_EDIT.id,
-                exData: {},
-              };
-              const vnode = await core.nodeManager.createNode(newNodeEss); //создание текстовой ноды
-              if (vnode) {
-                const vnode1 = core.nodeRenderer.getVNode(vnode._id || "");
-                if (vnode1) {
-                  (vnode1 as VTextEdit).turnOn_EditTitleMode();
-                }
-              }
             },
           },
           {
@@ -69,22 +56,9 @@ const commands: Command[] = [
             shortcuts: ["2"],
             execute: async () => {
               if (core.mode.textEditing) return;
-              const { x, y } = core.desk.viewport.screenToWorld(
-                core.desk.mouse.x,
-                core.desk.mouse.y,
+              core.nodeManager.createNodeWithTypeAndPositionFromCursor(
+                NODE_TYPES.PAGE.id,
               );
-              const newNodeEss: INode = {
-                x,
-                y,
-                type: NODE_TYPES.PAGE.id,
-              };
-              const vnode = await core.nodeManager.createNode(newNodeEss); //создание текстовой ноды
-              if (vnode) {
-                const vnode1 = core.nodeRenderer.getVNode(vnode._id || "");
-                if (vnode1) {
-                  (vnode1 as VTextEdit).turnOn_EditTitleMode();
-                }
-              }
             },
           },
           {
@@ -119,7 +93,7 @@ const commands: Command[] = [
         execute: async () => {
           if (core.mode.textEditing) return;
           core.selectManager.selectedNodes.forEach((node) => {
-            core.nodeManager.deleteNode(node._id || "");
+            core.nodeManager.putInTrashNode(node._id || "");
           });
         },
       },
@@ -143,14 +117,37 @@ const commands: Command[] = [
 
     children: [
       {
+        label: "Сдвиг по Tab",
+        shortcuts: ["tab"],
+        execute: (e: KeyboardEvent) => {
+          if (core.mode.selectedVNodeCount !== 1) return;
+          e.preventDefault();
+          const vnode = core.selectManager.selectedNodes.values().next().value;
+          if (!vnode) return;
+          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x + GRID.H, vnode.y);
+        },
+      },
+      {
+        label: "Обратный сдвиг по Tab",
+        shortcuts: ["shift+tab"],
+        execute: (e: KeyboardEvent) => {
+          if (core.mode.selectedVNodeCount !== 1) return;
+          e.preventDefault();
+          const vnode = core.selectManager.selectedNodes.values().next().value;
+          if (!vnode) return;
+          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x - GRID.H, vnode.y);
+        },
+      },
+      {
         label: "Порядок ступеньками",
         shortcuts: ["alt+q"],
         execute: () => {
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
-          const paddingBottom = 2;
           const paddingLeft = GRID.H;
-          const m = [...core.selectManager.selectedNodes.values()];
+          const m = [...core.selectManager.selectedNodes.values()].filter(
+            (vnode) => !(vnode instanceof VM_area),
+          );
           m.sort((a, b) => a.y - b.y);
 
           let x = 0,
@@ -168,7 +165,54 @@ const commands: Command[] = [
               );
             }
 
-            y += vNode.body.offsetHeight + paddingBottom;
+            y += vNode.body.offsetHeight;
+          }
+        },
+      },
+      {
+        label: "Порядок в линию друг за другом",
+        shortcuts: ["alt+w"],
+        execute: () => {
+          if (core.mode.textEditing) return;
+          if (core.mode.selectedVNodeCount < 1) return;
+          const m = [...core.selectManager.selectedNodes.values()].filter(
+            (vnode) => !(vnode instanceof VM_area),
+          );
+          m.sort((a, b) => a.y - b.y);
+
+          let x = 0,
+            y = -1000000;
+          for (const vNode of m) {
+            if (y === -1000000) {
+              y = vNode.y;
+              x = vNode.x;
+            } else {
+              core.nodeManager.moveToNode(vNode.nodeEss, x, y);
+            }
+
+            y += vNode.body.offsetHeight;
+          }
+        },
+      },
+      {
+        label: "Порядок в линию",
+        shortcuts: ["alt+e"],
+        execute: () => {
+          if (core.mode.textEditing) return;
+          if (core.mode.selectedVNodeCount < 1) return;
+          const m = [...core.selectManager.selectedNodes.values()].filter(
+            (vnode) => !(vnode instanceof VM_area),
+          );
+          m.sort((a, b) => a.y - b.y);
+
+          let x = -1000000;
+
+          for (const vNode of m) {
+            if (x === -1000000) {
+              x = vNode.x;
+            } else {
+              core.nodeManager.moveToNode(vNode.nodeEss, x, vNode.y);
+            }
           }
         },
       },

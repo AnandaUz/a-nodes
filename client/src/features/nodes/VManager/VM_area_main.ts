@@ -15,41 +15,36 @@ export default class VM_area_main extends VM_area {
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
 
-    this.helperType = Helper_main;
+    this.helperType = Helper_main as any;
 
     core.managerCore!.areas.main.set(node._id!, this);
 
     this.unsubscribers.push(
-      core.store.on(EVENTS.area.sub.connected, ({ areaSub, areaMain }) => {
-        if (areaMain !== this) return;
-        this.areasMain.set(areaSub.nodeEss._id || "", areaSub);
+      core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
+        if (mainArea !== this) return;
+        this.areasMain.set(subArea.nodeEss._id || "", subArea);
       }),
-      core.store.on(EVENTS.area.sub.disconnected, ({ areaSub, areaMain }) => {
-        if (areaMain !== this) return;
-        this.areasMain.delete(areaSub.nodeEss._id || "");
+      core.store.on(EVENTS.area.sub.disconnected, ({ subArea, mainArea }) => {
+        if (mainArea !== this) return;
+        this.areasMain.delete(subArea.nodeEss._id || "");
       }),
     );
-
-    // core.store.on(EVENTS.nodes.moving, (vnode) => {
-    //   const h = this.helpers.get(vnode._id || "");
-    //   if (h) {
-    //     h.render();
-    //   }
-    // });
-
-    // core.store.on(EVENTS.nodes.moved, (vnode) => {
-    //   if (!vnode) return;
-    //   const { x, y } = vnode;
-    //   if (x === undefined || y === undefined) return;
-
-    //   if (this.checkPointOver(x, y)) {
-    //     if (vnode instanceof VTextEdit) {
-    //       if (!this.helpers.has(vnode._id)) {
-    //         this.addHelper(vnode);
-    //       }
-    //     }
-    //   }
-    // });
+    const mainAreas = this.nodeEss.exData?.ownerNodesIds;
+    if (mainAreas) {
+      this.unsubscribers.push(
+        core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
+          mainAreas.forEach((id) => {
+            const mainArea = core.nodeRenderer.getVNode(id);
+            if (mainArea instanceof VM_area) {
+              core.store.emit(EVENTS.area.sub.connected, {
+                mainArea,
+                subArea: this,
+              });
+            }
+          });
+        }),
+      );
+    }
   }
   init(): void {
     super.init();
@@ -63,17 +58,16 @@ export default class VM_area_main extends VM_area {
       this.addArea();
     };
   }
-
   addArea() {
     const bounds = this.body.getBoundingClientRect();
     const newNode: INode = {
       exData: {
         ownerNodesIds: [this.nodeEss._id || ""],
-        color: Math.round(Math.random() * 360).toString(),
+        bgColor: Math.round(Math.random() * 360).toString(),
       },
-      type: NODE_TYPES.MANAGER.area_sub,
-      x: this.x + bounds.width + 20,
-      y: this.y,
+      type: NODE_TYPES.MANAGER.area_main,
+      x: Math.round(this.x + bounds.width + 20),
+      y: Math.round(this.y),
       title: "Сортировщик",
     };
     core.nodeManager.createNode(newNode);

@@ -16,11 +16,12 @@ export class VPage extends VTextEdit {
       const _id = this.nodeEss._id;
       const url = "/desk/" + _id;
       console.log("mouse UP", e.buttons);
-      switch (e.buttons) {
+
+      switch (e.button) {
         case 0:
           router.navigate(url);
           break;
-        case 4:
+        case 1:
           window.open(url, "_blank");
           break;
       }

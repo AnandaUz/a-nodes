@@ -47,6 +47,7 @@ export class Viewport {
 
   private applyTransform() {
     const { x, y, scale } = this.state;
+    core.mode.scale = scale;
     this.el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 
     // Двигаем фоновую сетку синхронно с viewport
@@ -78,8 +79,8 @@ export class Viewport {
   }
 
   private movePan(clientX: number, clientY: number) {
-    this.state.x = this.panOrigin.x + (clientX - this.panStart.x);
-    this.state.y = this.panOrigin.y + (clientY - this.panStart.y);
+    this.state.x = Math.round(this.panOrigin.x + (clientX - this.panStart.x));
+    this.state.y = Math.round(this.panOrigin.y + (clientY - this.panStart.y));
     this.applyTransform();
   }
 
@@ -91,6 +92,11 @@ export class Viewport {
     if (e.pointerType === "touch") return; // touch обрабатывается отдельно
 
     if (e.button !== 1 && !this.isSpaceDown) return;
+
+    const target = e.target as HTMLElement;
+    if (target.closest("a") || target.closest(".btn-el")) {
+      return;
+    }
 
     Tools.stopEvent(e);
     this.startPan(e.clientX, e.clientY);
@@ -136,10 +142,12 @@ export class Viewport {
       Math.max(this.minScale, this.state.scale * factor),
     );
 
-    this.state.x =
-      originX - (originX - this.state.x) * (newScale / this.state.scale);
-    this.state.y =
-      originY - (originY - this.state.y) * (newScale / this.state.scale);
+    this.state.x = Math.round(
+      originX - (originX - this.state.x) * (newScale / this.state.scale),
+    );
+    this.state.y = Math.round(
+      originY - (originY - this.state.y) * (newScale / this.state.scale),
+    );
     this.state.scale = newScale;
 
     this.applyTransform();
@@ -207,8 +215,12 @@ export class Viewport {
       const ox = center.x - rect.left;
       const oy = center.y - rect.top;
 
-      this.state.x = ox - (ox - this.state.x) * (newScale / this.state.scale);
-      this.state.y = oy - (oy - this.state.y) * (newScale / this.state.scale);
+      this.state.x = Math.round(
+        ox - (ox - this.state.x) * (newScale / this.state.scale),
+      );
+      this.state.y = Math.round(
+        oy - (oy - this.state.y) * (newScale / this.state.scale),
+      );
       this.state.scale = newScale;
 
       this.applyTransform();

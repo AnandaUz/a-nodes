@@ -2,7 +2,7 @@ import type { INode } from "@shared/types/INode";
 import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot } from "../core/interfaces";
 import Tools from "../core/Tools";
-import type VTextEdit from "./VTextEdit";
+import VTextEdit from "./VTextEdit";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
@@ -50,6 +50,8 @@ export class NodeManager {
       y: options?.y ?? rest.y!,
       title: options?.title ?? rest.title ?? "",
     };
+    newNodeEss.x = Math.round(newNodeEss.x!);
+    newNodeEss.y = Math.round(newNodeEss.y!);
     const id = await core.serverPersistence.createNode(newNodeEss);
 
     if (!id) return null;
@@ -58,7 +60,28 @@ export class NodeManager {
     core.store.emit(EVENTS.nodes.created, newNodeEss);
     return newNodeEss;
   }
+  async createNodeWithTypeAndPositionFromCursor(type: number) {
+    const { x, y } = core.desk.viewport.screenToWorld(
+      core.desk.mouse.x,
+      core.desk.mouse.y,
+    );
+    const newNodeEss: INode = {
+      x: Math.round(x),
+      y: Math.round(y),
+      type,
+    };
+    const newNode = await this.createNode(newNodeEss); //создание текстовой ноды
+    if (newNode) {
+      const vnode = core.nodeRenderer.getVNode(newNode._id || "");
+      core.selectManager.selectNodyById(newNode._id || "");
+      if (vnode instanceof VTextEdit) {
+        vnode.turnOn_EditTitleMode();
+      }
+    }
+  }
   async createNode(nodeEss: INode): Promise<INode | null> {
+    nodeEss.x = Math.round(nodeEss.x!);
+    nodeEss.y = Math.round(nodeEss.y!);
     const id = await core.serverPersistence.createNode(nodeEss);
 
     if (!id) return null;
@@ -78,32 +101,41 @@ export class NodeManager {
   moveToNode(nodeEss: INode, x: number, y: number): void {
     nodeEss.x = x;
     nodeEss.y = y;
+    this.saveNode(nodeEss);
+  }
+  saveNode(nodeEss: INode) {
     core.store.emit(EVENTS.nodes.updated, nodeEss);
   }
-
-  // updateNode(_id: string, node: INode): void {
-  //   const exNode = this.nodes.get(_id);
-  //   if (!exNode) return;
-  //   exNode.x = node.x ?? 0;
-  //   exNode.y = node.y ?? 0;
-  //   exNode.lastUpdate = new Date();
-  //   this.core.store.emit(EVENTS.nodes.updated, { ...exNode });
-  // }
   okNode(id: string): void {
     if (!this.nodes.has(id)) return;
 
     const nodeEss = this.nodes.get(id)!;
     nodeEss.ok = true;
-    core.store.emit(EVENTS.nodes.updated, nodeEss);
+
+    if (nodeEss.exData?.repeatMode) {
+      const nextDate = Tools.getNextWeekday(
+        parseInt(nodeEss.exData.repeatMode),
+      );
+      nextDate.setHours(0, 0, 0, 0);
+      nodeEss.exData.repeatDay = nextDate;
+    }
+    this.saveNode(nodeEss);
     core.store.emit(EVENTS.nodes.deleted, nodeEss);
     this.nodes.delete(id);
   }
-  deleteNode(id: string): void {
+  putInTrashNode(id: string): void {
     if (!this.nodes.has(id)) return;
 
     const nodeEss = this.nodes.get(id)!;
     nodeEss.inTrash = true;
-    core.store.emit(EVENTS.nodes.updated, nodeEss);
+    if (nodeEss.exData?.repeatMode) {
+      const nextDate = Tools.getNextWeekday(
+        parseInt(nodeEss.exData.repeatMode),
+      );
+      nextDate.setHours(0, 0, 0, 0);
+      nodeEss.exData.repeatDay = nextDate;
+    }
+    this.saveNode(nodeEss);
     core.store.emit(EVENTS.nodes.deleted, nodeEss);
     this.nodes.delete(id);
   }
@@ -128,27 +160,21 @@ export class NodeManager {
     if (!selection?.rangeCount) return;
 
     const range = selection.getRangeAt(0);
-    let cursorIndex = range.startOffset;
-
-    let titleElement = vNode.titleEl.firstChild;
-    while (titleElement && titleElement !== range.startContainer) {
-      if (titleElement.nodeType === Node.TEXT_NODE) {
-        cursorIndex += (titleElement.nodeValue?.length ?? 0) + 1;
-      }
-      titleElement = titleElement.nextSibling;
-    }
+    const cursorIndex = Tools.getCursorIndex(vNode.titleEl, range);
 
     // делим текст по курсору
-    const leftText = title.slice(0, cursorIndex);
-    const rightText = title.slice(cursorIndex);
+    const leftText = title.slice(0, cursorIndex).trimEnd();
+    const rightText = title.slice(cursorIndex).trimStart();
 
-    vNode.nodeEss.title = leftText;
+    vNode.title = leftText;
+    vNode.render();
+    vNode.save();
     // vNode.saveTitle();
 
     // создаём новую ноду с правым текстом
     const newNode = await this.copyNode(vNode.nodeEss, {
       x: vNode.x,
-      y: vNode.y + vNode.body.offsetHeight * 0.9,
+      y: vNode.y + vNode.body.offsetHeight * 0.8,
       title: rightText,
     });
 

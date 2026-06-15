@@ -57,11 +57,26 @@ export class NodeRenderer {
   getAllNodes() {
     return Array.from(this.vNodes.values());
   }
-  moveOverNodes(overRect: DOMRect, dy0: number, exNodes: VNode[] = []) {
-    if (dy0 === 0) return;
+  /**
+   * Сдвигает вниз все ноды, которые перекрывают заданную область.
+   * @param rect - область, которую нужно освободить от нод
+   * @param exNodes - ноды, которые не нужно сдвигать (исключения)
+   */
+  pushdown_nodes_out_of_rect(out_of_rect: DOMRect, exNodes: VNode[] = []) {
+    if (out_of_rect.height === 0) return;
 
     const exSet = new Set<VNode>(exNodes); // Set вместо массива — поиск O(1)
     const mRes: VNode[] = [];
+
+    const overNodes = core.selectManager.getNodeOverRect(out_of_rect);
+    const firstNode = overNodes
+      .filter((n) => !exSet.has(n) && !(n instanceof VM_area))
+      .sort((a, b) => a.y - b.y)[0];
+    if (!firstNode) return;
+
+    const firstNodeRect = firstNode.body.getBoundingClientRect();
+    const dy = out_of_rect.height - (firstNodeRect.y - out_of_rect.y);
+    if (dy <= 0) return;
 
     const collect = (node: VNode) => {
       if (node instanceof VM_area) return;
@@ -71,23 +86,21 @@ export class NodeRenderer {
 
       const r = node.body.getBoundingClientRect();
       const rect = {
-        x: r.x,
-        y: r.y,
+        x: out_of_rect.x,
+        y: r.y + r.height,
         width: 200, // переопределяем
-        height: r.height,
+        height: dy,
       } as DOMRect;
-
-      rect.height += overRect.height + 50;
 
       core.selectManager.getNodeOverRect(rect).forEach(collect);
     };
 
-    core.selectManager.getNodeOverRect(overRect).forEach(collect);
+    core.selectManager.getNodeOverRect(out_of_rect).forEach(collect);
 
     mRes
       .sort((a, b) => a.y - b.y)
       .forEach((node, i) => {
-        node.moveAniTo(null, node.y + dy0, i * 50);
+        node.moveAniTo(null, node.y + dy, i * 50);
       });
   }
 }

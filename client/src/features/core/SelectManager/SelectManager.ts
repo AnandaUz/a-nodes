@@ -1,4 +1,4 @@
-import { core } from "@features/core/core";
+import { core, EVENTS } from "@features/core/core";
 import SelectionRect from "./SelectionRect";
 
 import "./SelectManager.scss";
@@ -25,6 +25,7 @@ export class SelectManager {
       this.selectedNodes.set(vnode._id, vnode);
     }
     core.mode.selectedVNodeCount = this.selectedNodes.size;
+    core.store.emit(EVENTS.nodes.selected, vnode.nodeEss);
   }
   selectNodyById(
     id: string,
@@ -56,12 +57,16 @@ export class SelectManager {
       if (!core.mode.selectMoving && (rect.width < 10 || rect.height < 10)) {
         if (!core.mode.wasMoving) {
           this.clearSelection();
+          core.store.emit(EVENTS.nodes.unselected, null);
         }
         core.mode.wasMoving = false;
         return;
       }
 
-      if (!core.mode.selectMoving && !mouseEvent.ctrlKey) this.clearSelection();
+      if (!core.mode.selectMoving && !mouseEvent.ctrlKey) {
+        this.clearSelection();
+        core.store.emit(EVENTS.nodes.unselected, null);
+      }
       core.nodeRenderer.getAllNodes().forEach((vnode) => {
         if (vnode.checkInRect(rect)) {
           if (!vnode.isSelected) {
@@ -71,6 +76,9 @@ export class SelectManager {
           }
         }
       });
+      if (this.selectedNodes.size > 0) {
+        core.store.emit(EVENTS.nodes.selected, null);
+      }
       core.mode.selectMoving = false;
     });
   }

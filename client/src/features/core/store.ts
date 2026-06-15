@@ -8,6 +8,7 @@ import type VM_area_sub from "../nodes/VManager/VM_area_sub";
 import type { INode } from "@shared/types";
 import type Helper_main from "../nodes/VManager/Helper/Helper_main";
 import type Helper_sub from "../nodes/VManager/Helper/Helper_sub";
+import type VM_area from "../nodes/VManager/VM_area";
 
 export const EVENTS = {
   page: {
@@ -65,8 +66,8 @@ export type DeskEvents = {
   [EVENTS.nodes.moved]: INode;
   [EVENTS.nodes.moving]: INode;
   [EVENTS.nodes.deleted]: INode;
-  [EVENTS.nodes.selected]: INode;
-  [EVENTS.nodes.unselected]: INode;
+  [EVENTS.nodes.selected]: INode | null;
+  [EVENTS.nodes.unselected]: INode | null;
   [EVENTS.server.loaded]: DeskSnapshot;
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;
@@ -74,24 +75,24 @@ export type DeskEvents = {
   [EVENTS.nodes.mouse.down]: VNode;
   [EVENTS.nodes.mouse.move]: VNode;
   [EVENTS.nodes.mouse.up]: VNode;
-  [EVENTS.area.sub.created]: VM_area_sub;
-  [EVENTS.area.sub.deleted]: VM_area_sub;
+  [EVENTS.area.sub.created]: VM_area;
+  [EVENTS.area.sub.deleted]: VM_area;
   [EVENTS.area.sub.connected]: {
-    areaSub: VM_area_sub;
-    areaMain: VM_area_main;
+    subArea: VM_area;
+    mainArea: VM_area;
   };
   [EVENTS.area.sub.disconnected]: {
-    areaSub: VM_area_sub;
-    areaMain: VM_area_main;
+    subArea: VM_area;
+    mainArea: VM_area;
   };
-  [EVENTS.area.sub.addNodeClone]: { nodeEss: INode; areaSub: VM_area_sub };
+  [EVENTS.area.sub.addNodeClone]: { nodeEss: INode; subArea: VM_area };
   [EVENTS.helper.main.btnConnection]: {
     helperMain: Helper_main;
-    areaSub: VM_area_sub;
+    subArea: VM_area;
   };
   [EVENTS.helper.sub.btnOk]: {
     helperSub: Helper_sub;
-    // areaSub: VM_area_sub;
+    // subArea: VM_area;
   };
 };
 
