@@ -4,11 +4,13 @@ export default class SelectionRect {
   private el: HTMLDivElement;
   private p1 = { x: 0, y: 0 };
   private onComplete: (rect: DOMRect, event: MouseEvent) => void;
+  private container: HTMLElement;
 
   constructor(
     container: HTMLElement,
     onComplete: (rect: DOMRect, event: MouseEvent) => void,
   ) {
+    this.container = container;
     this.onComplete = onComplete;
     this.el = document.createElement("div");
     this.el.classList.add("selectBox");
@@ -63,5 +65,6 @@ export default class SelectionRect {
 
   destroy() {
     this.el.remove();
+    this.container.removeEventListener("pointerdown", this.onMouseDown);
   }
 }

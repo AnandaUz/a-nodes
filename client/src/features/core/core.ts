@@ -41,7 +41,6 @@ export class Core {
     this.history = new History();
     this.nodeManager = new NodeManager();
     this.nodeRenderer = new NodeRenderer();
-    this.selectManager = new SelectManager();
     this.clipboard = new Clipboard();
   }
 
@@ -61,6 +60,7 @@ export class Core {
     this.desk.mount(container);
     this.nodeManager.init();
     this.nodeRenderer.init();
+    this.selectManager = new SelectManager();
 
     this.serverPersistence = new ServerPersistence({
       apiUrl: "/api/nodes",
@@ -77,6 +77,9 @@ export class Core {
     this.nodeManager.unmount();
     this.nodeRenderer.unmount();
     this.desk.unmount();
+    if (this.selectManager) {
+      this.selectManager.unmount();
+    }
   }
 }
 

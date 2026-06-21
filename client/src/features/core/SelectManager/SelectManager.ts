@@ -8,6 +8,7 @@ import VM_area from "@/features/nodes/VManager/VM_area";
 
 export class SelectManager {
   private body: HTMLElement;
+  private selectionRect!: SelectionRect;
 
   selectedNodes = new Map<string, VNode>();
 
@@ -26,7 +27,7 @@ export class SelectManager {
       this.selectedNodes.set(vnode._id, vnode);
     }
     core.mode.selectedVNodeCount = this.selectedNodes.size;
-    core.store.emit(EVENTS.nodes.selected, vnode.nodeEss);
+    core.store?.emit(EVENTS.nodes.selected, vnode.nodeEss);
   }
   selectNodyById(
     id: string,
@@ -54,11 +55,11 @@ export class SelectManager {
 
     const mainBlock = document.body;
 
-    new SelectionRect(mainBlock, (rect, mouseEvent) => {
+    this.selectionRect = new SelectionRect(mainBlock, (rect, mouseEvent) => {
       if (!core.mode.selectMoving && (rect.width < 10 || rect.height < 10)) {
         if (!core.mode.wasMoving) {
           this.clearSelection();
-          core.store.emit(EVENTS.nodes.unselected, null);
+          core.store?.emit(EVENTS.nodes.unselected, null);
         }
         core.mode.wasMoving = false;
         return;
@@ -72,7 +73,7 @@ export class SelectManager {
 
       if (!core.mode.selectMoving && !mouseEvent.ctrlKey) {
         this.clearSelection();
-        core.store.emit(EVENTS.nodes.unselected, null);
+        core.store?.emit(EVENTS.nodes.unselected, null);
       }
       core.nodeRenderer.getAllNodes().forEach((vnode) => {
         if (vnode instanceof VM_area) return;
@@ -85,10 +86,15 @@ export class SelectManager {
         }
       });
       if (this.selectedNodes.size > 0) {
-        core.store.emit(EVENTS.nodes.selected, null);
+        core.store?.emit(EVENTS.nodes.selected, null);
       }
       core.mode.selectMoving = false;
     });
+  }
+
+  unmount() {
+    this.body.remove();
+    this.selectionRect.destroy();
   }
 
   getNodeOverRect(rect: DOMRect) {
