@@ -73,12 +73,12 @@ const commands: Command[] = [
             nodeEss.inTrash = false;
           });
 
-          const nodeId = await core.nodeManager.copyNodes(nodeEsses);
+          // const nodeId = await core.nodeManager.copyNodes(nodeEsses);
 
-          if (!nodeId) return;
-          const selectNodes = [nodeEsses.map((nodeEss) => nodeEss._id || "")];
+          // if (!nodeId) return;
+          // const selectNodes = [nodeEsses.map((nodeEss) => nodeEss._id || "")];
 
-          await core.api.saveNodes(selectNodes);
+          // await core.api.saveNodes(selectNodes);
 
           console.log(nodeEsses);
           // core.nodeManager.createNodes(nodeEsses);

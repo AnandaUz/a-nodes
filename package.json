@@ -2,11 +2,10 @@
   "name": "a-nodes",
   "version": "0.1.0",
   "scripts": {
-    "dev:client": "cd client && npm run dev",
-    "dev:server": "cd server && npm run dev",
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "build:client": "cd client && npm run build",
-    "build:server": "cd server && npm run build",
+    "dev:client": "npm run dev -w client",
+    "dev:server": "npm run dev -w server",
+    "build:client": "npm run build -w client",
+    "build:server": "npm run build -w server",
     "deploy": "tsx ./deploy_project.ts"
   },
   "workspaces": [
@@ -23,5 +22,4 @@
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.34.8"
   }
-
 }
