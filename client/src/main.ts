@@ -3,7 +3,7 @@ import { router } from "./router";
 
 import { renderHeader } from "./components/header"; // добавить
 import { renderFooter } from "./components/footer"; // добавить
-// import { authGuard } from "./services/auth.guard";
+import { authGuard } from "./services/auth.guard";
 import { handleCredential } from "./services/auth.service";
 
 (window as any).google?.accounts?.id?.initialize({
@@ -14,7 +14,7 @@ import { handleCredential } from "./services/auth.service";
 async function init() {
   renderHeader();
   renderFooter();
-  // await authGuard();
+  await authGuard();
   router.init();
 }
 init();

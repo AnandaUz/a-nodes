@@ -1,11 +1,12 @@
 import type { INode } from "@shared/types";
 
-import VM_area from "./VM_area";
+import VM_area, { AREA_PADDING } from "./VM_area";
 import { core, EVENTS } from "@/features/core/core";
 // import VTextEdit from "../VTextEdit";
 import Tools from "@/features/core/Tools";
 import { NODE_TYPES } from "../node-registry";
 import Helper_main from "./Helper/Helper_main";
+// import { GRID } from "@/features/core/CONST";
 // import type { VNode } from "../VNode";
 // import { Helper } from "./Helper";
 
@@ -27,6 +28,12 @@ export default class VM_area_main extends VM_area {
       core.store.on(EVENTS.area.sub.disconnected, ({ subArea, mainArea }) => {
         if (mainArea !== this) return;
         this.areasMain.delete(subArea.nodeEss._id || "");
+      }),
+      core.store.on(EVENTS.area.sub.addNodeClone, (payload) => {
+        const { subArea } = payload;
+        if (!this.subAreas.has(subArea.nodeEss._id || "")) return;
+
+        this.refreshHelpers();
       }),
     );
     const mainAreas = this.nodeEss.exData?.ownerNodesIds;
@@ -59,7 +66,7 @@ export default class VM_area_main extends VM_area {
     };
   }
   addArea() {
-    const bounds = this.body.getBoundingClientRect();
+    const bounds = this.bodyRect;
     const newNode: INode = {
       exData: {
         ownerNodesIds: [this.nodeEss._id || ""],
@@ -75,5 +82,36 @@ export default class VM_area_main extends VM_area {
     //   vNode.render();
     // }
   }
-  refreshHConnectors() {}
+  async addTextEdinCloneNode(nodeEss: INode) {
+    const x = this.x + AREA_PADDING.left;
+    const y = this.y + AREA_PADDING.top;
+
+    const cloneNodeEss = await core.nodeManager.create_TextEditCloneNode(
+      nodeEss,
+      x,
+      y,
+    );
+    if (cloneNodeEss) {
+      const cloneNode = core.nodeRenderer.getVNode(cloneNodeEss._id || "");
+
+      if (cloneNode) {
+        const rect = {
+          x,
+          y,
+          width: cloneNode?.width,
+          height: cloneNode?.height,
+        } as DOMRect;
+        core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [cloneNode]);
+        const helper = this.helpersById[cloneNodeEss._id || ""];
+        // cloneNode.moveTo({ x: rect.x, y: rect.y });
+        // this.refreshHelpers();
+
+        core.store.emit(EVENTS.area.sub.addNodeClone, {
+          nodeEss: cloneNodeEss,
+          subArea: this,
+        });
+        return helper;
+      }
+    }
+  }
 }

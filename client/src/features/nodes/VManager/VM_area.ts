@@ -5,10 +5,13 @@ import { core, EVENTS } from "@/features/core/core";
 import { ManagerCore } from "./ManagerCore";
 import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
+import Helper_main from "./Helper/Helper_main";
+import { GRID } from "@/features/core/CONST";
+import VTextEditClone from "../VTextEditClone";
 
-const GRID = {
-  H_STEP: 50,
-  V_STEP: 30,
+export const AREA_PADDING = {
+  left: 30,
+  top: 20,
 };
 
 export default class VM_area extends VTextEdit {
@@ -32,14 +35,18 @@ export default class VM_area extends VTextEdit {
       core.store.on(EVENTS.nodes.created, (_nodeEss: INode) => {
         this.initHelpers();
       }),
-      core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
-        this.refreshHelpers();
+      core.store.on(EVENTS.nodes.moved, (nodeEss: INode) => {
+        if (!nodeEss || !nodeEss._id) return;
+        if (this.helpersById[nodeEss._id]) this.refreshHelpers();
       }),
       core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
         if (mainArea !== this) return;
         if (this.subAreas.has(subArea.nodeEss._id || "")) return;
         this.subAreas.set(subArea.nodeEss._id || "", subArea);
         this.initHelpers();
+      }),
+      core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
+        this.onVNodeMove();
       }),
     );
   }
@@ -70,41 +77,108 @@ export default class VM_area extends VTextEdit {
     this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
 
     let levelPrev = 0;
-    this.helpers.forEach((h, _i) => {
-      let sdvigX = Math.round((h.mainNode.x - this.x) / GRID.H_STEP);
+
+    let parentsTitles: string[] = [];
+
+    this.helpers.forEach((h, i) => {
+      const vNodeX = h.mainNode.x;
+      const vNodeY = h.mainNode.y;
+      if (!this.checkPointOver(vNodeX, vNodeY)) {
+        this.removeHelper(h._id);
+        return;
+      }
+      let sdvigX = Math.round((vNodeX - this.x - AREA_PADDING.left) / GRID.x);
       sdvigX = Math.min(sdvigX, levelPrev + 1);
+
+      sdvigX = Math.max(sdvigX, 0);
+
+      const mainNodeTitle = h.mainNode.nodeEss.title || "";
+
+      if (h instanceof Helper_main && h.fromHelper.length > 0) {
+        const fromHelper = h.fromHelper[0] as Helper_main;
+        if (fromHelper) {
+          const ii = (this.helpers.length - i) / this.helpers.length;
+
+          fromHelper.level = Math.round(Math.pow(ii, 2) * 10);
+        }
+      }
+
+      if (i == 0) {
+        sdvigX = 0;
+      }
+      if (sdvigX === 0) {
+        parentsTitles = [mainNodeTitle];
+      } else {
+        if (levelPrev >= sdvigX) {
+          parentsTitles.splice(sdvigX - levelPrev - 1);
+        }
+
+        parentsTitles.push(mainNodeTitle);
+      }
+
+      if (h instanceof Helper_main) {
+        if (h.toHelper.length > 0 && h.toHelper[0]) {
+          h.toHelper[0].setParentsTitles(parentsTitles);
+        }
+      }
 
       levelPrev = sdvigX;
 
-      const x = this.x + sdvigX * GRID.H_STEP;
+      const x = this.x + sdvigX * GRID.x + AREA_PADDING.left;
       const y = h.mainNode.y;
 
       // h.body.style.transform = `translate(${x}px, ${y}px)`;
 
       h.mainNode.moveTo({ x, y });
 
-      // h.mainNode.x = this.x + GRID.H_STEP * i;
-      // h.mainNode.y = this.y + GRID.V_STEP * i;
       h.render();
     });
   }
+  onVNodeMove() {
+    // this.helpers.forEach((h) => {
+    //   const mainVNode = h.mainNode;
+    //   const { x, y } = mainVNode;
+    //   if (x === undefined || y === undefined) return;
 
-  initHelpers() {
-    core.nodeRenderer.getAllNodes().forEach((vnode) => {
+    //   if (!this.checkPointOver(x, y)) {
+    //     this.removeHelper(h._id);
+    //   }
+    // });
+    let f = false;
+    core.selectManager.selectedNodes.forEach((vnode) => {
+      if (f) return;
       if (vnode instanceof VTextEdit && vnode !== this) {
         const { x, y } = vnode;
         if (x === undefined || y === undefined) return;
 
         if (this.checkPointOver(x, y)) {
-          if (vnode instanceof VTextEdit && !(vnode instanceof VM_area)) {
+          f = true;
+        }
+      }
+    });
+
+    if (f) {
+      this.initHelpers();
+    }
+  }
+
+  initHelpers() {
+    core.nodeRenderer.getAllNodes().forEach((vnode) => {
+      if (
+        (vnode instanceof VTextEdit || vnode instanceof VTextEditClone) &&
+        vnode !== this
+      ) {
+        const { x, y } = vnode;
+        if (x === undefined || y === undefined) return;
+
+        if (this.checkPointOver(x, y)) {
+          if (!(vnode instanceof VM_area)) {
             let h = this.helpersById[vnode._id];
             if (!h) {
               h = this.addHelper(vnode);
             } else {
               h.render();
             }
-
-            // h!.style.transform = `translate(${x}px, ${y}px)`;
           }
         }
       }
@@ -119,7 +193,10 @@ export default class VM_area extends VTextEdit {
   }
 
   removeHelper(_id: string) {
-    this.helpers = this.helpers.filter((h) => h._id !== _id);
+    const helper = this.helpersById[_id];
+    if (!helper) return;
+    helper.remove();
     delete this.helpersById[_id];
+    this.helpers = this.helpers.filter((h) => h._id !== _id);
   }
 }

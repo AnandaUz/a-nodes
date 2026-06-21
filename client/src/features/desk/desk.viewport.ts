@@ -10,7 +10,7 @@ export interface ViewportState {
 export class Viewport {
   private el: HTMLElement;
   scene: HTMLElement; // нужен для фона и событий
-  private state: ViewportState = { x: 0, y: 0, scale: 1 };
+  state: ViewportState = { x: 0, y: 0, scale: 1 };
 
   private isPanning = false;
   private panStart = { x: 0, y: 0 };
@@ -123,7 +123,7 @@ export class Viewport {
   };
 
   private onWheel = (e: WheelEvent) => {
-    if (!e.ctrlKey) return;
+    // if (!e.ctrlKey) return;
     Tools.stopEvent(e);
 
     const factor = e.deltaY < 0 ? 1.1 : 0.9;

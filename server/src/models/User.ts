@@ -28,6 +28,11 @@ const userSchema = new Schema<IUserDocument>({
     type: String,
     required: true,
   },
+  settings: {
+    homeId: {
+      type: String,
+    },
+  },
 });
 
 // 3. Создаем модель: это "пульт управления" коллекцией пользователей.

@@ -6,6 +6,8 @@ import { notFoundPage } from "./pages/notFound";
 import { welcomePage } from "./pages/welcome/welcome";
 import { registerPage } from "./pages/register/register";
 import { deskPage } from "./pages/desk";
+import { renderHeader } from "./components/header";
+import { getUser } from "./services/auth.service";
 
 const routes: Routes = {
   "/": deskPage,
@@ -73,7 +75,18 @@ class Router {
   render(): void {
     // уничтожаем текущую страницу
     this.currentPageUnmount?.();
-    const path = window.location.pathname;
+    renderHeader();
+    let path = window.location.pathname;
+
+    if (path === "/") {
+      const user = getUser();
+      if (user?.settings?.homeId) {
+        const targetPath = `/desk/${user.settings.homeId}`;
+        history.replaceState({}, "", targetPath);
+        path = targetPath;
+      }
+    }
+
     const { page, params } = this.matchRoute(routes, path);
 
     try {

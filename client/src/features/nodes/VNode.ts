@@ -47,6 +47,20 @@ export class VNode {
     this.applyPosition();
     this.container.appendChild(this.body);
   }
+  get height() {
+    return this.body.offsetHeight;
+  }
+  get width() {
+    return this.body.offsetWidth;
+  }
+  get bodyRect() {
+    return {
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+    } as DOMRect;
+  }
 
   init() {
     this.bodyInit();
@@ -221,7 +235,7 @@ export class VNode {
     this.onStop();
   };
   checkPointOver(x: number, y: number) {
-    const rect = this.body.getBoundingClientRect(); // Получаем координаты и размеры элемента
+    const rect = this.bodyRect; // Получаем координаты и размеры элемента
 
     // Проверяем, находится ли точка внутри границ элемента
     return (
@@ -240,7 +254,7 @@ export class VNode {
     const w = selectedArea.width;
     const h = selectedArea.height;
 
-    const rect = this.movingElement.getBoundingClientRect();
+    const rect = this.bodyRect;
 
     const b_x = rect.x; // + dx
     const b_w = rect.width;

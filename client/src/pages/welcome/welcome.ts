@@ -7,7 +7,7 @@ export function welcomePage() {
     title: "Добро пожаловать — Liner",
     init() {
       document.querySelector(".google-btn")?.addEventListener("click", () => {
-        // google.accounts.id.prompt();
+        (window as any).google?.accounts?.id?.prompt();
       });
     },
   };

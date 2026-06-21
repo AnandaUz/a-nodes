@@ -1,4 +1,4 @@
 export const GRID = {
-  W: 100,
-  H: 30,
+  x: 50,
+  y: 30,
 };

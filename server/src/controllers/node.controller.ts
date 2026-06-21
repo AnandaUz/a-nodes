@@ -60,15 +60,25 @@ export const getNodesByParentNodeId = async (req: Request, res: Response) => {
 //     res.status(500).json({ error: "Server error" });
 //   }
 // };
-
-export const saveNodes = async (req: Request, res: Response) => {
+export const saveNodesController = async (req: Request, res: Response) => {
   try {
     const { nodes } = req.body;
 
     if (!Array.isArray(nodes)) {
       return res.status(400).json({ message: "Ожидался массив нод" });
     }
+    const ids = await saveNodes(nodes);
+    res.json({ ids });
+  } catch (err: any) {
+    console.error("[saveNodes Error]:", err);
+    res
+      .status(500)
+      .json({ message: "Ошибка сохранения нод", error: err?.message });
+  }
+};
 
+export const saveNodes = async (nodes: any[]) => {
+  try {
     const operations = nodes.map((node: any) => {
       const { _id, ...updateData } = node;
       return {
@@ -93,12 +103,9 @@ export const saveNodes = async (req: Request, res: Response) => {
       return upsertedId ? upsertedId.toString() : node._id;
     });
 
-    res.json({ ids });
+    return ids;
   } catch (err: any) {
-    console.error("[saveNodes Error]:", err);
-    res
-      .status(500)
-      .json({ message: "Ошибка сохранения нод", error: err?.message });
+    return null;
   }
 };
 

@@ -33,6 +33,57 @@ const commands: Command[] = [
           core.nodeManager.addTextEditNode_byEnter(e);
         },
       },
+      {
+        label: "Копировать",
+        shortcuts: ["ctrl+c", "cmd+c"],
+        execute: () => {
+          const nodeEsses = Array.from(
+            core.selectManager.selectedNodes.values(),
+          ).sort((a: INode, b: INode) => (a.y ?? 0) - (b.y ?? 0));
+
+          nodeEsses.forEach((nodeEss: INode) => {
+            delete nodeEss._id;
+          });
+
+          core.clipboard.copy(nodeEsses);
+        },
+      },
+      {
+        label: "Вырезать",
+        shortcuts: ["ctrl+x", "cmd+x"],
+        execute: () => {
+          const nodeEsses = Array.from(
+            core.selectManager.selectedNodes.values(),
+          ).sort((a: INode, b: INode) => (a.y ?? 0) - (b.y ?? 0));
+          core.clipboard.copy(nodeEsses);
+          // nodeEsses.forEach((nodeEss) => {
+          //   core.nodeManager.putInTrashNode(nodeEss._id || "");
+          // });
+        },
+      },
+      {
+        label: "Вставить",
+        shortcuts: ["ctrl+v", "cmd+v"],
+        execute: async () => {
+          const nodeEsses = await core.clipboard.paste();
+          if (!nodeEsses?.nodes) return;
+
+          nodeEsses.nodes.forEach((nodeEss) => {
+            nodeEss.pageId = core.mode.deskId;
+            nodeEss.inTrash = false;
+          });
+
+          const nodeId = await core.nodeManager.copyNodes(nodeEsses);
+
+          if (!nodeId) return;
+          const selectNodes = [nodeEsses.map((nodeEss) => nodeEss._id || "")];
+
+          await core.api.saveNodes(selectNodes);
+
+          console.log(nodeEsses);
+          // core.nodeManager.createNodes(nodeEsses);
+        },
+      },
     ],
   },
   {
@@ -124,7 +175,7 @@ const commands: Command[] = [
           e.preventDefault();
           const vnode = core.selectManager.selectedNodes.values().next().value;
           if (!vnode) return;
-          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x + GRID.H, vnode.y);
+          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x + GRID.x, vnode.y);
         },
       },
       {
@@ -135,7 +186,7 @@ const commands: Command[] = [
           e.preventDefault();
           const vnode = core.selectManager.selectedNodes.values().next().value;
           if (!vnode) return;
-          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x - GRID.H, vnode.y);
+          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x - GRID.x, vnode.y);
         },
       },
       {
@@ -144,7 +195,7 @@ const commands: Command[] = [
         execute: () => {
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
-          const paddingLeft = GRID.H;
+          const paddingLeft = GRID.x;
           const m = [...core.selectManager.selectedNodes.values()].filter(
             (vnode) => !(vnode instanceof VM_area),
           );

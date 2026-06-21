@@ -3,6 +3,8 @@ import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot } from "../core/interfaces";
 import Tools from "../core/Tools";
 import VTextEdit from "./VTextEdit";
+import { NODE_TYPES } from "./node-registry";
+import type { VNode } from "./VNode";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
@@ -136,9 +138,45 @@ export class NodeManager {
       nodeEss.exData.repeatDay = nextDate;
     }
     this.saveNode(nodeEss);
-    core.store.emit(EVENTS.nodes.deleted, nodeEss);
+    core.store.emit(EVENTS.nodes.inTrash, nodeEss);
     this.nodes.delete(id);
   }
+  async create_TextEditCloneNode(nodeEss: INode, x?: number, y?: number) {
+    if (!nodeEss.type) return;
+
+    let vNode: VNode;
+    let cloneNodeEss: INode = {
+      type: NODE_TYPES.TEXT_EDIT_CLONE.id,
+    };
+    if (
+      nodeEss.type == NODE_TYPES.TEXT_EDIT.id ||
+      nodeEss.type == NODE_TYPES.TEXT_EDIT_CLONE.id
+    ) {
+      vNode = core.nodeRenderer.getVNode(nodeEss._id || "") as VTextEdit;
+      if (!vNode) return;
+      cloneNodeEss = {
+        ...cloneNodeEss,
+        x: x ?? vNode.x + vNode.width + 20,
+        y: y ?? vNode.y,
+        exData: {
+          ownerNodesIds: [nodeEss._id!],
+        },
+      };
+      if (
+        nodeEss.type == NODE_TYPES.TEXT_EDIT_CLONE.id &&
+        cloneNodeEss.exData &&
+        nodeEss.exData?.ownerNodesIds &&
+        nodeEss.exData.ownerNodesIds.length > 0
+      ) {
+        cloneNodeEss.exData.ownerNodesIds = [nodeEss.exData.ownerNodesIds[0]!];
+      }
+    } else return;
+
+    const cloneNode = await this.createNode(cloneNodeEss);
+    if (!cloneNode) return null;
+    return cloneNode;
+  }
+
   async addTextEditNode_byEnter(e: KeyboardEvent) {
     Tools.stopEvent(e);
 

@@ -1,9 +1,10 @@
 import type { INode } from "@shared/types";
-// import {
-//   getToken,
-//   refreshAccessToken,
-//   removeTokens,
-// } from "../../services/auth.service";
+import {
+  getToken,
+  refreshAccessToken,
+  removeTokens,
+} from "../../services/auth.service";
+import { router } from "../../router";
 
 class API {
   private API_URL = import.meta.env.VITE_API_URL;
@@ -13,42 +14,32 @@ class API {
     options: RequestInit = {},
   ): Promise<Response> {
     const headers = new Headers(options.headers);
+    const token = getToken();
+
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
-    // const token = getToken();
-    // if (token && !headers.has("Authorization")) {
-    //   headers.set("Authorization", `Bearer ${token}`);
-    // }
+    if (token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
     const config: RequestInit = { method: "GET", ...options, headers };
-    return fetch(`${this.API_URL}${path}`, config);
 
-    // const token = getToken();
+    const response = await fetch(`${this.API_URL}${path}`, config);
 
-    // if (!headers.has("Content-Type")) {
-    //   headers.set("Content-Type", "application/json");
-    // }
-    // if (token && !headers.has("Authorization")) {
-    //   headers.set("Authorization", `Bearer ${token}`);
-    // }
+    if (response.status === 401) {
+      const newToken = await refreshAccessToken();
+      if (!newToken) {
+        removeTokens();
+        history.pushState({}, "", "/welcome");
+        router.render();
+        throw new Error("Сессия истекла");
+      }
+      headers.set("Authorization", `Bearer ${newToken}`);
+      return fetch(`${this.API_URL}${path}`, { ...config, headers });
+    }
 
-    // // const config: RequestInit = { method: "GET", ...options, headers };
-
-    // const response = await fetch(`${this.API_URL}${path}`, config);
-
-    // if (response.status === 401) {
-    //   const newToken = await refreshAccessToken();
-    //   if (!newToken) {
-    //     removeTokens();
-    //     history.pushState({}, "", "/welcome");
-    //     // render();
-    //     throw new Error("Сессия истекла");
-    //   }
-    //   headers.set("Authorization", `Bearer ${newToken}`);
-    //   return fetch(`${this.API_URL}${path}`, { ...config, headers });
-    // }
-
-    // return response;
+    return response;
   }
 
   async loadNodes(parentId?: string) {
@@ -68,15 +59,6 @@ class API {
     const result = (await response.json()) as { ids: string[] };
     return result.ids;
   }
-  // async saveNode(node: INode): Promise<string> {
-  //   const data = { node };
-  //   const response = await this.fetchWithAuth("/nodes/saveNode", {
-  //     method: "PUT",
-  //     body: JSON.stringify(data),
-  //   });
-  //   const result = (await response.json()) as { node: INode };
-  //   return result.node?._id ?? "";
-  // }
 }
 
 const api = new API();

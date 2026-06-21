@@ -14,7 +14,7 @@ export default class VM_area_sub extends VM_area {
     super(node, container);
     this.body.classList.add("vnode-m-sub");
 
-    const t = this.helperType;
+    // const t = this.helperType;
     // this.helperType = Helper_sub;
 
     core.managerCore?.areas.subs.set(node._id!, this);
@@ -25,9 +25,9 @@ export default class VM_area_sub extends VM_area {
 
     core.store.on(
       EVENTS.helper.main.btnConnection,
-      ({ helperMain, subArea }) => {
+      ({ mainHelper, subArea }) => {
         if (this !== subArea) return;
-        this.addNodeClone(helperMain.mainNode.nodeEss);
+        this.addNodeClone(mainHelper.mainNode.nodeEss);
       },
     );
     core.store.on(EVENTS.nodes.deleted, (nodeEss) => {
@@ -44,7 +44,7 @@ export default class VM_area_sub extends VM_area {
     const ids = this.nodeEss.exData?.ownerNodesIds;
     if (!ids || ids.length === 0) return;
 
-    this.movingElement.style.backgroundColor = `hsl(${this.nodeEss.exData?.color || 0},60%,70%)`;
+    this.movingElement.style.backgroundColor = `hsl(${this.nodeEss.exData?.tColor || 0},60%,70%)`;
 
     ids.forEach((id) => {
       const mainArea = core.managerCore?.areas.main.get(id);

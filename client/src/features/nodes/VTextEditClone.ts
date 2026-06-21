@@ -7,7 +7,7 @@ export default class VTextEditClone extends VTextEdit {
 
   init(): void {
     super.init();
-    this.body.classList.add("clone");
+    this.body.classList.add("is-clone");
     const sourceNodeId = this.nodeEss.exData?.ownerNodesIds?.[0];
     if (!sourceNodeId) return;
     this.sourceVNode = core.nodeRenderer.getVNode(sourceNodeId) as VTextEdit;

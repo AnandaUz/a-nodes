@@ -64,6 +64,42 @@
      // top: 0;
      // left: 0;
      z-index: 10;
+     --level: 0;
+
+     &::before {
+
+          display: block;
+          position: absolute;
+          content: "";
+          border: 1px solid rgba(250, 125, 8, 0.5137254902);
+          border-radius: 50%;
+          --w: calc(var(--level) * 10px);
+          top: calc((var(--w) / -2) + 10px);
+          right: 0;
+          height: var(--w);
+          width: var(--w);
+     }
+
+     .str-block {
+          position: absolute;
+          top: 0;
+          left: 0;
+          display: flex;
+          gap: 5px;
+
+          span {
+               white-space: nowrap;
+               background: rgb(179 230 255 / 36%);
+               font-size: 12px;
+               padding: 0px 2px;
+               border-radius: 2px;
+               color: #5d869f;
+               max-width: 300px;
+               overflow: hidden;
+               text-overflow: ellipsis;
+               white-space: nowrap;
+          }
+     }
 
 
 

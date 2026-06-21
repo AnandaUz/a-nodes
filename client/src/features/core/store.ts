@@ -3,8 +3,8 @@ import { EventEmitter } from "@base/client/features/event-emitter";
 // import type { INode } from "@shared/types";
 import type { DeskSnapshot } from "./interfaces";
 import type { VNode } from "../nodes/VNode";
-import type VM_area_main from "../nodes/VManager/VM_area_main";
-import type VM_area_sub from "../nodes/VManager/VM_area_sub";
+// import type VM_area_main from "../nodes/VManager/VM_area_main";
+// import type VM_area_sub from "../nodes/VManager/VM_area_sub";
 import type { INode } from "@shared/types";
 import type Helper_main from "../nodes/VManager/Helper/Helper_main";
 import type Helper_sub from "../nodes/VManager/Helper/Helper_sub";
@@ -29,6 +29,8 @@ export const EVENTS = {
     deleted: "node:deleted",
     selected: "node:selected",
     unselected: "node:unselected",
+    inTrash: "node:inTrash",
+    ok: "node:ok",
     mouse: {
       down: "mouse:down",
       move: "mouse:move",
@@ -68,6 +70,8 @@ export type DeskEvents = {
   [EVENTS.nodes.deleted]: INode;
   [EVENTS.nodes.selected]: INode | null;
   [EVENTS.nodes.unselected]: INode | null;
+  [EVENTS.nodes.inTrash]: INode;
+  [EVENTS.nodes.ok]: INode;
   [EVENTS.server.loaded]: DeskSnapshot;
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;
@@ -87,7 +91,7 @@ export type DeskEvents = {
   };
   [EVENTS.area.sub.addNodeClone]: { nodeEss: INode; subArea: VM_area };
   [EVENTS.helper.main.btnConnection]: {
-    helperMain: Helper_main;
+    mainHelper: Helper_main;
     subArea: VM_area;
   };
   [EVENTS.helper.sub.btnOk]: {

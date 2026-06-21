@@ -10,6 +10,7 @@ export class Helper {
   mainNode: VNode;
   mainArea: VM_area_main;
   btnBlockEl: HTMLDivElement;
+  strBlockEl: HTMLDivElement;
 
   unsubscribers: Array<() => void> = [];
 
@@ -19,11 +20,14 @@ export class Helper {
     this.mainNode = mainNode;
     this.mainArea = mainArea;
     this._id = mainNode.nodeEss._id || "";
+
     // this.subAreas = subAreas;
 
     this.body.className = "vnode-helper";
-    this.body.innerHTML = `<div class="bt-block"></div>`;
+    this.body.innerHTML = `<div class="bt-block"></div>
+    <div class="str-block"></div>`;
     this.btnBlockEl = this.body.querySelector(".bt-block") as HTMLDivElement;
+    this.strBlockEl = this.body.querySelector(".str-block") as HTMLDivElement;
     core.desk.nodesEl.appendChild(this.body);
 
     this.placeTo();
@@ -39,12 +43,20 @@ export class Helper {
           this.placeTo();
         }
       }),
-      core.store.on(EVENTS.nodes.deleted, (nodeEss: INode) => {
+      core.store.on(EVENTS.nodes.inTrash, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
           this.remove();
         }
       }),
     );
+  }
+  setParentsTitles(parentsTitles: string[]) {
+    let str = "";
+    for (let i = 0; i < parentsTitles.length - 1; i++) {
+      str = `<span>${parentsTitles[i]?.replace(/_{2,}/g, "")}</span>` + str;
+    }
+    this.strBlockEl.innerHTML = str;
+    this.mainNode.body.style.paddingTop = "10px";
   }
   placeTo() {
     const x = this.mainNode.x || 0;
@@ -56,6 +68,5 @@ export class Helper {
   remove() {
     this.unsubscribers.forEach((unsub) => unsub());
     this.body.remove();
-    this.mainArea.removeHelper(this.mainNode.nodeEss._id || "");
   }
 }

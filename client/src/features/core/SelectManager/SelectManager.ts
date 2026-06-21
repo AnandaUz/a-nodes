@@ -4,6 +4,7 @@ import SelectionRect from "./SelectionRect";
 import "./SelectManager.scss";
 import type { VNode } from "@/features/nodes/VNode";
 import { TransformMove } from "./TransformMove";
+import VM_area from "@/features/nodes/VManager/VM_area";
 
 export class SelectManager {
   private body: HTMLElement;
@@ -62,13 +63,20 @@ export class SelectManager {
         core.mode.wasMoving = false;
         return;
       }
+      const realRect = {
+        x: (rect.x - core.desk.viewport.state.x) / core.mode.scale,
+        y: (rect.y - core.desk.viewport.state.y) / core.mode.scale,
+        width: rect.width / core.mode.scale,
+        height: rect.height / core.mode.scale,
+      } as DOMRect;
 
       if (!core.mode.selectMoving && !mouseEvent.ctrlKey) {
         this.clearSelection();
         core.store.emit(EVENTS.nodes.unselected, null);
       }
       core.nodeRenderer.getAllNodes().forEach((vnode) => {
-        if (vnode.checkInRect(rect)) {
+        if (vnode instanceof VM_area) return;
+        if (vnode.checkInRect(realRect)) {
           if (!vnode.isSelected) {
             this.selectedNodes.set(vnode._id, vnode);
             vnode.select();
@@ -85,7 +93,7 @@ export class SelectManager {
 
   getNodeOverRect(rect: DOMRect) {
     return core.nodeRenderer.getAllNodes().filter((node) => {
-      const r = node.body.getBoundingClientRect();
+      const r = node.bodyRect;
       return (
         r.x < rect.x + rect.width &&
         r.x + r.width > rect.x &&
@@ -105,8 +113,8 @@ export class SelectManager {
       x1 = -Infinity,
       y1 = -Infinity;
 
-    this.selectedNodes.forEach((node) => {
-      const r = node.body.getBoundingClientRect();
+    this.selectedNodes.forEach((vNode) => {
+      const r = vNode.bodyRect;
       x0 = Math.min(x0, r.x);
       y0 = Math.min(y0, r.y);
       x1 = Math.max(x1, r.x + r.width);

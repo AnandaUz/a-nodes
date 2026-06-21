@@ -25,7 +25,10 @@ export class NodeRenderer {
       core.store.on(EVENTS.nodes.created, (node) => {
         this.createVNode(node);
       }),
-      core.store.on(EVENTS.nodes.deleted, (node) => {
+      core.store.on(EVENTS.nodes.inTrash, (node) => {
+        this.removeVNode(node._id || "");
+      }),
+      core.store.on(EVENTS.nodes.ok, (node) => {
         this.removeVNode(node._id || "");
       }),
     );
@@ -74,7 +77,7 @@ export class NodeRenderer {
       .sort((a, b) => a.y - b.y)[0];
     if (!firstNode) return;
 
-    const firstNodeRect = firstNode.body.getBoundingClientRect();
+    const firstNodeRect = firstNode.bodyRect;
     const dy = out_of_rect.height - (firstNodeRect.y - out_of_rect.y);
     if (dy <= 0) return;
 
@@ -84,7 +87,7 @@ export class NodeRenderer {
       exSet.add(node);
       mRes.push(node);
 
-      const r = node.body.getBoundingClientRect();
+      const r = node.bodyRect;
       const rect = {
         x: out_of_rect.x,
         y: r.y + r.height,

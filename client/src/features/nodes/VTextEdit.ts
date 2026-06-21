@@ -108,19 +108,11 @@ export default class VTextEdit extends VNode {
       movedVNodeRect = core.selectManager.getSelectedNodeRect();
       movedVNodes = [...selectedVNodes.values()];
     } else {
-      movedVNodeRect = this.body.getBoundingClientRect();
+      movedVNodeRect = this.bodyRect;
       movedVNodes = [this];
     }
-    // const isMulti = selectedVNodes.size > 1;
 
-    // const : VNode[] = isMulti ? [...selectedVNodes.values()] : [this];
-    // // const exNodes: VNode[] = [...putBlocks];
-
-    // const baseRect = isMulti
-    //   ?
-    //   : this.body.getBoundingClientRect();
-
-    const scale = core.mode.scale;
+    // const scale = core.mode.scale;
     const overRect = {
       x: movedVNodeRect.x,
       y: movedVNodeRect.y,
@@ -150,19 +142,19 @@ export default class VTextEdit extends VNode {
 
     // exNodes.push(byNode);
 
-    const movedY = movedVNodeRect.y / scale;
-    const byNodeRect = byNode.body.getBoundingClientRect();
-    const byNodeY = byNodeRect.y / scale;
-    const dy0 = Math.round(byNodeY + byNode.body.offsetHeight / scale - movedY);
+    const movedY = movedVNodeRect.y;
+    const byNodeRect = byNode.bodyRect;
+    const byNodeY = byNodeRect.y;
+    const dy0 = Math.round(byNodeY + byNode.height - movedY);
 
     movedVNodes.forEach((node) => {
       node.moveAniTo(null, node.y + dy0);
       // node.moveTo({ x: undefined, y: node.y + dy0 });
     });
 
-    // movedVNodeRect.y = byNode.body.offsetHeight + byNodeRect.y;
+    movedVNodeRect.y = byNode.height + byNodeRect.y;
 
-    // core.nodeRenderer.pushdown_nodes_out_of_rect(movedVNodeRect, movedVNodes);
+    core.nodeRenderer.pushdown_nodes_out_of_rect(movedVNodeRect, movedVNodes);
     // } else {
     //   this.moveAniTo(null, byNode.y - this.body.offsetHeight);
     // }

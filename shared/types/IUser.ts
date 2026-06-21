@@ -8,4 +8,7 @@ export interface IUser {
   email?: string;
   picture?: string;
   name: string;
+  settings?: {
+    homeId?: string;
+  };
 }
