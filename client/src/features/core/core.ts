@@ -42,6 +42,8 @@ export class Core {
     this.nodeManager = new NodeManager();
     this.nodeRenderer = new NodeRenderer();
     this.clipboard = new Clipboard();
+
+    initCommands();
   }
 
   async init(_params: Record<string, string>) {
@@ -68,8 +70,6 @@ export class Core {
       token: token,
     });
     await this.serverPersistence.init();
-
-    initCommands();
   }
   unmount() {
     this.history.clear();

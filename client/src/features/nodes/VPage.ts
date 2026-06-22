@@ -14,7 +14,17 @@ export class VPage extends VTextEdit {
     btnEl.addEventListener("mouseup", (e) => {
       Tools.stopEvent(e);
       const _id = this.nodeEss._id;
-      const url = "/desk/" + _id;
+      let url = "";
+      const essUrl = this.nodeEss.exData?.url;
+      if (essUrl) {
+        if (/^[a-f0-9]{24}$/i.test(essUrl)) {
+          url = "/desk/" + essUrl;
+        } else {
+          url = essUrl;
+        }
+      } else {
+        url = "/desk/" + _id;
+      }
       console.log("mouse UP", e.buttons);
 
       switch (e.button) {

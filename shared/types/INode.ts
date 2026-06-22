@@ -15,5 +15,6 @@ export interface INode {
     tColor?: string;
     repeatMode?: string;
     repeatDay?: Date;
+    url?: string;
   };
 }
