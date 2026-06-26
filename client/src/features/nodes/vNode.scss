@@ -1,12 +1,27 @@
+:root {
+    --orange-color: #d45500;
+}
+
+@mixin setFontSizeH($s) {
+    font-size: $s * 1px;
+    line-height: 0.8;
+    padding: ($s * 0.1 * 1px) 0 ($s * 0.15 * 1px);
+    // padding: ($s * 0.1 * 1px) 0 ($s * 0.15 * 1px) ($s * 2 * 1px);
+    // text-indent: $s * -2 * 1px;
+}
+
 .vNode {
+    --color: 156;
+    --bg-color: none;
     position: absolute;
     top: 0;
     left: 0;
-    color: #61a36b;
+    color: hsl(var(--color), 70%, 40%);
     z-index: 100;
     box-sizing: border-box;
     overflow: visible; // якоря выглядывают за края
-    // background: #d4e2d7;
+    background-color: hsl(var(--bg-color), 100%, 90%);
+    border-radius: 4px;
 
     &:hover,
     &.is-selected {
@@ -15,6 +30,10 @@
 
     &.is-selected {
         border-bottom: 1px solid rgba(0, 37, 8, 0.199);
+    }
+
+    &.cutted {
+        opacity: 0.5;
     }
 
     &.is-clone {
@@ -31,8 +50,6 @@
             left: -4px;
             z-index: 100;
             --h: 5px;
-
-
         }
     }
 
@@ -75,8 +92,9 @@
         max-width: 560px;
         min-width: 10px;
         min-height: 22px;
-        padding: 3px 4px 3px 40px;
+        padding: 3px 4px 3px 42px;
         line-height: 0.9;
+        // color: hsl(var(--color), 70%, 40%);
     }
 
     &__text {
@@ -101,6 +119,66 @@
     }
 
 
+    &.h1 {
+        @include setFontSizeH(40);
+        color: var(--orange-color);
+        z-index: 100;
+        opacity: 1;
+        // ._sLess07& {
+        //   .setFontSizeH(50);
+        //   max-width: 700px;
+        // }
+        // ._sLess05& {
+        //   .setFontSizeH(65);
+        //   max-width: 990px;
+        // }
+        // ._sLess03& {
+        //   .setFontSizeH(80);
+        //   max-width: 1800px;
+        // }
+        // ._sLess02& {
+        //   .setFontSizeH(100);
+        //   text-indent: 0;
+        //   padding-left: 0;
+        //   max-width: 2000px;
+        // }
+        // ._sLess01& {
+        //   .setFontSizeH(130);
+        //   text-indent: 0;
+        //   padding-left: 0;
+        //   max-width: 2100px;
+        // }
+
+    }
+
+    &.h2 {
+        @include setFontSizeH(30);
+        color: var(--orange-color);
+        opacity: 1;
+        // ._sLess03& {
+        //   @include setFontSizeH(40);
+        //   max-width: 990px;
+        // }
+        // ._sLess02& {
+        //   @include setFontSizeH(50);
+        //   max-width: 1000px;
+        // }
+        // ._sLess01& {
+        //   .setFontSizeH(80);
+        //   max-width: 1100px;
+        // }
+    }
+
+    &.h3 {
+        @include setFontSizeH(20);
+        opacity: 1;
+        color: var(--orange-color);
+    }
+
+    &.h4 {
+        @include setFontSizeH(10);
+        color: rgba(85, 85, 119, 0.6);
+    }
 }
 
 // ─── Якоря ───────────────────────────────────────────────────────────────────

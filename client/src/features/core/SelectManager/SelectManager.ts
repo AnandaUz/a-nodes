@@ -29,7 +29,7 @@ export class SelectManager {
     core.mode.selectedVNodeCount = this.selectedNodes.size;
     core.store?.emit(EVENTS.nodes.selected, vnode.nodeEss);
   }
-  selectNodyById(
+  selectNodeById(
     id: string,
     options?: {
       ctrlKey?: boolean;
@@ -45,6 +45,7 @@ export class SelectManager {
     }
     vnode.select();
     core.mode.selectedVNodeCount = this.selectedNodes.size;
+    core.store?.emit(EVENTS.nodes.selected, vnode.nodeEss);
     return vnode;
   }
 

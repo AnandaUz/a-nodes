@@ -57,7 +57,7 @@ export class NodeManager {
     const id = await core.serverPersistence.createNode(newNodeEss);
 
     if (!id) return null;
-
+    newNodeEss._id = id;
     this.nodes.set(id, newNodeEss);
     core.store.emit(EVENTS.nodes.created, newNodeEss);
     return newNodeEss;
@@ -75,7 +75,7 @@ export class NodeManager {
     const newNode = await this.createNode(newNodeEss); //создание текстовой ноды
     if (newNode) {
       const vnode = core.nodeRenderer.getVNode(newNode._id || "");
-      core.selectManager.selectNodyById(newNode._id || "");
+      core.selectManager.selectNodeById(newNode._id || "");
       if (vnode instanceof VTextEdit) {
         vnode.turnOn_EditTitleMode();
       }
@@ -101,6 +101,7 @@ export class NodeManager {
     return Array.from(this.nodes.values());
   }
   moveToNode(nodeEss: INode, x: number, y: number): void {
+    if (nodeEss.x === x && nodeEss.y === y) return;
     nodeEss.x = x;
     nodeEss.y = y;
     this.saveNode(nodeEss);
@@ -219,7 +220,7 @@ export class NodeManager {
     vNode.turnOff_EditTitleMode();
     core.selectManager.clearSelection();
 
-    const newVnode = core.selectManager.selectNodyById(
+    const newVnode = core.selectManager.selectNodeById(
       newNode?._id || "",
     ) as VTextEdit;
     newVnode?.onStop();

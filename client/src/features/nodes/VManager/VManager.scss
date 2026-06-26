@@ -1,8 +1,9 @@
 .vnode-m-area {
+     --bg-color: 165;
      background: url(@assets/btn-bg-b.svg) bottom repeat-x,
           url(@assets/btn-bg-t.svg) top repeat-x,
           url(@assets/bg-m-2.svg) top left repeat;
-     background-color: #ddede38f;
+     background-color: hsl(var(--bg-color), 30%, 96%);
      background-size: auto 20px, auto, 35px 35px;
      width: 600px;
      height: 2000px;
@@ -13,7 +14,8 @@
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background-color: rgba(106, 143, 160, 0.219);
+          background-color: hsl(var(--bg-color) 90% 26% / 25%);
+
           border-radius: 5px 5px 0 0;
 
           .title-el {
@@ -89,15 +91,16 @@
 
           span {
                white-space: nowrap;
-               background: rgb(179 230 255 / 36%);
-               font-size: 12px;
-               padding: 0px 2px;
+               background: rgb(211 241 255 / 36%);
+               font-size: 11px;
+               padding: 0px 3px;
                border-radius: 2px;
-               color: #5d869f;
+               color: #01345370;
                max-width: 300px;
                overflow: hidden;
                text-overflow: ellipsis;
                white-space: nowrap;
+               font-weight: bold;
           }
      }
 

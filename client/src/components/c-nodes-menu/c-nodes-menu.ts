@@ -23,6 +23,108 @@ class OptionsBlock {
     this.body.classList.remove("active");
   }
 }
+interface IBtnData {
+  tColor?: string;
+  bgColor?: string;
+  text?: string;
+  value?: string;
+}
+class BtnGroup {
+  btns: Btn[] = [];
+  handler?: (value: string | undefined) => void;
+  isActivBtn?: Btn | null = null;
+  constructor(
+    data: IBtnData[],
+    parent: HTMLElement,
+    handler?: (value: string | undefined) => void,
+  ) {
+    if (handler) {
+      this.handler = handler;
+    }
+    data.forEach((el) => {
+      const btn = new Btn({
+        text: el.text || "",
+        handler: () => {
+          if (btn) {
+            if (btn === this.isActivBtn) {
+              btn.active = false;
+              this.isActivBtn = null;
+              this.handler?.(undefined);
+            } else {
+              this.setActiveBtn(el.value || "");
+            }
+          }
+
+          // this.handler?.(el.value || "");
+        },
+        parent: parent,
+      });
+      btn.value = el.value;
+      if (el.tColor) {
+        btn.el.style.color = el.tColor;
+      }
+      if (el.bgColor) {
+        btn.el.style.backgroundColor = el.bgColor;
+      }
+      this.btns.push(btn);
+    });
+  }
+  unActivAllBtn() {
+    this.btns.forEach((btn) => {
+      btn.active = false;
+    });
+  }
+  setActiveBtn(value: string, onlyView: boolean = false) {
+    this.unActivAllBtn();
+    const btn = this.btns.find((btn) => btn.value === value);
+    if (btn) {
+      this.isActivBtn = btn;
+      btn.active = true;
+      if (onlyView) return;
+      this.handler?.(value);
+    }
+  }
+}
+class Btn {
+  el: HTMLElement;
+
+  handler: () => void;
+  value?: string | number | undefined;
+  constructor({
+    text,
+    handler,
+    parent,
+  }: {
+    text?: string;
+    handler: () => void;
+    parent: HTMLElement;
+  }) {
+    const el = document.createElement("div");
+    if (text) {
+      el.innerHTML = text;
+    }
+    el.classList.add("btn");
+
+    this.el = el;
+    parent.appendChild(el);
+
+    this.handler = handler;
+    el.addEventListener("pointerdown", (e) => {
+      Tools.stopEvent(e);
+    });
+    el.addEventListener("pointerup", (e) => {
+      Tools.stopEvent(e);
+      this.handler();
+    });
+  }
+  set active(value: boolean) {
+    if (value) {
+      this.el.classList.add("active");
+    } else {
+      this.el.classList.remove("active");
+    }
+  }
+}
 class CNodesMenu extends HTMLElement {
   private unsubcripes: (() => void)[] = [];
   optionsBlocks: OptionsBlock[] = [];
@@ -33,6 +135,7 @@ class CNodesMenu extends HTMLElement {
     this.innerHTML = html;
     this.initRepeatBlock();
     this.initBlForVPage();
+    this.initBlTextStyle();
 
     this.unsubcripes.push(
       core.store.on(EVENTS.nodes.selected, (_node) => {
@@ -48,6 +151,97 @@ class CNodesMenu extends HTMLElement {
         });
       }),
     );
+  }
+  initBlTextStyle() {
+    const textStyleBlock = this.querySelector(
+      ".text-style-block",
+    ) as HTMLElement;
+    const block = new OptionsBlock(textStyleBlock);
+    this.optionsBlocks.push(block);
+
+    const hBlock = this.querySelector(".h-block") as HTMLDivElement;
+    const hBtns: IBtnData[] = [];
+    const h_count = 4;
+    for (let i = 0; i < h_count; i++) {
+      hBtns.push({
+        // tColor: `hsl(${v}, 70%, 50%)`,
+        text: "H" + (i + 1),
+        value: `h${i + 1}`,
+      });
+    }
+
+    const HGroup = new BtnGroup(hBtns, hBlock, (value) => {
+      core.selectManager.selectedNodes.forEach((node) => {
+        if (!node.nodeEss.exData) {
+          node.nodeEss.exData = {};
+        }
+        node.nodeEss.exData.h = value || "";
+
+        node.save();
+        node.render();
+      });
+    });
+
+    //--- text color ---
+    const textColor = this.querySelector(".text-color") as HTMLDivElement;
+
+    const c = 10;
+
+    const btnData: IBtnData[] = [];
+    for (let i = 0; i < c; i++) {
+      const v = Math.round((i * 360) / c);
+      btnData.push({
+        tColor: `hsl(${v}, 70%, 50%)`,
+        text: "A",
+        value: `${v}`,
+      });
+    }
+
+    const btnGroup = new BtnGroup(btnData, textColor, (value) => {
+      core.selectManager.selectedNodes.forEach((node) => {
+        if (!node.nodeEss.exData) {
+          node.nodeEss.exData = {};
+        }
+        node.nodeEss.exData.tColor = value || "";
+        node.save();
+        node.render();
+      });
+    });
+    //--- bg ---//
+    const btnDataBG: IBtnData[] = [];
+    for (let i = 0; i < c; i++) {
+      const v = Math.round((i * 360) / c);
+      btnDataBG.push({
+        value: `${v}`,
+        bgColor: `hsl(${v}, 70%, 90%)`,
+      });
+    }
+    const bgColor = this.querySelector(".bg-color") as HTMLDivElement;
+    const btnGroupBG = new BtnGroup(btnDataBG, bgColor, (value) => {
+      core.selectManager.selectedNodes.forEach((node) => {
+        if (!node.nodeEss.exData) {
+          node.nodeEss.exData = {};
+        }
+        node.nodeEss.exData.bgColor = value || "";
+        node.save();
+        node.render();
+      });
+    });
+
+    block.setRender(() => {
+      block.show();
+
+      const firstNode = core.selectManager.selectedNodes.values().next().value;
+      if (firstNode) {
+        btnGroup.setActiveBtn(firstNode.nodeEss.exData?.tColor || "", true);
+        btnGroupBG.setActiveBtn(firstNode.nodeEss.exData?.bgColor || "", true);
+        HGroup.setActiveBtn(firstNode.nodeEss.exData?.h || "", true);
+      }
+    });
+
+    //
+    // const fontSize = this.querySelector(".font-size") as HTMLDivElement;
+    // const fontWeight = this.querySelector(".font-weight") as HTMLDivElement;
   }
   initBlForVPage() {
     const urlBlock = this.querySelector(".url-block") as HTMLElement;

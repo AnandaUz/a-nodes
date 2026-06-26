@@ -1,21 +1,30 @@
 import type { INode } from "@shared/types";
 import type { VNode } from "../nodes/VNode";
 import VTextEdit from "../nodes/VTextEdit";
+import VTextEditClone from "../nodes/VTextEditClone";
+import { core } from "./core";
 
 export class Clipboard {
-  async copy(nodes: VNode[]) {
+  async copyVNode(vNodes: VNode[]) {
     // человеко-читаемый вид — для вставки в блокнот/Word
-    const plainText = nodes
-      .map((n) => {
-        if (n instanceof VTextEdit) {
-          return n.nodeEss.title;
+    const plainText = vNodes
+      .map((vNode) => {
+        if (vNode instanceof VTextEdit) {
+          if (vNode instanceof VTextEditClone) {
+            const mainNode = core.nodeManager.getNode(
+              vNode.nodeEss.exData?.ownerNodesIds?.[0] || "",
+            );
+
+            return mainNode?.title || "";
+          }
+          return vNode.nodeEss.title;
         }
         return "";
       })
       .join("\n");
 
     // структурированные данные — для вставки в своё приложение
-    const nodeEss = nodes.map((n) => n.nodeEss);
+    const nodeEss = vNodes.map((vNode) => vNode.nodeEss);
     const appData = JSON.stringify({ type: "a-nodes", nodeEss });
 
     const item = new ClipboardItem({

@@ -294,6 +294,33 @@ export class VNode {
         iconBlock.remove();
       }
     }
+    const tColor = this.nodeEss.exData?.tColor;
+    if (tColor) {
+      let c = tColor;
+      if (/^\d{1,3}$/g.test(tColor)) {
+        c = tColor;
+      } else {
+      }
+      this.body.style.setProperty("--color", c);
+    } else {
+      this.body.style.removeProperty("--color");
+    }
+    const bgColor = this.nodeEss.exData?.bgColor;
+    if (bgColor) {
+      let c = bgColor;
+      if (/^\d{1,3}$/g.test(bgColor)) {
+        c = bgColor;
+      } else {
+      }
+      this.body.style.setProperty("--bg-color", c);
+    } else {
+      this.body.style.removeProperty("--bg-color");
+    }
+    this.body.classList.remove("h1", "h2", "h3", "h4");
+    const h = this.nodeEss.exData?.h;
+    if (h) {
+      this.body.classList.add(h);
+    }
   }
 
   moveAniTo(x: number | null = null, y: number | null = null, delay = 0) {

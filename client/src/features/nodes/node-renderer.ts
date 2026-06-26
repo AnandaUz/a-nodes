@@ -34,13 +34,18 @@ export class NodeRenderer {
     );
   }
 
-  createVNode(nodeEss: INode): VNode {
+  createVNode(nodeEss: INode): VNode | null {
     const NodeClass = NODE_REGISTRY[nodeEss.type || 1]!;
-    const vNode = new NodeClass(nodeEss, this.nodesEl);
-    vNode.init();
-    vNode.render();
-    this.vNodes.set(nodeEss._id || "", vNode);
-    return vNode;
+    try {
+      const vNode = new NodeClass(nodeEss, this.nodesEl);
+      vNode.init();
+      vNode.render();
+      this.vNodes.set(nodeEss._id || "", vNode);
+      return vNode;
+    } catch (e) {
+      console.error("Ошибка рендеринга ноды:", nodeEss, e);
+      return null;
+    }
   }
   removeVNode(id: string) {
     const el = this.vNodes.get(id);

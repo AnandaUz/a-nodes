@@ -16,5 +16,6 @@ export interface INode {
     repeatMode?: string;
     repeatDay?: Date;
     url?: string;
+    h?: string;
   };
 }

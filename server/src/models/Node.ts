@@ -8,17 +8,21 @@ export interface INodeDocument
   pageId?: mongoose.Types.ObjectId | null;
 }
 
-const exDataSchema = new mongoose.Schema({
-  ownerNodesIds: {
-    type: [mongoose.Schema.Types.ObjectId],
-    default: undefined,
+const exDataSchema = new mongoose.Schema(
+  {
+    ownerNodesIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      default: undefined,
+    },
+    bgColor: { type: String },
+    tColor: { type: String },
+    repeatMode: { type: String },
+    repeatDay: { type: Date },
+    url: { type: String },
+    h: { type: String },
   },
-  bgColor: { type: String },
-  tColor: { type: String },
-  repeatMode: { type: String },
-  repeatDay: { type: Date },
-  url: { type: String },
-}, { _id: false });
+  { _id: false },
+);
 
 const nodeSchema = new mongoose.Schema<INodeDocument>({
   //   _id: {
