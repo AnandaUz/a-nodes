@@ -76,7 +76,7 @@ export default class VM_area extends VTextEdit {
   refreshHelpers() {
     this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
 
-    let levelPrev = 0;
+    let levelPrev = -1;
 
     let parentsTitles: string[] = [];
 
@@ -87,7 +87,7 @@ export default class VM_area extends VTextEdit {
         this.removeHelper(h._id);
         return;
       }
-      let sdvigX = Math.round((vNodeX - this.x - AREA_PADDING.left) / GRID.x);
+      let sdvigX = Math.round((vNodeX - this.x) / GRID.x);
       sdvigX = Math.min(sdvigX, levelPrev + 1);
 
       sdvigX = Math.max(sdvigX, 0);
@@ -124,7 +124,7 @@ export default class VM_area extends VTextEdit {
 
       levelPrev = sdvigX;
 
-      const x = this.x + sdvigX * GRID.x + AREA_PADDING.left;
+      const x = this.x + sdvigX * GRID.x;
       const y = h.mainNode.y;
 
       // h.body.style.transform = `translate(${x}px, ${y}px)`;

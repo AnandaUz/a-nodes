@@ -13,7 +13,18 @@ export default {
         index += range.startOffset;
         break;
       }
-      index += (node.textContent?.length ?? 0) + 1; // +1 за перенос строки
+
+      index += node.textContent?.length ?? 0;
+
+      // считаем все <br> между этим узлом и следующим текстовым
+      let sibling = node.nextSibling;
+      while (sibling && sibling.nodeType !== Node.TEXT_NODE) {
+        if (sibling instanceof HTMLElement && sibling.tagName === "BR") {
+          index += 1;
+        }
+        sibling = sibling.nextSibling;
+      }
+
       node = walk.nextNode();
     }
     return index;

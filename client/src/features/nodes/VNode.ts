@@ -2,6 +2,7 @@ import type { INode } from "@shared/types";
 import { core, EVENTS } from "../core/core";
 import type { Command } from "../core/interfaces";
 import Tools from "../core/Tools";
+import { GRID } from "../core/CONST";
 
 interface Position {
   x: number;
@@ -175,7 +176,12 @@ export class VNode {
 
     const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
 
-    this.x = Math.round(worldPos.x - this.pointerOffset.x);
+    let x = Math.round(worldPos.x - this.pointerOffset.x);
+    if (1) {
+      x = Math.round(x / GRID.x) * GRID.x;
+    }
+
+    this.x = x;
     this.y = Math.round(worldPos.y - this.pointerOffset.y);
 
     this.applyPosition();
