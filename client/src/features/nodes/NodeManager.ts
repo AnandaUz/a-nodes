@@ -5,6 +5,7 @@ import Tools from "../core/Tools";
 import VTextEdit from "./VTextEdit";
 import { NODE_TYPES } from "./node-registry";
 import type { VNode } from "./VNode";
+import { GRID } from "../core/CONST";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
@@ -68,7 +69,7 @@ export class NodeManager {
       core.desk.mouse.y,
     );
     const newNodeEss: INode = {
-      x: Math.round(x),
+      x: Math.round(x / GRID.x) * GRID.x,
       y: Math.round(y),
       type,
     };

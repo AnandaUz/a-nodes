@@ -1,10 +1,11 @@
 import { core } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
 import type { INode } from "@shared/types";
-import type VTextEdit from "../nodes/VTextEdit";
+import VTextEdit from "../nodes/VTextEdit";
 import { GRID } from "./CONST";
 import VM_area from "../nodes/VManager/VM_area";
 import Tools from "./Tools";
+import VTextEditClone from "../nodes/VTextEditClone";
 
 interface Command {
   label: string;
@@ -199,7 +200,7 @@ const commands: Command[] = [
                 core.desk.mouse.y,
               );
               const newNodeEss: INode = {
-                x,
+                x: Math.round(x / GRID.x) * GRID.x,
                 y,
                 type: NODE_TYPES.MANAGER.area_main,
                 exData: {},
@@ -336,6 +337,49 @@ const commands: Command[] = [
             } else {
               core.nodeManager.moveToNode(vNode.nodeEss, x, vNode.y);
             }
+          }
+        },
+      },
+      {
+        label: "Отсортировать",
+        shortcuts: ["alt+1"],
+        execute: async () => {
+          if (core.mode.textEditing) return;
+          if (core.mode.selectedVNodeCount < 1) return;
+          const m = [...core.selectManager.selectedNodes.values()].filter(
+            (vnode) => !(vnode instanceof VM_area),
+          );
+
+          if (m.length < 2) return;
+          m.sort((a, b) => a.y - b.y);
+
+          const ss = m.map((vnode, index) => {
+            if (vnode instanceof VTextEditClone) {
+              return {
+                value: vnode.sourceVNode?.nodeEss.title || "??",
+                index,
+              };
+            } else {
+              return {
+                value: vnode.nodeEss.title || "??",
+                index,
+              };
+            }
+          });
+
+          const sorted = await core.popupSort.start(ss);
+
+          let y = m[0]?.y || 0;
+
+          // let x = -1000000;
+
+          for (let i = 0; i < sorted.length; i++) {
+            const n = sorted[i];
+            if (!n) continue;
+            const vNode = m[n.index];
+            if (!vNode) continue;
+            vNode.moveAniTo(vNode.x, y, i * 50);
+            y += vNode.body.offsetHeight;
           }
         },
       },

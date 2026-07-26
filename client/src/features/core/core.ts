@@ -11,6 +11,7 @@ import { History } from "@features/core/history";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import type { ManagerCore } from "../nodes/VManager/ManagerCore";
 import { Clipboard } from "@features/core/Clipboard";
+import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 
 export { EVENTS };
 export class Core {
@@ -24,6 +25,7 @@ export class Core {
   history!: History;
   managerCore?: ManagerCore;
   clipboard!: Clipboard;
+  popupSort: CPopupSort = new CPopupSort();
 
   mode = {
     textEditing: false,
