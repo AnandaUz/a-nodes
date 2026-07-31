@@ -20,6 +20,7 @@ export default class SelectionRect {
 
   private onMouseDown = (e: PointerEvent) => {
     if (e.buttons !== 1) return;
+    if (e.pointerType === "touch") return;
     if (core.mode.textEditing) return;
 
     this.p1 = { x: e.clientX, y: e.clientY };

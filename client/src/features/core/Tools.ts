@@ -57,4 +57,10 @@ export default {
 
     return new Date(year, month, day);
   },
+  /** Определяет тип ввода - мышка или тачпад, а также ширину экрана */
+  getInputMode() {
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const narrow = window.matchMedia("(max-width: 768px)").matches;
+    return { coarse, narrow };
+  },
 };

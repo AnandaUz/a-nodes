@@ -13,6 +13,7 @@ import type { ManagerCore } from "../nodes/VManager/ManagerCore";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import { CLoading } from "@/components/loading/loading";
+import Tools from "./Tools";
 
 export { EVENTS };
 export class Core {
@@ -39,6 +40,7 @@ export class Core {
     deskId: "root",
     wasMoving: false, //переменная для того чтобы клик не снимал выделения
     scale: 1,
+    inputMode: Tools.getInputMode(),
   };
 
   constructor() {
