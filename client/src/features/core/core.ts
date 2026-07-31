@@ -48,6 +48,9 @@ export class Core {
     this.clipboard = new Clipboard();
 
     initCommands();
+
+    this.loading = new CLoading();
+    document.body.appendChild(this.loading);
   }
 
   async init(_params: Record<string, string>) {
@@ -59,8 +62,6 @@ export class Core {
 
     this.desk = new Desk();
 
-    this.loading = new CLoading();
-    document.body.appendChild(this.loading);
     this.loading.show();
 
     const container = document.getElementById("main")!;
