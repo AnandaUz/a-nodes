@@ -12,6 +12,7 @@ import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import type { ManagerCore } from "../nodes/VManager/ManagerCore";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
+import { CLoading } from "@/components/loading/loading";
 
 export { EVENTS };
 export class Core {
@@ -26,6 +27,7 @@ export class Core {
   managerCore?: ManagerCore;
   clipboard!: Clipboard;
   popupSort: CPopupSort = new CPopupSort();
+  loading: CLoading = new CLoading();
 
   mode = {
     textEditing: false,
@@ -57,6 +59,10 @@ export class Core {
 
     this.desk = new Desk();
 
+    this.loading = new CLoading();
+    document.body.appendChild(this.loading);
+    this.loading.show();
+
     const container = document.getElementById("main")!;
 
     const token = getToken() ?? undefined;
@@ -72,6 +78,8 @@ export class Core {
       token: token,
     });
     await this.serverPersistence.init();
+
+    this.loading.hide();
   }
   unmount() {
     this.history.clear();

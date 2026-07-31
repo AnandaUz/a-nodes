@@ -8,6 +8,7 @@ import { registerPage } from "./pages/register/register";
 import { deskPage } from "./pages/desk";
 import { renderHeader } from "./components/header";
 import { getUser } from "./services/auth.service";
+import { testPage } from "./pages/test/test";
 
 const routes: Routes = {
   "/": deskPage,
@@ -18,6 +19,7 @@ const routes: Routes = {
   "/register": registerPage,
   // "/desk": deskPage,
   "/desk/:id": deskPage,
+  "/test": testPage,
 };
 
 class Router {
