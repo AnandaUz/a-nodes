@@ -1,8 +1,8 @@
 import html from "./register.html?raw";
-import { router } from "../../router";
 import api from "@/features/core/api";
 import { saveTokens } from "@/services/auth.service";
 import "./register.scss";
+import { app } from "@/app";
 
 export function registerPage() {
   return {
@@ -33,8 +33,7 @@ export function registerPage() {
           const data = await response.json();
           saveTokens(data.token, data.refreshToken);
 
-          history.pushState({}, "", "/");
-          router.render();
+          app.gotoPage_home();
         } catch (e) {
           console.error("Ошибка регистрации:", e);
         }

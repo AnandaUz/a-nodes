@@ -1,4 +1,5 @@
-import { router } from "@/router";
+// import { router } from "@/router";
+import { app } from "@/app";
 import Tools from "../core/Tools";
 import VTextEdit from "./VTextEdit";
 
@@ -29,7 +30,7 @@ export class VPage extends VTextEdit {
 
       switch (e.button) {
         case 0:
-          router.navigate(url);
+          app.router.navigate(url);
           break;
         case 1:
           window.open(url, "_blank");

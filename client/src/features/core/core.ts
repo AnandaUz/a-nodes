@@ -12,8 +12,8 @@ import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import type { ManagerCore } from "../nodes/VManager/ManagerCore";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
-import { CLoading } from "@/components/loading/loading";
 import Tools from "./Tools";
+import { app } from "@/app";
 
 export { EVENTS };
 export class Core {
@@ -28,7 +28,6 @@ export class Core {
   managerCore?: ManagerCore;
   clipboard!: Clipboard;
   popupSort: CPopupSort = new CPopupSort();
-  loading: CLoading = new CLoading();
 
   mode = {
     textEditing: false,
@@ -50,9 +49,6 @@ export class Core {
     this.clipboard = new Clipboard();
 
     initCommands();
-
-    this.loading = new CLoading();
-    document.body.appendChild(this.loading);
   }
 
   async init(_params: Record<string, string>) {
@@ -64,7 +60,7 @@ export class Core {
 
     this.desk = new Desk();
 
-    this.loading.show();
+    app.showLoader();
 
     const container = document.getElementById("main")!;
 
@@ -81,8 +77,7 @@ export class Core {
       token: token,
     });
     await this.serverPersistence.init();
-
-    this.loading.hide();
+    app.hideLoader();
   }
   unmount() {
     this.history.clear();

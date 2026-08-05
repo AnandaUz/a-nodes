@@ -3,8 +3,7 @@ import {
   getToken,
   refreshAccessToken,
   removeTokens,
-} from "../../services/auth.service";
-import { router } from "../../router";
+} from "@services/auth.service";
 
 class API {
   private API_URL = import.meta.env.VITE_API_URL;
@@ -32,7 +31,7 @@ class API {
       if (!newToken) {
         removeTokens();
         history.pushState({}, "", "/welcome");
-        router.render();
+        // router.render();
         throw new Error("Сессия истекла");
       }
       headers.set("Authorization", `Bearer ${newToken}`);

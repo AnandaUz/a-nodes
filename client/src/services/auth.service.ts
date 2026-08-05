@@ -1,7 +1,5 @@
-// client/src/services/auth.service.ts
-
+import { app } from "@/app";
 import type { IUser } from "@shared/types";
-import { router } from "../router";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -95,8 +93,7 @@ export async function logout(): Promise<void> {
   } finally {
     removeUser();
     removeTokens();
-    history.pushState({}, "", "/welcome");
-    router.render();
+    app.gotoPage_welcome();
   }
 }
 
@@ -122,9 +119,8 @@ export async function handleCredential(response: {
   saveUser(result.user);
 
   if (result.isNew) {
-    history.pushState({}, "", "/register");
+    app.gotoPage_register();
   } else {
-    history.pushState({}, "", "/");
+    app.gotoPage_home();
   }
-  router.render();
 }

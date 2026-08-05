@@ -1,8 +1,6 @@
-// client/src/services/auth.guard.ts
-
-import { getToken, saveUser } from "./auth.service";
-import api from "@/features/core/api";
-import { router } from "../router";
+import { getToken, saveUser } from "@services/auth.service";
+import api from "@features/core/api";
+import { app } from "@/app";
 
 export async function authGuard(): Promise<void> {
   const token = getToken();
@@ -12,14 +10,12 @@ export async function authGuard(): Promise<void> {
   const isPublic = publicRoutes.includes(path);
 
   if (!token && !isPublic) {
-    history.pushState({}, "", "/welcome");
-    router.render();
+    app.gotoPage_welcome();
     return;
   }
 
   if (token && path === "/welcome") {
-    history.pushState({}, "", "/");
-    router.render();
+    app.gotoPage_home();
     return;
   }
 
