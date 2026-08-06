@@ -2,7 +2,6 @@ import type { INode } from "@shared/types";
 import { core, EVENTS } from "../core/core";
 import type { Command } from "../core/interfaces";
 import Tools from "../core/Tools";
-import { GRID } from "../core/CONST";
 
 interface Position {
   x: number;
@@ -178,7 +177,7 @@ export class VNode {
 
     let x = Math.round(worldPos.x - this.pointerOffset.x);
     if (1) {
-      x = Math.round(x / GRID.x) * GRID.x;
+      x = Tools.getDiskPosition(x);
     }
 
     this.x = x;

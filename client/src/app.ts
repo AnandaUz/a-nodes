@@ -72,7 +72,7 @@ class App {
     await this.initGoogleAuth();
     await authGuard();
 
-    this.router.init(routes, notFoundRoute);
+    await this.router.init(routes, notFoundRoute);
     this.hideLoader();
   }
 }

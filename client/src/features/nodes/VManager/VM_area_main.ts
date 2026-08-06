@@ -1,14 +1,10 @@
 import type { INode } from "@shared/types";
-
 import VM_area, { AREA_PADDING } from "./VM_area";
 import { core, EVENTS } from "@/features/core/core";
-// import VTextEdit from "../VTextEdit";
 import Tools from "@/features/core/Tools";
 import { NODE_TYPES } from "../node-registry";
 import Helper_main from "./Helper/Helper_main";
-// import { GRID } from "@/features/core/CONST";
-// import type { VNode } from "../VNode";
-// import { Helper } from "./Helper";
+import { GRID } from "@/features/core/CONST";
 
 export default class VM_area_main extends VM_area {
   areasMain = new Map<string, VM_area>();
@@ -73,7 +69,7 @@ export default class VM_area_main extends VM_area {
         bgColor: Math.round(Math.random() * 360).toString(),
       },
       type: NODE_TYPES.MANAGER.area_main,
-      x: Math.round(this.x + bounds.width + 20),
+      x: Tools.getDiskPosition(this.x + bounds.width + GRID.x),
       y: Math.round(this.y),
       title: "Сортировщик",
     };

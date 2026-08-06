@@ -1,3 +1,5 @@
+import { GRID } from "./CONST";
+
 export default {
   stopEvent(e: Event) {
     e.preventDefault();
@@ -62,5 +64,8 @@ export default {
     const coarse = window.matchMedia("(pointer: coarse)").matches;
     const narrow = window.matchMedia("(max-width: 768px)").matches;
     return { coarse, narrow };
+  },
+  getDiskPosition(x: number) {
+    return Math.round(x / GRID.x) * GRID.x;
   },
 };

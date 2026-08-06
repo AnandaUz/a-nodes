@@ -200,8 +200,8 @@ const commands: Command[] = [
                 core.desk.mouse.y,
               );
               const newNodeEss: INode = {
-                x: Math.round(x / GRID.x) * GRID.x,
-                y,
+                x: Tools.getDiskPosition(x),
+                y: Math.round(y),
                 type: NODE_TYPES.MANAGER.area_main,
                 exData: {},
               };
