@@ -2,7 +2,7 @@ import "./c-popup.scss";
 
 export class CPopup extends HTMLElement {
   targetElement: HTMLElement | null = null;
-  private _onOutsideClick = (e: MouseEvent) => {
+  private _onOutsideClick = (e: PointerEvent) => {
     if (!this.contains(e.target as Node)) this.close();
   };
   onOpen: (owner: any) => void = () => {};

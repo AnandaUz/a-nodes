@@ -56,7 +56,7 @@ export class SelectManager {
 
     const mainBlock = document.body;
 
-    this.selectionRect = new SelectionRect(mainBlock, (rect, mouseEvent) => {
+    this.selectionRect = new SelectionRect(mainBlock, (rect, pointerEvent) => {
       if (!core.mode.selectMoving && (rect.width < 10 || rect.height < 10)) {
         if (!core.mode.wasMoving) {
           this.clearSelection();
@@ -72,7 +72,7 @@ export class SelectManager {
         height: rect.height / core.mode.scale,
       } as DOMRect;
 
-      if (!core.mode.selectMoving && !mouseEvent.ctrlKey) {
+      if (!core.mode.selectMoving && !pointerEvent.ctrlKey) {
         this.clearSelection();
         core.store?.emit(EVENTS.nodes.unselected, null);
       }

@@ -9,10 +9,7 @@ export class VPage extends VTextEdit {
 
     const btnEl = this.body.querySelector(".btn-el") as HTMLElement;
 
-    // btnEl.addEventListener("mousedown", (e) => {
-    //   // this.buttons = e.buttons;
-    // });
-    btnEl.addEventListener("mouseup", (e) => {
+    btnEl.addEventListener("pointerup", (e) => {
       Tools.stopEvent(e);
       const _id = this.nodeEss._id;
       let url = "";
@@ -26,7 +23,6 @@ export class VPage extends VTextEdit {
       } else {
         url = "/desk/" + _id;
       }
-      console.log("mouse UP", e.buttons);
 
       switch (e.button) {
         case 0:

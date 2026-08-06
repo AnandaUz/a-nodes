@@ -3,22 +3,22 @@ import { core } from "../core";
 export default class SelectionRect {
   private el: HTMLDivElement;
   private p1 = { x: 0, y: 0 };
-  private onComplete: (rect: DOMRect, event: MouseEvent) => void;
+  private onComplete: (rect: DOMRect, event: PointerEvent) => void;
   private container: HTMLElement;
 
   constructor(
     container: HTMLElement,
-    onComplete: (rect: DOMRect, event: MouseEvent) => void,
+    onComplete: (rect: DOMRect, event: PointerEvent) => void,
   ) {
     this.container = container;
     this.onComplete = onComplete;
     this.el = document.createElement("div");
     this.el.classList.add("selectBox");
     container.appendChild(this.el);
-    container.addEventListener("pointerdown", this.onMouseDown);
+    container.addEventListener("pointerdown", this.onPointerDown);
   }
 
-  private onMouseDown = (e: PointerEvent) => {
+  private onPointerDown = (e: PointerEvent) => {
     if (e.buttons !== 1) return;
     if (e.pointerType === "touch") return;
     if (core.mode.textEditing) return;
@@ -27,21 +27,21 @@ export default class SelectionRect {
     this.el.style.display = "block";
     this.update(e.clientX, e.clientY);
 
-    window.addEventListener("pointermove", this.onMouseMove);
-    window.addEventListener("pointerup", this.onMouseUp);
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
   };
 
-  private onMouseMove = (e: PointerEvent) => {
+  private onPointerMove = (e: PointerEvent) => {
     this.update(e.clientX, e.clientY);
   };
 
-  private onMouseUp = (e: PointerEvent) => {
+  private onPointerUp = (e: PointerEvent) => {
     const rect = this.getRect(e.clientX, e.clientY);
 
     this.el.style.display = "none";
 
-    window.removeEventListener("pointermove", this.onMouseMove);
-    window.removeEventListener("pointerup", this.onMouseUp);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
 
     this.onComplete(rect, e);
   };
@@ -66,6 +66,6 @@ export default class SelectionRect {
 
   destroy() {
     this.el.remove();
-    this.container.removeEventListener("pointerdown", this.onMouseDown);
+    this.container.removeEventListener("pointerdown", this.onPointerDown);
   }
 }

@@ -64,8 +64,8 @@ export class NodeManager {
   }
   async createNodeWithTypeAndPositionFromCursor(type: number) {
     const { x, y } = core.desk.viewport.screenToWorld(
-      core.desk.mouse.x,
-      core.desk.mouse.y,
+      core.desk.pointer.x,
+      core.desk.pointer.y,
     );
     const newNodeEss: INode = {
       x: Tools.getDiskPosition(x),

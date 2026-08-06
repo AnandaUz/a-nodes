@@ -11,13 +11,13 @@ export class Desk {
   private sceneEl!: HTMLElement;
   private h1El!: HTMLHeadingElement;
   viewport!: Viewport;
-  mouse = { x: 0, y: 0 };
+  pointer = { x: 0, y: 0 };
   private faviconCanvas = document.createElement("canvas");
 
   constructor() {
-    window.addEventListener("mousemove", (e) => {
-      this.mouse.x = e.clientX;
-      this.mouse.y = e.clientY;
+    window.addEventListener("pointermove", (e) => {
+      this.pointer.x = e.clientX;
+      this.pointer.y = e.clientY;
     });
 
     core.store.on(EVENTS.NodeManager.reInitAllNodes, () => {

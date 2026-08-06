@@ -31,10 +31,10 @@ export const EVENTS = {
     unselected: "node:unselected",
     inTrash: "node:inTrash",
     ok: "node:ok",
-    mouse: {
-      down: "mouse:down",
-      move: "mouse:move",
-      up: "mouse:up",
+    pointer: {
+      down: "pointer:down",
+      move: "pointer:move",
+      up: "pointer:up",
     },
   },
   server: {
@@ -76,9 +76,9 @@ export type DeskEvents = {
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;
   [EVENTS.renderer.refreshAllVNodes]: void;
-  [EVENTS.nodes.mouse.down]: VNode;
-  [EVENTS.nodes.mouse.move]: VNode;
-  [EVENTS.nodes.mouse.up]: VNode;
+  [EVENTS.nodes.pointer.down]: VNode;
+  [EVENTS.nodes.pointer.move]: VNode;
+  [EVENTS.nodes.pointer.up]: VNode;
   [EVENTS.area.sub.created]: VM_area;
   [EVENTS.area.sub.deleted]: VM_area;
   [EVENTS.area.sub.connected]: {

@@ -95,16 +95,16 @@ const commands: Command[] = [
               y = Math.min(y, nodeEss.y);
             }
           });
-          const mousePos = core.desk.viewport.screenToWorld(
-            core.desk.mouse.x,
-            core.desk.mouse.y,
+          const pointerPos = core.desk.viewport.screenToWorld(
+            core.desk.pointer.x,
+            core.desk.pointer.y,
           );
           core.selectManager.clearSelection();
           nodeEsses.nodes.forEach(async (nodeEss) => {
             nodeEss.pageId = core.mode.deskId;
             nodeEss.inTrash = false;
-            nodeEss.x = (nodeEss.x ?? 0) - x + mousePos.x;
-            nodeEss.y = (nodeEss.y ?? 0) - y + mousePos.y;
+            nodeEss.x = (nodeEss.x ?? 0) - x + pointerPos.x;
+            nodeEss.y = (nodeEss.y ?? 0) - y + pointerPos.y;
 
             const newNodeEss = await core.nodeManager.createNode(nodeEss);
 
@@ -196,8 +196,8 @@ const commands: Command[] = [
             execute: async () => {
               if (core.mode.textEditing) return;
               const { x, y } = core.desk.viewport.screenToWorld(
-                core.desk.mouse.x,
-                core.desk.mouse.y,
+                core.desk.pointer.x,
+                core.desk.pointer.y,
               );
               const newNodeEss: INode = {
                 x: Tools.getDiskPosition(x),

@@ -139,7 +139,7 @@ export class VNode {
     Tools.stopEvent(e);
 
     this.isDragging = true;
-    core.store.emit(EVENTS.nodes.mouse.down, this);
+    core.store.emit(EVENTS.nodes.pointer.down, this);
 
     const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
     this.pointerOffset = {

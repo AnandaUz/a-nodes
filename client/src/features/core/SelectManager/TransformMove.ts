@@ -4,8 +4,6 @@ import Tools from "../Tools";
 
 export class TransformMove {
   private active = false;
-  // private startMouse = { x: 0, y: 0 };
-  //   private startPositions: Map<string, { x: number; y: number }> = new Map();
   private selectManager: SelectManager;
 
   constructor(selectManager: SelectManager) {
@@ -16,12 +14,12 @@ export class TransformMove {
     if (this.selectManager.selectedNodes.size === 0) return;
     this.active = true;
 
-    window.addEventListener("pointermove", this.onMouseMove);
-    window.addEventListener("pointerup", this.onMouseUp);
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
 
     const pEvent = new PointerEvent("pointerdown", {
-      clientX: core.desk.mouse.x,
-      clientY: core.desk.mouse.y,
+      clientX: core.desk.pointer.x,
+      clientY: core.desk.pointer.y,
       pointerId: 1,
       pointerType: "mouse",
       isPrimary: true,
@@ -30,10 +28,8 @@ export class TransformMove {
       node.onPointerDown(pEvent);
     });
     core.mode.selectMoving = true;
-
-    // this.startMouse = { x: pEvent.clientX, y: pEvent.clientY };
   }
-  private onMouseMove = (e: PointerEvent) => {
+  private onPointerMove = (e: PointerEvent) => {
     if (!this.active) return;
 
     core.mode.wasMoving = true;
@@ -43,7 +39,7 @@ export class TransformMove {
     });
   };
 
-  private onMouseUp = (e: PointerEvent) => {
+  private onPointerUp = (e: PointerEvent) => {
     if (!this.active) return;
 
     this.selectManager.selectedNodes.forEach((node) => {
@@ -52,7 +48,7 @@ export class TransformMove {
     Tools.stopEvent(e);
 
     this.active = false;
-    window.removeEventListener("pointermove", this.onMouseMove);
-    window.removeEventListener("pointerup", this.onMouseUp);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
   };
 }
