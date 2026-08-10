@@ -5,6 +5,7 @@ import Tools from "../core/Tools";
 import VTextEdit from "./VTextEdit";
 import { NODE_TYPES } from "./node-registry";
 import type { VNode } from "./VNode";
+import { BTools } from "@base/client/features/BTools";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
@@ -54,12 +55,18 @@ export class NodeManager {
     };
     newNodeEss.x = Math.round(newNodeEss.x!);
     newNodeEss.y = Math.round(newNodeEss.y!);
+
+    console.time("save node");
     const id = await core.serverPersistence.createNode(newNodeEss);
+
+    console.timeEnd("save node");
 
     if (!id) return null;
     newNodeEss._id = id;
     this.nodes.set(id, newNodeEss);
+
     core.store.emit(EVENTS.nodes.created, newNodeEss);
+
     return newNodeEss;
   }
   async createNodeWithTypeAndPositionFromCursor(type: number) {

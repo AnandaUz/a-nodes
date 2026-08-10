@@ -1,6 +1,7 @@
 import { Viewport } from "./desk.viewport";
 import "./desk.scss";
 import "@components/c-nodes-menu/c-nodes-menu";
+import "@components/c-mobi-submenu/c-mobi-submenu";
 
 import html from "./desk.html?raw";
 import { EVENTS } from "../core/store";

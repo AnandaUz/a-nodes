@@ -40,6 +40,11 @@ export class Core {
     wasMoving: false, //переменная для того чтобы клик не снимал выделения
     scale: 1,
     inputMode: Tools.getInputMode(),
+    mobile_mode: {
+      navigation: false,
+      adding: false,
+      select: false,
+    },
   };
 
   constructor() {

@@ -7,6 +7,8 @@ export interface ViewportState {
   scale: number;
 }
 
+const SCALE_STEP = 0.15;
+
 export class Viewport {
   private el: HTMLElement;
   scene: HTMLElement; // нужен для фона и событий
@@ -126,7 +128,7 @@ export class Viewport {
     // if (!e.ctrlKey) return;
     Tools.stopEvent(e);
 
-    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const factor = e.deltaY < 0 ? 1 + SCALE_STEP : 1 - SCALE_STEP;
     const rect = this.scene.getBoundingClientRect();
     this.applyZoom(factor, e.clientX - rect.left, e.clientY - rect.top);
 

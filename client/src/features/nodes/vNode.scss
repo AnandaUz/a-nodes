@@ -85,14 +85,15 @@
     }
 
     .title-el {
+        --GRID_x: 50px;
         outline: none;
         min-width: 10px;
         width: max-content;
-        text-indent: -40px;
+        text-indent: calc(var(--GRID_x) * -1);
         max-width: 560px;
         min-width: 10px;
         min-height: 22px;
-        padding: 3px 4px 3px 42px;
+        padding: 3px 4px 3px var(--GRID_x);
         line-height: 0.9;
         // color: hsl(var(--color), 70%, 40%);
     }

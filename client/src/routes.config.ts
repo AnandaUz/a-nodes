@@ -3,12 +3,12 @@ import type { RouteConfig } from "@base/client/features/router/types";
 export const routes: RouteConfig[] = [
   {
     path: "/",
-    load: () => import("./pages/desk").then((m) => m.deskPage),
+    load: () => import("./pages/desk/desk").then((m) => m.deskPage),
     title: "a-nodes",
   },
   {
     path: "/desk/:id",
-    load: () => import("./pages/desk").then((m) => m.deskPage),
+    load: () => import("./pages/desk/desk").then((m) => m.deskPage),
     title: "a-nodes",
   },
   {

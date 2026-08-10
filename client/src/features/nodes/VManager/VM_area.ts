@@ -8,6 +8,7 @@ import type { VNode } from "../VNode";
 import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
 import VTextEditClone from "../VTextEditClone";
+import { BTools } from "@base/client/features/BTools";
 
 export const AREA_PADDING = {
   left: 30,
@@ -21,10 +22,13 @@ export default class VM_area extends VTextEdit {
   elBtnsBlock?: HTMLElement;
   subAreas: Map<string, VM_area> = new Map();
   helperType: new (vnode: VNode, mainArea: VM_area) => Helper = Helper as any;
+
+  static areas: VM_area[] = [];
   // events = new EventEmitter<VNodeEvents>();
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-m-area");
+    VM_area.areas.push(this);
 
     if (!core.managerCore) core.managerCore = new ManagerCore();
 
@@ -163,6 +167,8 @@ export default class VM_area extends VTextEdit {
   }
 
   initHelpers() {
+    console.log("aaaaa");
+
     core.nodeRenderer.getAllNodes().forEach((vnode) => {
       if (
         (vnode instanceof VTextEdit || vnode instanceof VTextEditClone) &&
@@ -170,7 +176,6 @@ export default class VM_area extends VTextEdit {
       ) {
         const { x, y } = vnode;
         if (x === undefined || y === undefined) return;
-
         if (this.checkPointOver(x, y)) {
           if (!(vnode instanceof VM_area)) {
             let h = this.helpersById[vnode._id];
@@ -183,6 +188,7 @@ export default class VM_area extends VTextEdit {
         }
       }
     });
+
     this.refreshHelpers();
   }
   addHelper(vnode: VNode) {

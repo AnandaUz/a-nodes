@@ -38,6 +38,7 @@ const commands: Command[] = [
         shortcuts: ["enter", "num-enter"],
         execute: (e: KeyboardEvent) => {
           if (!core.mode.textEditing) return;
+
           core.nodeManager.addTextEditNode_byEnter(e);
         },
       },
@@ -175,9 +176,11 @@ const commands: Command[] = [
             shortcuts: ["1"],
             execute: async () => {
               if (core.mode.textEditing) return;
+              console.time("createNode");
               core.nodeManager.createNodeWithTypeAndPositionFromCursor(
                 NODE_TYPES.TEXT_EDIT.id,
               );
+              console.timeEnd("createNode");
             },
           },
           {
