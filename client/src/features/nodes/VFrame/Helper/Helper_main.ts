@@ -2,8 +2,8 @@ import { Helper } from "./Helper";
 import { core } from "@/features/core/core";
 import type Helper_sub from "./Helper_sub";
 import type { VNode } from "../../VNode";
-import type VM_area_main from "../VM_area_main";
-import type VM_area from "../VM_area";
+import type VM_area_main from "../VFrame_main";
+import type VM_area from "../VFrame";
 import VTextEditClone from "../../VTextEditClone";
 
 class Btn {
@@ -76,6 +76,7 @@ export default class Helper_main extends Helper {
   toHelper: Helper[] = [];
   _level: number = 0;
   render() {
+    // console.log("Helper_main");
     super.render();
 
     this.btnBlockEl.innerHTML = "";

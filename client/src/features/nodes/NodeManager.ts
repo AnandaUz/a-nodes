@@ -5,7 +5,6 @@ import Tools from "../core/Tools";
 import VTextEdit from "./VTextEdit";
 import { NODE_TYPES } from "./node-registry";
 import type { VNode } from "./VNode";
-import { BTools } from "@base/client/features/BTools";
 
 export class NodeManager {
   private nodes = new Map<string, INode>();
@@ -30,11 +29,13 @@ export class NodeManager {
 
   loadSnapshot(snapshot: DeskSnapshot): void {
     this.nodes.clear();
+
     for (const node of snapshot.nodes) {
       const { _id } = node;
       if (!_id) continue;
       this.nodes.set(_id, node);
     }
+
     if (snapshot.pageNode) {
       this.pageNode = snapshot.pageNode;
     }

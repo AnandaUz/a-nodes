@@ -1,6 +1,6 @@
 import type { INode } from "@shared/types";
 
-import VM_area from "./VM_area";
+import VM_area from "./VFrame";
 import { core, EVENTS } from "@/features/core/core";
 // import Helper_sub from "./Helper/Helper_sub";
 import { NODE_TYPES } from "../node-registry";
@@ -13,6 +13,8 @@ export default class VM_area_sub extends VM_area {
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-m-sub");
+
+    console.log("VM_area_sub");
 
     // const t = this.helperType;
     // this.helperType = Helper_sub;

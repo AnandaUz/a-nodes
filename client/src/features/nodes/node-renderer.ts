@@ -3,7 +3,7 @@ import "./vNode.scss";
 import { VNode } from "./VNode";
 import { core, EVENTS } from "../core/core";
 import { NODE_REGISTRY } from "./node-registry";
-import VM_area from "./VManager/VM_area";
+import VFrame from "@/features/nodes/VFrame/VFrame";
 
 export class NodeRenderer {
   private vNodes = new Map<string, VNode>();
@@ -19,9 +19,6 @@ export class NodeRenderer {
   init() {
     this.nodesEl = core.desk.nodesEl;
     this.unsubscribers.push(
-      core.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
-        this.renderAll();
-      }),
       core.store.on(EVENTS.nodes.created, (node) => {
         this.createVNode(node);
       }),
@@ -78,7 +75,7 @@ export class NodeRenderer {
 
     const overNodes = core.selectManager.getNodeOverRect(out_of_rect);
     const firstNode = overNodes
-      .filter((n) => !exSet.has(n) && !(n instanceof VM_area))
+      .filter((n) => !exSet.has(n) && !(n instanceof VFrame))
       .sort((a, b) => a.y - b.y)[0];
     if (!firstNode) return;
 
@@ -87,7 +84,7 @@ export class NodeRenderer {
     if (dy <= 0) return;
 
     const collect = (node: VNode) => {
-      if (node instanceof VM_area) return;
+      if (node instanceof VFrame) return;
       if (exSet.has(node)) return;
       exSet.add(node);
       mRes.push(node);

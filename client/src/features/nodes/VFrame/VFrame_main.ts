@@ -1,30 +1,30 @@
 import type { INode } from "@shared/types";
-import VM_area, { AREA_PADDING } from "./VM_area";
+import VFrame, { AREA_PADDING } from "./VFrame";
 import { core, EVENTS } from "@/features/core/core";
 import Tools from "@/features/core/Tools";
 import { NODE_TYPES } from "../node-registry";
 import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
 
-export default class VM_area_main extends VM_area {
-  areasMain = new Map<string, VM_area>();
+export default class VFrame_main extends VFrame {
+  areasMain = new Map<string, VFrame>();
 
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
 
     this.helperType = Helper_main as any;
 
-    core.managerCore!.areas.main.set(node._id!, this);
+    // core.managerCore!.areas.main.set(node._id!, this);
 
     this.unsubscribers.push(
-      core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
-        if (mainArea !== this) return;
-        this.areasMain.set(subArea.nodeEss._id || "", subArea);
-      }),
-      core.store.on(EVENTS.area.sub.disconnected, ({ subArea, mainArea }) => {
-        if (mainArea !== this) return;
-        this.areasMain.delete(subArea.nodeEss._id || "");
-      }),
+      // core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
+      //   if (mainArea !== this) return;
+      //   this.areasMain.set(subArea.nodeEss._id || "", subArea);
+      // }),
+      // core.store.on(EVENTS.area.sub.disconnected, ({ subArea, mainArea }) => {
+      //   if (mainArea !== this) return;
+      //   this.areasMain.delete(subArea.nodeEss._id || "");
+      // }),
       core.store.on(EVENTS.area.sub.addNodeClone, (payload) => {
         const { subArea } = payload;
         if (!this.subAreas.has(subArea.nodeEss._id || "")) return;
@@ -32,22 +32,22 @@ export default class VM_area_main extends VM_area {
         this.refreshHelpers();
       }),
     );
-    const mainAreas = this.nodeEss.exData?.ownerNodesIds;
-    if (mainAreas) {
-      this.unsubscribers.push(
-        core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
-          mainAreas.forEach((id) => {
-            const mainArea = core.nodeRenderer.getVNode(id);
-            if (mainArea instanceof VM_area) {
-              core.store.emit(EVENTS.area.sub.connected, {
-                mainArea,
-                subArea: this,
-              });
-            }
-          });
-        }),
-      );
-    }
+    // const mainAreas = this.nodeEss.exData?.ownerNodesIds;
+    // if (mainAreas) {
+    //   this.unsubscribers.push(
+    //     core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
+    //       mainAreas.forEach((id) => {
+    //         const mainArea = core.nodeRenderer.getVNode(id);
+    //         if (mainArea instanceof VM_area) {
+    //           // core.store.emit(EVENTS.area.sub.connected, {
+    //           //   mainArea,
+    //           //   subArea: this,
+    //           // });
+    //         }
+    //       });
+    //     }),
+    //   );
+    // }
   }
   init(): void {
     super.init();

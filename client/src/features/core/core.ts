@@ -9,11 +9,12 @@ import { NodeManager } from "@features/nodes/NodeManager";
 import { initCommands } from "./comands";
 import { History } from "@features/core/history";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
-import type { ManagerCore } from "../nodes/VManager/ManagerCore";
+import { FrameCore } from "../nodes/VFrame/FrameCore";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import Tools from "./Tools";
 import { app } from "@/app";
+import VFrame from "../nodes/VFrame/VFrame";
 
 export { EVENTS };
 export class Core {
@@ -25,9 +26,10 @@ export class Core {
   // localPersistence: LocalPersistence;
   serverPersistence!: ServerPersistence;
   history!: History;
-  managerCore?: ManagerCore;
+  frameCore: FrameCore = new FrameCore();
   clipboard!: Clipboard;
   popupSort: CPopupSort = new CPopupSort();
+  private unsubscribers: (() => void)[] = [];
 
   mode = {
     textEditing: false,
@@ -63,6 +65,27 @@ export class Core {
 
     this.store = new Store();
 
+    this.unsubscribers.push(
+      this.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
+        console.time("Перерендер всех нод страницы");
+        core.desk.disconnectNodesEl();
+        core.nodeRenderer.renderAll();
+        core.desk.connectNodesEl();
+        core.nodeRenderer.getAllNodes().forEach((node) => {
+          node.refreshBodyRect();
+
+          if (node instanceof VFrame) {
+            this.frameCore.addFrame(node);
+          }
+        });
+        core.desk.disconnectNodesEl();
+        core.frameCore.initHelpers();
+        core.desk.connectNodesEl();
+
+        console.timeEnd("Перерендер всех нод страницы");
+      }),
+    );
+
     this.desk = new Desk();
 
     app.showLoader();
@@ -82,6 +105,7 @@ export class Core {
       token: token,
     });
     await this.serverPersistence.init();
+
     app.hideLoader();
   }
   unmount() {
@@ -93,6 +117,8 @@ export class Core {
     if (this.selectManager) {
       this.selectManager.unmount();
     }
+    this.unsubscribers.forEach((fn) => fn());
+    this.unsubscribers = [];
   }
 }
 

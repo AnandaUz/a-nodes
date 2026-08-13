@@ -1,7 +1,7 @@
 import { core, EVENTS } from "@/features/core/core";
 // import VM_area from "../VM_area";
 import type { VNode } from "../../VNode";
-import type VM_area_main from "../VM_area_main";
+import type VM_area_main from "../VFrame_main";
 import type { INode } from "@shared/types";
 
 export class Helper {
@@ -20,18 +20,14 @@ export class Helper {
     this.mainNode = mainNode;
     this.mainArea = mainArea;
     this._id = mainNode.nodeEss._id || "";
-
     // this.subAreas = subAreas;
-
     this.body.className = "vnode-helper";
     this.body.innerHTML = `<div class="bt-block"></div>
     <div class="str-block"></div>`;
     this.btnBlockEl = this.body.querySelector(".bt-block") as HTMLDivElement;
     this.strBlockEl = this.body.querySelector(".str-block") as HTMLDivElement;
     core.desk.nodesEl.appendChild(this.body);
-
     this.placeTo();
-
     this.unsubscribers.push(
       core.store.on(EVENTS.nodes.moving, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {

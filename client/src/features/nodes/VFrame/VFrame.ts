@@ -1,54 +1,54 @@
 import type { INode } from "@shared/types";
 import VTextEdit from "../VTextEdit";
-import "./VManager.scss";
+import "./VFrame.scss";
 import { core, EVENTS } from "@/features/core/core";
-import { ManagerCore } from "./ManagerCore";
+
 import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
 import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
-import VTextEditClone from "../VTextEditClone";
-import { BTools } from "@base/client/features/BTools";
 
 export const AREA_PADDING = {
   left: 30,
   top: 20,
 };
 
-export default class VM_area extends VTextEdit {
+export default class VFrame extends VTextEdit {
   helpers: Helper[] = [];
   helpersById: Record<string, Helper> = {};
   elSubTitle?: HTMLElement;
   elBtnsBlock?: HTMLElement;
-  subAreas: Map<string, VM_area> = new Map();
-  helperType: new (vnode: VNode, mainArea: VM_area) => Helper = Helper as any;
+  subAreas: Map<string, VFrame> = new Map();
+  helperType: new (vnode: VNode, mainArea: VFrame) => Helper = Helper as any;
 
-  static areas: VM_area[] = [];
+  static areas: VFrame[] = [];
+
   // events = new EventEmitter<VNodeEvents>();
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
-    this.body.classList.add("vnode-m-area");
-    VM_area.areas.push(this);
+    this.body.classList.add("vnode-frame");
+    VFrame.areas.push(this);
 
-    if (!core.managerCore) core.managerCore = new ManagerCore();
+    // if (!core.managerCore) core.managerCore = new ManagerCore();
 
     this.unsubscribers.push(
-      core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
-        this.initHelpers();
-      }),
-      core.store.on(EVENTS.nodes.created, (_nodeEss: INode) => {
-        this.initHelpers();
-      }),
+      // core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
+      //   // this.initHelpers();
+      // }),
+      // core.store.on(EVENTS.nodes.created, (_nodeEss: INode) => {
+      //   // this.initHelpers();
+      // }),
       core.store.on(EVENTS.nodes.moved, (nodeEss: INode) => {
         if (!nodeEss || !nodeEss._id) return;
         if (this.helpersById[nodeEss._id]) this.refreshHelpers();
       }),
-      core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
-        if (mainArea !== this) return;
-        if (this.subAreas.has(subArea.nodeEss._id || "")) return;
-        this.subAreas.set(subArea.nodeEss._id || "", subArea);
-        this.initHelpers();
-      }),
+      // core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
+
+      //   if (mainArea !== this) return;
+      //   if (this.subAreas.has(subArea.nodeEss._id || "")) return;
+      //   this.subAreas.set(subArea.nodeEss._id || "", subArea);
+      //   // this.initHelpers();
+      // }),
       core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
         this.onVNodeMove();
       }),
@@ -162,35 +162,10 @@ export default class VM_area extends VTextEdit {
     });
 
     if (f) {
-      this.initHelpers();
+      // this.initHelpers();
     }
   }
 
-  initHelpers() {
-    console.log("aaaaa");
-
-    core.nodeRenderer.getAllNodes().forEach((vnode) => {
-      if (
-        (vnode instanceof VTextEdit || vnode instanceof VTextEditClone) &&
-        vnode !== this
-      ) {
-        const { x, y } = vnode;
-        if (x === undefined || y === undefined) return;
-        if (this.checkPointOver(x, y)) {
-          if (!(vnode instanceof VM_area)) {
-            let h = this.helpersById[vnode._id];
-            if (!h) {
-              h = this.addHelper(vnode);
-            } else {
-              h.render();
-            }
-          }
-        }
-      }
-    });
-
-    this.refreshHelpers();
-  }
   addHelper(vnode: VNode) {
     const helper = new this.helperType(vnode, this);
     this.helpers.push(helper);

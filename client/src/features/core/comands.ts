@@ -3,7 +3,7 @@ import { NODE_TYPES } from "../nodes/node-registry";
 import type { INode } from "@shared/types";
 import VTextEdit from "../nodes/VTextEdit";
 import { GRID } from "./CONST";
-import VM_area from "../nodes/VManager/VM_area";
+import VFrame from "../nodes/VFrame/VFrame";
 import Tools from "./Tools";
 import VTextEditClone from "../nodes/VTextEditClone";
 
@@ -273,7 +273,7 @@ const commands: Command[] = [
           if (core.mode.selectedVNodeCount < 1) return;
           const paddingLeft = GRID.x;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VM_area),
+            (vnode) => !(vnode instanceof VFrame),
           );
           m.sort((a, b) => a.y - b.y);
 
@@ -303,7 +303,7 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VM_area),
+            (vnode) => !(vnode instanceof VFrame),
           );
           m.sort((a, b) => a.y - b.y);
 
@@ -328,7 +328,7 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VM_area),
+            (vnode) => !(vnode instanceof VFrame),
           );
           m.sort((a, b) => a.y - b.y);
 
@@ -350,7 +350,7 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VM_area),
+            (vnode) => !(vnode instanceof VFrame),
           );
 
           if (m.length < 2) return;

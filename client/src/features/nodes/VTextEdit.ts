@@ -1,4 +1,4 @@
-import VM_area from "./VManager/VM_area";
+import VFrame from "@/features/nodes/VFrame/VFrame";
 import { VNode } from "./VNode";
 import { core } from "@features/core/core";
 
@@ -99,7 +99,7 @@ export default class VTextEdit extends VNode {
     }
   }
   onStop() {
-    if (this instanceof VM_area) return;
+    if (this instanceof VFrame) return;
     const selectedVNodes = core.selectManager.selectedNodes;
 
     let movedVNodeRect: DOMRect;
@@ -132,13 +132,13 @@ export default class VTextEdit extends VNode {
     //   candidates.find((node) => node.checkInRect(rectIn)) ?? candidates[0];
 
     let byNode = candidates?.[0];
-    while (byNode instanceof VM_area) {
+    while (byNode instanceof VFrame) {
       const idx = candidates.indexOf(byNode);
       byNode = candidates?.[idx + 1];
     }
 
     if (!byNode) return;
-    if (byNode instanceof VM_area) return;
+    if (byNode instanceof VFrame) return;
 
     // exNodes.push(byNode);
 

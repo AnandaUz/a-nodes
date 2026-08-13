@@ -1,21 +1,18 @@
 import { EventEmitter } from "@base/client/features/event-emitter";
-
-// import type { INode } from "@shared/types";
 import type { DeskSnapshot } from "./interfaces";
 import type { VNode } from "../nodes/VNode";
-// import type VM_area_main from "../nodes/VManager/VM_area_main";
-// import type VM_area_sub from "../nodes/VManager/VM_area_sub";
+
 import type { INode } from "@shared/types";
-import type Helper_main from "../nodes/VManager/Helper/Helper_main";
-import type Helper_sub from "../nodes/VManager/Helper/Helper_sub";
-import type VM_area from "../nodes/VManager/VM_area";
+import type Helper_main from "../nodes/VFrame/Helper/Helper_main";
+import type Helper_sub from "../nodes/VFrame/Helper/Helper_sub";
+import type VM_area from "../nodes/VFrame/VFrame";
 
 export const EVENTS = {
   page: {
     loaded: "page:loaded",
   },
   renderer: {
-    refreshAllVNodes: "renderer:refreshAll",
+    refreshAllVNodes: "renderer:refreshAll", //срабатывает когда все ноды иницированы и отрендерены
   },
   NodeManager: {
     reInitAllNodes: "nodeManager:reInitAllNodes",

@@ -19,6 +19,8 @@ export class VNode {
   public _id: string;
   public x: number;
   public y: number;
+  width: number = 0;
+  height: number = 0;
   public isSelected = false;
   // private isSelectAble = true;
   protected isMoved = false;
@@ -47,12 +49,12 @@ export class VNode {
     this.applyPosition();
     this.container.appendChild(this.body);
   }
-  get height() {
-    return this.body.offsetHeight;
-  }
-  get width() {
-    return this.body.offsetWidth;
-  }
+  // get height() {
+  //   return this.body.offsetHeight;
+  // }
+  // get width() {
+  //   return this.body.offsetWidth;
+  // }
   get bodyRect() {
     return {
       x: this.x,
@@ -60,6 +62,10 @@ export class VNode {
       width: this.width,
       height: this.height,
     } as DOMRect;
+  }
+  refreshBodyRect() {
+    this.width = this.body.offsetWidth;
+    this.height = this.body.offsetHeight;
   }
 
   init() {
@@ -236,7 +242,6 @@ export class VNode {
   };
   checkPointOver(x: number, y: number) {
     const rect = this.bodyRect; // Получаем координаты и размеры элемента
-
     // Проверяем, находится ли точка внутри границ элемента
     return (
       x >= this.x &&

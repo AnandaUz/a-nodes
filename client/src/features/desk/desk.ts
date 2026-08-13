@@ -9,6 +9,11 @@ import { core } from "../core/core";
 
 export class Desk {
   nodesEl!: HTMLElement;
+  private nodesElData: {
+    parent: HTMLElement;
+    nextSibling: HTMLElement;
+  } | null = null;
+
   private sceneEl!: HTMLElement;
   private h1El!: HTMLHeadingElement;
   viewport!: Viewport;
@@ -36,6 +41,24 @@ export class Desk {
 
       this.setEmojiFavicon(hasEmoji ? firstChar : "🔥");
     });
+  }
+  disconnectNodesEl() {
+    const nodesEl = this.nodesEl;
+    const parent = nodesEl.parentNode as HTMLElement;
+    const nextSibling = nodesEl.nextSibling as HTMLElement;
+    parent.removeChild(nodesEl); // отсоединили
+
+    this.nodesElData = {
+      parent,
+      nextSibling,
+    };
+  }
+  connectNodesEl() {
+    if (!this.nodesElData) return;
+    this.nodesElData.parent.insertBefore(
+      this.nodesEl,
+      this.nodesElData.nextSibling,
+    ); // вернули — один reflow
   }
 
   mount(container: HTMLElement) {
