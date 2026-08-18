@@ -33,23 +33,23 @@ export class SpatialGrid {
   }
 
   // вызывать при создании/перемещении/ресайзе области
-  registerArea(area: VNode) {
-    this.unregisterArea(area); // сначала убрать старые записи
+  registerFrame(frame: VNode) {
+    this.unregisterFrame(frame); // сначала убрать старые записи
     for (const [cx, cy] of this.cellsForBBox({
-      minX: area.x,
-      minY: area.y,
-      maxX: area.x + area.width,
-      maxY: area.y + area.height,
+      minX: frame.x,
+      minY: frame.y,
+      maxX: frame.x + frame.width,
+      maxY: frame.y + frame.height,
     })) {
       const k = this.key(cx, cy);
       if (!this.cells.has(k)) this.cells.set(k, new Set());
-      this.cells.get(k)!.add(area);
+      this.cells.get(k)!.add(frame);
     }
   }
 
-  unregisterArea(area: VNode) {
+  unregisterFrame(frame: VNode) {
     for (const set of this.cells.values()) {
-      set.delete(area);
+      set.delete(frame);
     }
   }
 

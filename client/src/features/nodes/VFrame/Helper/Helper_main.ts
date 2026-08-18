@@ -2,16 +2,16 @@ import { Helper } from "./Helper";
 import { core } from "@/features/core/core";
 import type Helper_sub from "./Helper_sub";
 import type { VNode } from "../../VNode";
-import type VM_area_main from "../VFrame_main";
-import type VM_area from "../VFrame";
+import type VM_frame_main from "../VFrame_main";
+import type VM_frame from "../VFrame";
 import VTextEditClone from "../../VTextEditClone";
 
 class Btn {
   mainHelper!: Helper_main;
   isActive = false;
-  subArea!: VM_area;
+  subFrame!: VM_frame;
   toHelper!: Helper;
-  fromHelper!: Helper;
+  fromHelpers!: Helper;
 
   body: HTMLDivElement;
   constructor(mainHelper: Helper_main) {
@@ -22,17 +22,23 @@ class Btn {
     this.body.addEventListener("click", async () => {
       this.active = !this.active;
 
+      // const mainFrame = this.mainHelper.mainFrame;
       if (this.active) {
-        await (this.subArea as VM_area_main).addTextEdinCloneNode(
+        const r = await (this.subFrame as VM_frame_main).addTextEditCloneNode(
           this.mainHelper.mainNode.nodeEss,
         );
-        this.mainHelper.mainArea.refreshHelpers();
+        if (r && r.helper) {
+          this.mainHelper.toHelper.push(r.helper);
+          (r.helper as Helper_main).fromHelpers.push(this.mainHelper);
+        }
       } else {
         if (this.toHelper) {
           (this.toHelper as Helper_main).removeWithNode();
-          // this.subArea.refreshHelpers();
+
+          this.mainHelper.level = 0;
         }
       }
+      this.subFrame.refreshHelpers();
     });
   }
   set active(v: boolean) {
@@ -46,7 +52,7 @@ class Btn {
   }
 
   refresh() {
-    this.subArea.helpers.some((h) => {
+    this.subFrame.helpers.some((h) => {
       const toVNode = h.mainNode;
       if (toVNode instanceof VTextEditClone) {
         if (
@@ -57,7 +63,7 @@ class Btn {
           this.toHelper = h;
           if (!this.mainHelper.toHelper.includes(h)) {
             this.mainHelper.toHelper.push(h);
-            (h as Helper_main).fromHelper?.push(this.mainHelper);
+            (h as Helper_main).fromHelpers?.push(this.mainHelper);
           }
 
           return true;
@@ -72,7 +78,7 @@ class Btn {
 export default class Helper_main extends Helper {
   subHelper?: Helper_sub;
   btns = new Map<string, Btn>();
-  fromHelper: Helper[] = [];
+  fromHelpers: Helper[] = [];
   toHelper: Helper[] = [];
   _level: number = 0;
   render() {
@@ -82,13 +88,13 @@ export default class Helper_main extends Helper {
     this.btnBlockEl.innerHTML = "";
     this.btns.clear();
 
-    this.mainArea.subAreas.forEach((subArea) => {
+    this.mainFrame.subFrames.forEach((subFrame) => {
       const btn = new Btn(this);
-      this.btns.set(subArea.nodeEss._id || "", btn);
-      btn.subArea = subArea;
+      this.btns.set(subFrame.nodeEss._id || "", btn);
+      btn.subFrame = subFrame;
       btn.body.style.setProperty(
         "--color",
-        `hsl(${subArea.nodeEss.exData?.bgColor || 0}, 100%, 50%)`,
+        `hsl(${subFrame.nodeEss.exData?.bgColor || 0}, 100%, 50%)`,
       );
       this.btnBlockEl.appendChild(btn.body);
     });
@@ -106,11 +112,11 @@ export default class Helper_main extends Helper {
     this.btns.forEach((btn) => btn.refresh());
   }
   removeWithNode() {
-    this.mainArea.removeHelper(this._id);
+    this.mainFrame.removeHelper(this._id);
     core.nodeManager.putInTrashNode(this._id);
   }
-  constructor(mainNode: VNode, _mainArea: VM_area_main) {
-    super(mainNode, _mainArea);
+  constructor(mainNode: VNode, _mainFrame: VM_frame_main) {
+    super(mainNode, _mainFrame);
 
     // this.unsubscribers.push(
 
@@ -122,7 +128,7 @@ export default class Helper_main extends Helper {
     //     if (this.mainNode.nodeEss._id !== subId) return;
 
     //     const btn = this.btnsConnection.get(
-    //       helperSub.mainArea.nodeEss._id || "",
+    //       helperSub.mainFrame.nodeEss._id || "",
     //     );
     //     if (btn) {
     //       btn.active = false;

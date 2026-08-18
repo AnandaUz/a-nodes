@@ -5,7 +5,7 @@ import type { VNode } from "../nodes/VNode";
 import type { INode } from "@shared/types";
 import type Helper_main from "../nodes/VFrame/Helper/Helper_main";
 import type Helper_sub from "../nodes/VFrame/Helper/Helper_sub";
-import type VM_area from "../nodes/VFrame/VFrame";
+import type VM_frame from "../nodes/VFrame/VFrame";
 
 export const EVENTS = {
   page: {
@@ -39,13 +39,13 @@ export const EVENTS = {
     loaded: "server:loaded",
     error: "server:error",
   },
-  area: {
+  frame: {
     sub: {
-      created: "area:sub:created",
-      deleted: "area:sub:deleted",
-      connected: "area:sub:connected",
-      disconnected: "area:sub:disconnected",
-      addNodeClone: "area:sub:addNodeClone",
+      created: "frame:sub:created",
+      deleted: "frame:sub:deleted",
+      connected: "frame:sub:connected",
+      disconnected: "frame:sub:disconnected",
+      addNodeClone: "frame:sub:addNodeClone",
     },
   },
   helper: {
@@ -76,24 +76,24 @@ export type DeskEvents = {
   [EVENTS.nodes.pointer.down]: VNode;
   [EVENTS.nodes.pointer.move]: VNode;
   [EVENTS.nodes.pointer.up]: VNode;
-  [EVENTS.area.sub.created]: VM_area;
-  [EVENTS.area.sub.deleted]: VM_area;
-  [EVENTS.area.sub.connected]: {
-    subArea: VM_area;
-    mainArea: VM_area;
+  [EVENTS.frame.sub.created]: VM_frame;
+  [EVENTS.frame.sub.deleted]: VM_frame;
+  [EVENTS.frame.sub.connected]: {
+    subFrame: VM_frame;
+    mainFrame: VM_frame;
   };
-  [EVENTS.area.sub.disconnected]: {
-    subArea: VM_area;
-    mainArea: VM_area;
+  [EVENTS.frame.sub.disconnected]: {
+    subFrame: VM_frame;
+    mainFrame: VM_frame;
   };
-  [EVENTS.area.sub.addNodeClone]: { nodeEss: INode; subArea: VM_area };
+  [EVENTS.frame.sub.addNodeClone]: { nodeEss: INode; subFrame: VM_frame };
   [EVENTS.helper.main.btnConnection]: {
     mainHelper: Helper_main;
-    subArea: VM_area;
+    subFrame: VM_frame;
   };
   [EVENTS.helper.sub.btnOk]: {
     helperSub: Helper_sub;
-    // subArea: VM_area;
+    // subFrame: VM_frame;
   };
 };
 

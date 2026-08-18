@@ -1,26 +1,27 @@
 import { core, EVENTS } from "@/features/core/core";
-// import VM_area from "../VM_area";
 import type { VNode } from "../../VNode";
-import type VM_area_main from "../VFrame_main";
+import type VM_frame_main from "../VFrame_main";
 import type { INode } from "@shared/types";
 
 export class Helper {
   body: HTMLDivElement;
   _id: string;
   mainNode: VNode;
-  mainArea: VM_area_main;
+  mainFrame: VM_frame_main;
   btnBlockEl: HTMLDivElement;
   strBlockEl: HTMLDivElement;
+  level: number = 0;
+  prevLevelHelper: Helper | undefined = undefined;
 
   unsubscribers: Array<() => void> = [];
 
-  // subAreas: VM_area;
-  constructor(mainNode: VNode, mainArea: VM_area_main) {
+  // subFrames: VM_frame;
+  constructor(mainNode: VNode, mainFrame: VM_frame_main) {
     this.body = document.createElement("div");
     this.mainNode = mainNode;
-    this.mainArea = mainArea;
+    this.mainFrame = mainFrame;
     this._id = mainNode.nodeEss._id || "";
-    // this.subAreas = subAreas;
+    // this.subFrames = subFrames;
     this.body.className = "vnode-helper";
     this.body.innerHTML = `<div class="bt-block"></div>
     <div class="str-block"></div>`;
@@ -37,6 +38,7 @@ export class Helper {
       core.store.on(EVENTS.nodes.updated, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
           this.placeTo();
+          this.mainFrame.refreshHelpers();
         }
       }),
       core.store.on(EVENTS.nodes.inTrash, (nodeEss: INode) => {
@@ -48,7 +50,7 @@ export class Helper {
   }
   setParentsTitles(parentsTitles: string[]) {
     let str = "";
-    for (let i = 0; i < parentsTitles.length - 1; i++) {
+    for (let i = 0; i < parentsTitles.length; i++) {
       str = `<span>${parentsTitles[i]?.replace(/_{2,}/g, "")}</span>` + str;
     }
     this.strBlockEl.innerHTML = str;

@@ -1,5 +1,4 @@
 import VFrame_main from "./VFrame/VFrame_main";
-// import VM_area_sub from "./VFrame/VM_area_sub";
 import type { VNode } from "./VNode";
 import VTextEdit from "./VTextEdit";
 import type { INode } from "@shared/types";
@@ -10,8 +9,8 @@ export const NODE_TYPES = {
     id: 1,
   },
   MANAGER: {
-    area_main: 21,
-    area_sub: 22,
+    frame_main: 21,
+    frame_sub: 22,
   },
   TEXT_EDIT_CLONE: {
     id: 3,
@@ -27,8 +26,8 @@ export const NODE_REGISTRY: Record<
   new (node: INode, container: HTMLElement) => VNode
 > = {
   [NODE_TYPES.TEXT_EDIT.id]: VTextEdit,
-  [NODE_TYPES.MANAGER.area_main]: VFrame_main,
-  // [NODE_TYPES.MANAGER.area_sub]: VM_area_sub,
+  [NODE_TYPES.MANAGER.frame_main]: VFrame_main,
+  // [NODE_TYPES.MANAGER.frame_sub]: VM_frame_sub,
   [NODE_TYPES.TEXT_EDIT_CLONE.id]: VTextEditClone,
   [NODE_TYPES.PAGE.id]: VPage,
 };

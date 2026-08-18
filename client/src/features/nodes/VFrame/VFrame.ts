@@ -18,16 +18,17 @@ export default class VFrame extends VTextEdit {
   helpersById: Record<string, Helper> = {};
   elSubTitle?: HTMLElement;
   elBtnsBlock?: HTMLElement;
-  subAreas: Map<string, VFrame> = new Map();
-  helperType: new (vnode: VNode, mainArea: VFrame) => Helper = Helper as any;
+  subFrames: Map<string, VFrame> = new Map();
+  mainFrames: Map<string, VFrame> = new Map();
+  helperType: new (vnode: VNode, mainFrame: VFrame) => Helper = Helper as any;
 
-  static areas: VFrame[] = [];
+  static frames: VFrame[] = [];
 
   // events = new EventEmitter<VNodeEvents>();
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-frame");
-    VFrame.areas.push(this);
+    VFrame.frames.push(this);
 
     // if (!core.managerCore) core.managerCore = new ManagerCore();
 
@@ -42,11 +43,11 @@ export default class VFrame extends VTextEdit {
         if (!nodeEss || !nodeEss._id) return;
         if (this.helpersById[nodeEss._id]) this.refreshHelpers();
       }),
-      // core.store.on(EVENTS.area.sub.connected, ({ subArea, mainArea }) => {
+      // core.store.on(EVENTS.frame.sub.connected, ({ subFrame, mainFrame }) => {
 
-      //   if (mainArea !== this) return;
-      //   if (this.subAreas.has(subArea.nodeEss._id || "")) return;
-      //   this.subAreas.set(subArea.nodeEss._id || "", subArea);
+      //   if (mainFrame !== this) return;
+      //   if (this.subFrames.has(subFrame.nodeEss._id || "")) return;
+      //   this.subFrames.set(subFrame.nodeEss._id || "", subFrame);
       //   // this.initHelpers();
       // }),
       core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
@@ -74,69 +75,82 @@ export default class VFrame extends VTextEdit {
     this.elBtnsBlock = this.body.querySelector(".btns-block") as HTMLElement;
   }
 
-  // render() {
-  //   super.render();
-  // }
   refreshHelpers() {
     this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
 
-    let levelPrev = -1;
-
-    let parentsTitles: string[] = [];
+    let prevListLevel = 0;
+    let prevHelpers: Helper[] = [];
 
     this.helpers.forEach((h, i) => {
       const vNodeX = h.mainNode.x;
       const vNodeY = h.mainNode.y;
+
       if (!this.checkPointOver(vNodeX, vNodeY)) {
         this.removeHelper(h._id);
         return;
       }
-      let sdvigX = Math.round((vNodeX - this.x) / GRID.x);
-      sdvigX = Math.min(sdvigX, levelPrev + 1);
+      let listLevel = Math.round((vNodeX - this.x) / GRID.x);
+      listLevel = Math.min(listLevel, prevListLevel + 1);
+      listLevel = Math.max(listLevel, 0);
 
-      sdvigX = Math.max(sdvigX, 0);
+      if (listLevel > 0) h.prevLevelHelper = prevHelpers[listLevel - 1];
+      else h.prevLevelHelper = undefined;
+      prevHelpers[listLevel] = h;
 
-      const mainNodeTitle = h.mainNode.nodeEss.title || "";
-
-      if (h instanceof Helper_main && h.fromHelper.length > 0) {
-        const fromHelper = h.fromHelper[0] as Helper_main;
-        if (fromHelper) {
-          const ii = (this.helpers.length - i) / this.helpers.length;
-
-          fromHelper.level = Math.round(Math.pow(ii, 2) * 10);
-        }
-      }
-
-      if (i == 0) {
-        sdvigX = 0;
-      }
-      if (sdvigX === 0) {
-        parentsTitles = [mainNodeTitle];
-      } else {
-        if (levelPrev >= sdvigX) {
-          parentsTitles.splice(sdvigX - levelPrev - 1);
-        }
-
-        parentsTitles.push(mainNodeTitle);
-      }
-
+      //задаём тайтлы
+      let parentsTitles: string[] = [];
       if (h instanceof Helper_main) {
-        if (h.toHelper.length > 0 && h.toHelper[0]) {
-          h.toHelper[0].setParentsTitles(parentsTitles);
-        }
+        h.fromHelpers.forEach((mainHelper) => {
+          const refFunc2 = (helper: Helper_main) => {
+            // console.log((helper?.mainNode as VTextEdit).title)
+            if (!helper?.mainNode) return;
+            parentsTitles.push((helper.mainNode as VTextEdit).title || "");
+
+            if (helper && helper.prevLevelHelper) {
+              refFunc2(helper.prevLevelHelper as Helper_main);
+            }
+          };
+          refFunc2(mainHelper.prevLevelHelper as Helper_main);
+        });
+      }
+      if (parentsTitles.length > 0) {
+        h.setParentsTitles(parentsTitles);
       }
 
-      levelPrev = sdvigX;
+      h.mainNode.body.dataset.level = listLevel + "";
 
-      const x = this.x + sdvigX * GRID.x;
+      prevListLevel = listLevel;
+
+      /////////
+
+      // const mainNodeTitle = h.mainNode.nodeEss.title || "";
+
+      // установка кругов
+      // if (h instanceof Helper_main && h.fromHelpers.length > 0) {
+      //   const fromHelpers = h.fromHelpers[0] as Helper_main;
+      //   if (fromHelpers) {
+      //     const ii = (this.helpers.length - i) / this.helpers.length;
+
+      //     fromHelpers.level = Math.round(Math.pow(ii, 2) * 10);
+      //   }
+      // }
+
+      const x = this.x + listLevel * GRID.x;
       const y = h.mainNode.y;
-
-      // h.body.style.transform = `translate(${x}px, ${y}px)`;
 
       h.mainNode.moveTo({ x, y });
 
       h.render();
     });
+
+    // запускаем рефрешиться сл фрейм
+    const refFunc = (ff: Map<string, VFrame>) => {
+      ff.forEach((nf) => {
+        nf.refreshHelpers();
+        refFunc(nf.subFrames);
+      });
+    };
+    refFunc(this.subFrames);
   }
   onVNodeMove() {
     // this.helpers.forEach((h) => {

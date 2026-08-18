@@ -42,6 +42,7 @@ export class Desk {
       this.setEmojiFavicon(hasEmoji ? firstChar : "🔥");
     });
   }
+  /** выключает из ДОМ елемент в котором все ноды (чтобы прорисовывать за раз) */
   disconnectNodesEl() {
     const nodesEl = this.nodesEl;
     const parent = nodesEl.parentNode as HTMLElement;
@@ -53,6 +54,7 @@ export class Desk {
       nextSibling,
     };
   }
+  /** включает в ДОМ елемент в котором все ноды */
   connectNodesEl() {
     if (!this.nodesElData) return;
     this.nodesElData.parent.insertBefore(

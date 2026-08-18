@@ -1,11 +1,11 @@
 import { Helper } from "./Helper";
-// import type VM_area_sub from "../VM_area_sub";
+// import type VM_frame_sub from "../VM_frame_sub";
 // import type { VNode } from "../../VNode";
 import { core, EVENTS } from "@/features/core/core";
 
 export default class Helper_sub extends Helper {
-  // constructor(vnode: VNode, mainArea: VM_area_sub) {
-  //   super(vnode, mainArea);
+  // constructor(vnode: VNode, mainFrame: VM_frame_sub) {
+  //   super(vnode, mainFrame);
   //   this.body.classList.add("helper-sub");
   // }
 

@@ -205,7 +205,7 @@ const commands: Command[] = [
               const newNodeEss: INode = {
                 x: Tools.getDiskPosition(x),
                 y: Math.round(y),
-                type: NODE_TYPES.MANAGER.area_main,
+                type: NODE_TYPES.MANAGER.frame_main,
                 exData: {},
               };
               const vnode = await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер

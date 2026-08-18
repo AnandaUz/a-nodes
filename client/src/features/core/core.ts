@@ -79,7 +79,8 @@ export class Core {
           }
         });
         core.desk.disconnectNodesEl();
-        core.frameCore.initHelpers();
+        core.frameCore.refresh();
+
         core.desk.connectNodesEl();
 
         console.timeEnd("Перерендер всех нод страницы");
@@ -97,6 +98,8 @@ export class Core {
     this.desk.mount(container);
     this.nodeManager.init();
     this.nodeRenderer.init();
+    this.frameCore.init();
+
     this.selectManager = new SelectManager();
 
     this.serverPersistence = new ServerPersistence({
@@ -113,6 +116,7 @@ export class Core {
     this.store.clear();
     this.nodeManager.unmount();
     this.nodeRenderer.unmount();
+    this.frameCore.unmount();
     this.desk.unmount();
     if (this.selectManager) {
       this.selectManager.unmount();
