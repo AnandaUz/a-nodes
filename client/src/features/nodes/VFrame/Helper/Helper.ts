@@ -10,8 +10,11 @@ export class Helper {
   mainFrame: VM_frame_main;
   btnBlockEl: HTMLDivElement;
   strBlockEl: HTMLDivElement;
-  level: number = 0;
-  prevLevelHelper: Helper | undefined = undefined;
+
+  fromHelpers: Helper[] = [];
+  toHelper: Map<string, Helper> = new Map();
+  parentsTitles: string[] = [];
+  // prevLevelHelper: Helper | undefined = undefined;
 
   unsubscribers: Array<() => void> = [];
 
@@ -38,12 +41,13 @@ export class Helper {
       core.store.on(EVENTS.nodes.updated, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
           this.placeTo();
-          this.mainFrame.refreshHelpers();
         }
       }),
       core.store.on(EVENTS.nodes.inTrash, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
-          this.remove();
+          this.mainFrame.removeHelper(this._id);
+
+          this.mainFrame.refreshHelpers_super();
         }
       }),
     );
@@ -51,9 +55,10 @@ export class Helper {
   setParentsTitles(parentsTitles: string[]) {
     let str = "";
     for (let i = 0; i < parentsTitles.length; i++) {
-      str = `<span>${parentsTitles[i]?.replace(/_{2,}/g, "")}</span>` + str;
+      str += `<span>${parentsTitles[i]?.replace(/_{2,}/g, "")}</span>`;
     }
     this.strBlockEl.innerHTML = str;
+    this.parentsTitles = parentsTitles;
     this.mainNode.body.style.paddingTop = "10px";
   }
   placeTo() {

@@ -161,14 +161,20 @@ export class NodeManager {
       nodeEss.type == NODE_TYPES.TEXT_EDIT.id ||
       nodeEss.type == NODE_TYPES.TEXT_EDIT_CLONE.id
     ) {
+      // ищим главную ноду от которой идут все клоны
+      let mainNodeEss = nodeEss;
+      while (mainNodeEss.exData?.ownerNodesIds?.length) {
+        mainNodeEss = this.getNode(mainNodeEss.exData.ownerNodesIds[0]!)!;
+      }
+      //
       vNode = core.nodeRenderer.getVNode(nodeEss._id || "") as VTextEdit;
       if (!vNode) return;
       cloneNodeEss = {
         ...cloneNodeEss,
-        x: x ?? vNode.x + vNode.width + 20,
+        x: x ?? vNode.x, //+ vNode.width + 20,
         y: y ?? vNode.y,
         exData: {
-          ownerNodesIds: [nodeEss._id!],
+          ownerNodesIds: [mainNodeEss._id!],
         },
       };
       if (

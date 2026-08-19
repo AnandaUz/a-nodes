@@ -37,16 +37,25 @@
     }
 
     &[data-level="0"] {
-        background: rgba(222, 235, 231, 0.8);
-        font-size: 20px;
+        .title-el {
+            background: rgba(222, 235, 231, 0.8);
+            font-size: 20px;
+        }
+
     }
 
     &[data-level="1"] {
-        background: rgba(222, 235, 231, 0.4);
+
+        .title-el {
+            background: rgba(222, 235, 231, 0.4);
+        }
     }
 
     &[data-level="2"] {
-        background: rgba(222, 235, 231, 0.2);
+
+        .title-el {
+            background: rgba(222, 235, 231, 0.2);
+        }
     }
 
 

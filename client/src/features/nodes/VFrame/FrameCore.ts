@@ -6,6 +6,7 @@ import VFrame from "./VFrame";
 import type VFrame_main from "./VFrame_main";
 import type { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
+import type { INode } from "@shared/types";
 
 export class FrameCore {
   private unsubscribers: (() => void)[] = [];
@@ -21,7 +22,19 @@ export class FrameCore {
           this.refreshSpatialGrid();
         } else {
           if (node instanceof VTextEdit || node instanceof VTextEditClone) {
-            this.initHelper(node);
+            const { frame } = this.initHelper(node);
+            if (frame) {
+              frame.refreshHelpers_super();
+            }
+          }
+        }
+      }),
+      core.store.on(EVENTS.nodes.created, (nodeEss: INode) => {
+        const node = core.nodeRenderer.getVNode(nodeEss._id);
+        if (node instanceof VTextEdit || node instanceof VTextEditClone) {
+          const { frame } = this.initHelper(node);
+          if (frame) {
+            frame.refreshHelpers_super();
           }
         }
       }),
@@ -38,7 +51,7 @@ export class FrameCore {
   refreshFrames() {
     this.frames.main.forEach((frame) => {
       if (frame.mainFrames.size == 0) {
-        frame.refreshHelpers();
+        frame.refreshHelpersUp();
       }
     });
   }
@@ -98,9 +111,6 @@ export class FrameCore {
     core.nodeRenderer.getAllNodes().forEach((vnode) => {
       this.initHelper(vnode);
     });
-    // frames.forEach((frame) => {
-    //   frame.refreshHelpers();
-    // });
   }
   unmount() {
     this.unsubscribers.forEach((fn) => fn());

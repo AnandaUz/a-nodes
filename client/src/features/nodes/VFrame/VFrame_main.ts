@@ -1,6 +1,6 @@
 import type { INode } from "@shared/types";
 import VFrame, { AREA_PADDING } from "./VFrame";
-import { core, EVENTS } from "@/features/core/core";
+import { core } from "@/features/core/core";
 import Tools from "@/features/core/Tools";
 import { NODE_TYPES } from "../node-registry";
 import Helper_main from "./Helper/Helper_main";
@@ -83,16 +83,7 @@ export default class VFrame_main extends VFrame {
           height: cloneNode?.height,
         } as DOMRect;
         core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [cloneNode]);
-        const helper = this.addHelper(cloneNode);
-
-        // cloneNode.moveTo({ x: rect.x, y: rect.y });
-        // this.refreshHelpers();
-
-        core.store.emit(EVENTS.frame.sub.addNodeClone, {
-          nodeEss: cloneNodeEss,
-          subFrame: this,
-        });
-        return { node: cloneNode, helper };
+        return { node: cloneNode };
       }
     }
   }

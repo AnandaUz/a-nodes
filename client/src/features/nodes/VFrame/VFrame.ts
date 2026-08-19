@@ -41,7 +41,7 @@ export default class VFrame extends VTextEdit {
       // }),
       core.store.on(EVENTS.nodes.moved, (nodeEss: INode) => {
         if (!nodeEss || !nodeEss._id) return;
-        if (this.helpersById[nodeEss._id]) this.refreshHelpers();
+        if (this.helpersById[nodeEss._id]) this.refreshHelpersUp();
       }),
       // core.store.on(EVENTS.frame.sub.connected, ({ subFrame, mainFrame }) => {
 
@@ -50,9 +50,9 @@ export default class VFrame extends VTextEdit {
       //   this.subFrames.set(subFrame.nodeEss._id || "", subFrame);
       //   // this.initHelpers();
       // }),
-      core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
-        this.onVNodeMove();
-      }),
+      // core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
+      //   this.onVNodeMove();
+      // }),
     );
   }
   // init() {
@@ -74,12 +74,23 @@ export default class VFrame extends VTextEdit {
     this.elSubTitle = this.body.querySelector(".sub-title") as HTMLElement;
     this.elBtnsBlock = this.body.querySelector(".btns-block") as HTMLElement;
   }
-
-  refreshHelpers() {
+  /** начинает именно с главного фрейма */
+  refreshHelpers_super() {
+    let superFrame: VFrame = this;
+    while (superFrame.mainFrames?.size > 0) {
+      superFrame = superFrame.mainFrames.values().next().value as VFrame;
+    }
+    superFrame.refreshHelpersUp();
+  }
+  refreshHelpersUp() {
     this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
 
     let prevListLevel = 0;
     let prevHelpers: Helper[] = [];
+
+    if (this.nodeEss.title === "s1") {
+      console.log(this.nodeEss.title);
+    }
 
     this.helpers.forEach((h, i) => {
       const vNodeX = h.mainNode.x;
@@ -87,111 +98,116 @@ export default class VFrame extends VTextEdit {
 
       if (!this.checkPointOver(vNodeX, vNodeY)) {
         this.removeHelper(h._id);
+
+        this.refreshHelpers_super();
         return;
       }
       let listLevel = Math.round((vNodeX - this.x) / GRID.x);
       listLevel = Math.min(listLevel, prevListLevel + 1);
       listLevel = Math.max(listLevel, 0);
+      if (i == 0) listLevel = 0;
 
-      if (listLevel > 0) h.prevLevelHelper = prevHelpers[listLevel - 1];
-      else h.prevLevelHelper = undefined;
+      // задаём toHelper - т.е. проверяем есть ли в сабФреймах клоны ноды
+      h.toHelper.clear();
+      // console.log((h.mainNode as VTextEdit).title);
+      this.subFrames.forEach((subFrame) => {
+        subFrame.helpers.forEach((subH) => {
+          const mainID =
+            h.mainNode.nodeEss.exData?.ownerNodesIds?.[0] ||
+            h.mainNode.nodeEss._id ||
+            "";
+          if (subH.mainNode.nodeEss.exData?.ownerNodesIds?.includes(mainID)) {
+            h.toHelper.set(subFrame._id, subH);
+            subH.fromHelpers.push(h);
+          }
+        });
+      });
+
+      // if (listLevel > 0) h.prevLevelHelper = prevHelpers[listLevel - 1];
+      // else h.prevLevelHelper = undefined;
       prevHelpers[listLevel] = h;
 
       //задаём тайтлы
       let parentsTitles: string[] = [];
       if (h instanceof Helper_main) {
-        h.fromHelpers.forEach((mainHelper) => {
-          const refFunc2 = (helper: Helper_main) => {
-            // console.log((helper?.mainNode as VTextEdit).title)
-            if (!helper?.mainNode) return;
-            parentsTitles.push((helper.mainNode as VTextEdit).title || "");
-
-            if (helper && helper.prevLevelHelper) {
-              refFunc2(helper.prevLevelHelper as Helper_main);
+        if (h.toHelper.size > 0) {
+          for (let i = 0; i < listLevel; i++) {
+            parentsTitles.push(
+              (prevHelpers[i]?.mainNode as VTextEdit).title || "",
+            );
+          }
+          h.toHelper.forEach((subHelper) => {
+            if (h.parentsTitles.length > 0) {
+              parentsTitles = [...parentsTitles, "•", ...h.parentsTitles];
             }
-          };
-          refFunc2(mainHelper.prevLevelHelper as Helper_main);
-        });
-      }
-      if (parentsTitles.length > 0) {
-        h.setParentsTitles(parentsTitles);
+            subHelper.setParentsTitles(parentsTitles);
+          });
+        }
       }
 
       h.mainNode.body.dataset.level = listLevel + "";
 
       prevListLevel = listLevel;
 
-      /////////
-
-      // const mainNodeTitle = h.mainNode.nodeEss.title || "";
-
-      // установка кругов
-      // if (h instanceof Helper_main && h.fromHelpers.length > 0) {
-      //   const fromHelpers = h.fromHelpers[0] as Helper_main;
-      //   if (fromHelpers) {
-      //     const ii = (this.helpers.length - i) / this.helpers.length;
-
-      //     fromHelpers.level = Math.round(Math.pow(ii, 2) * 10);
-      //   }
-      // }
-
       const x = this.x + listLevel * GRID.x;
       const y = h.mainNode.y;
 
       h.mainNode.moveTo({ x, y });
+      h.placeTo();
 
       h.render();
     });
 
-    // запускаем рефрешиться сл фрейм
-    const refFunc = (ff: Map<string, VFrame>) => {
-      ff.forEach((nf) => {
-        nf.refreshHelpers();
-        refFunc(nf.subFrames);
+    // запускаем рефрешиться сл фрейм или идём вниз
+    if (this.subFrames.size > 0) {
+      this.subFrames.forEach((nf) => {
+        nf.refreshHelpersUp();
       });
-    };
-    refFunc(this.subFrames);
+    } else {
+      this.refreshHelpersDown();
+    }
   }
-  onVNodeMove() {
-    // this.helpers.forEach((h) => {
-    //   const mainVNode = h.mainNode;
-    //   const { x, y } = mainVNode;
-    //   if (x === undefined || y === undefined) return;
-
-    //   if (!this.checkPointOver(x, y)) {
-    //     this.removeHelper(h._id);
-    //   }
-    // });
-    let f = false;
-    core.selectManager.selectedNodes.forEach((vnode) => {
-      if (f) return;
-      if (vnode instanceof VTextEdit && vnode !== this) {
-        const { x, y } = vnode;
-        if (x === undefined || y === undefined) return;
-
-        if (this.checkPointOver(x, y)) {
-          f = true;
+  refreshHelpersDown() {
+    // установка кругов
+    const linkedHelpers: Helper_main[] = [];
+    this.helpers.forEach((helper) => {
+      if (helper instanceof Helper_main && helper.fromHelpers.length > 0) {
+        const fromHelpers = helper.fromHelpers[0] as Helper_main;
+        if (fromHelpers) {
+          linkedHelpers.push(helper);
         }
       }
     });
+    const count = linkedHelpers.length;
+    linkedHelpers.forEach((helper, i) => {
+      const fromHelpers = helper.fromHelpers[0] as Helper_main;
+      if (fromHelpers) {
+        const ii = (count - i) / count;
 
-    if (f) {
-      // this.initHelpers();
-    }
+        fromHelpers.level = Math.round(Math.pow(ii, 2) * 10);
+      }
+    });
+    this.mainFrames.forEach((mf) => {
+      mf.refreshHelpersDown();
+    });
   }
-
   addHelper(vnode: VNode) {
     const helper = new this.helperType(vnode, this);
     this.helpers.push(helper);
     this.helpersById[helper._id] = helper;
     return helper;
   }
-
   removeHelper(_id: string) {
     const helper = this.helpersById[_id];
+
     if (!helper) return;
+    const node = helper.mainNode;
     helper.remove();
     delete this.helpersById[_id];
     this.helpers = this.helpers.filter((h) => h._id !== _id);
+    node.body.dataset.level = "";
+
+    const fromHelpers = helper.fromHelpers[0] as Helper_main;
+    if (fromHelpers) fromHelpers.level = 0;
   }
 }

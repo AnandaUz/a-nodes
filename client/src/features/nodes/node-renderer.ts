@@ -37,6 +37,7 @@ export class NodeRenderer {
       const vNode = new NodeClass(nodeEss, this.nodesEl);
       vNode.init();
       vNode.render();
+      vNode.refreshBodyRect();
       this.vNodes.set(nodeEss._id || "", vNode);
       return vNode;
     } catch (e) {
@@ -56,7 +57,8 @@ export class NodeRenderer {
     });
     core.store.emit(EVENTS.renderer.refreshAllVNodes, undefined);
   }
-  getVNode(id: string): VNode | undefined {
+  getVNode(id: string | undefined): VNode | undefined {
+    if (!id) return undefined;
     return this.vNodes.get(id);
   }
   getAllNodes() {
