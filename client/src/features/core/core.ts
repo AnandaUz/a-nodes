@@ -26,7 +26,7 @@ export class Core {
   // localPersistence: LocalPersistence;
   serverPersistence!: ServerPersistence;
   history!: History;
-  frameCore: FrameCore = new FrameCore();
+  frameCore!: FrameCore;
   clipboard!: Clipboard;
   popupSort: CPopupSort = new CPopupSort();
   private unsubscribers: (() => void)[] = [];
@@ -51,8 +51,7 @@ export class Core {
 
   constructor() {
     this.history = new History();
-    this.nodeManager = new NodeManager();
-    this.nodeRenderer = new NodeRenderer();
+
     this.clipboard = new Clipboard();
 
     initCommands();
@@ -68,26 +67,30 @@ export class Core {
     this.unsubscribers.push(
       this.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
         console.time("Перерендер всех нод страницы");
-        core.desk.disconnectNodesEl();
+        core.desk.disconnectNodesEl(); //>
         core.nodeRenderer.renderAll();
-        core.desk.connectNodesEl();
+        core.desk.connectNodesEl(); //<
         core.nodeRenderer.getAllNodes().forEach((node) => {
           node.refreshBodyRect();
 
           if (node instanceof VFrame) {
+            // собираем все фреймы в ядко фреймов
             this.frameCore.addFrame(node);
           }
         });
-        core.desk.disconnectNodesEl();
-        core.frameCore.refresh();
+        // core.desk.disconnectNodesEl(); //>
+        core.frameCore.refresh(); //пересчитывает все
 
-        core.desk.connectNodesEl();
+        // core.desk.connectNodesEl(); //
 
         console.timeEnd("Перерендер всех нод страницы");
       }),
     );
 
     this.desk = new Desk();
+    this.nodeManager = new NodeManager();
+    this.nodeRenderer = new NodeRenderer();
+    this.frameCore = new FrameCore();
 
     app.showLoader();
 

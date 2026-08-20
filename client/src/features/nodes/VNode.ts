@@ -117,7 +117,16 @@ export class VNode {
   }
   onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
-    if (core.mode.textEditing) return;
+    if (core.mode.textEditing) {
+      if (this.isSelected) return;
+      // если режим редактирования, то клик по ноде переходит в редактирование
+      // core.selectManager.clearSelection();
+      core.selectManager.selectNodeById(this._id, { ctrlKey: false });
+      // this.select();
+      this.onDoubleClick(e);
+      core.mode.textEditing = true;
+      return;
+    }
     if (core.mode.selectMoving && core.mode.selectedVNodeCount > 1) return;
 
     // --- КАТАЛИЗАТОР ДВОЙНОГО КЛИКА ---
@@ -145,7 +154,7 @@ export class VNode {
     Tools.stopEvent(e);
 
     this.isDragging = true;
-    core.store.emit(EVENTS.nodes.pointer.down, this);
+    // core.store.emit(EVENTS.nodes.pointer.down, this);
 
     const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
     this.pointerOffset = {

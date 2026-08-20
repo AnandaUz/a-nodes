@@ -8,12 +8,12 @@ import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
 
 class RouterEx extends Router {
-  override showLoader(): void {
-    app.showLoader();
-  }
-  override hideLoader(): void {
-    app.hideLoader();
-  }
+  // override showLoader(): void {
+  //   app.showLoader();
+  // }
+  // override hideLoader(): void {
+  //   app.hideLoader();
+  // }
   checkRedirect(path: string): string {
     if (path === "/") {
       const user = getUser();

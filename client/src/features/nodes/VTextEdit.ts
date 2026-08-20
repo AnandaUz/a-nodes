@@ -10,12 +10,24 @@ export default class VTextEdit extends VNode {
     super.init();
     this.titleEl = this.body.querySelector(".title-el") as HTMLInputElement;
     this.titleEl.addEventListener("input", () => {
-      this.title = this.titleEl.innerText;
+      this.onInput();
     });
 
     this.titleEl.addEventListener("blur", () => {
       this.turnOff_EditTitleMode();
     });
+  }
+  onInput() {
+    this.title = this.titleEl.innerText;
+    const startH = this.height;
+    this.refreshBodyRect();
+    const endH = this.height;
+
+    if (startH < endH) {
+      // this.moveAniTo(null, this.y - (endH - startH));
+      const rect = { ...this.bodyRect, height: endH };
+      core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [this]);
+    }
   }
 
   onDoubleClick(e: PointerEvent): void {
@@ -66,6 +78,7 @@ export default class VTextEdit extends VNode {
     if (core.mode.selectedVNodeCount > 1) {
       return;
     }
+    console.log("turnOn", this.title);
     core.mode.textEditing = true; // = DESK_MODE.TEXT_EDIT
     core.mode.textNode = true;
     this.isEditMode = true;
@@ -77,6 +90,7 @@ export default class VTextEdit extends VNode {
     document.addEventListener("keydown", this.turnOf_edit_byEsc);
   }
   turnOff_EditTitleMode() {
+    console.log("turnOff", this.title);
     core.mode.textEditing = false;
     core.mode.textNode = false;
     this.isEditMode = false;
@@ -84,6 +98,7 @@ export default class VTextEdit extends VNode {
     this.titleEl.contentEditable = "false";
 
     this.save();
+    this.refreshBodyRect();
 
     document.removeEventListener("keydown", this.turnOf_edit_byEsc);
   }

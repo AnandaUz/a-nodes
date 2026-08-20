@@ -2,7 +2,6 @@ import type { INode } from "@shared/types";
 import VTextEdit from "../VTextEdit";
 import "./VFrame.scss";
 import { core, EVENTS } from "@/features/core/core";
-
 import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
 import Helper_main from "./Helper/Helper_main";
@@ -16,43 +15,27 @@ export const AREA_PADDING = {
 export default class VFrame extends VTextEdit {
   helpers: Helper[] = [];
   helpersById: Record<string, Helper> = {};
-  elSubTitle?: HTMLElement;
-  elBtnsBlock?: HTMLElement;
+  protected elSubTitle?: HTMLElement;
+  protected elBtnsBlock?: HTMLElement;
   subFrames: Map<string, VFrame> = new Map();
   mainFrames: Map<string, VFrame> = new Map();
-  helperType: new (vnode: VNode, mainFrame: VFrame) => Helper = Helper as any;
+  protected helperType: new (vnode: VNode, mainFrame: VFrame) => Helper =
+    Helper as any;
 
-  static frames: VFrame[] = [];
+  // static frames: VFrame[] = [];
 
-  // events = new EventEmitter<VNodeEvents>();
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-frame");
-    VFrame.frames.push(this);
+    // VFrame.frames.push(this);
 
     // if (!core.managerCore) core.managerCore = new ManagerCore();
 
     this.unsubscribers.push(
-      // core.store.on(EVENTS.renderer.refreshAllVNodes, () => {
-      //   // this.initHelpers();
-      // }),
-      // core.store.on(EVENTS.nodes.created, (_nodeEss: INode) => {
-      //   // this.initHelpers();
-      // }),
       core.store.on(EVENTS.nodes.moved, (nodeEss: INode) => {
         if (!nodeEss || !nodeEss._id) return;
         if (this.helpersById[nodeEss._id]) this.refreshHelpersUp();
       }),
-      // core.store.on(EVENTS.frame.sub.connected, ({ subFrame, mainFrame }) => {
-
-      //   if (mainFrame !== this) return;
-      //   if (this.subFrames.has(subFrame.nodeEss._id || "")) return;
-      //   this.subFrames.set(subFrame.nodeEss._id || "", subFrame);
-      //   // this.initHelpers();
-      // }),
-      // core.store.on(EVENTS.nodes.moved, (_nodeEss: INode) => {
-      //   this.onVNodeMove();
-      // }),
     );
   }
   // init() {
@@ -88,9 +71,9 @@ export default class VFrame extends VTextEdit {
     let prevListLevel = 0;
     let prevHelpers: Helper[] = [];
 
-    if (this.nodeEss.title === "s1") {
-      console.log(this.nodeEss.title);
-    }
+    // if (this.nodeEss.title === "s1") {
+    //   console.log(this.nodeEss.title);
+    // }
 
     this.helpers.forEach((h, i) => {
       const vNodeX = h.mainNode.x;
@@ -146,6 +129,7 @@ export default class VFrame extends VTextEdit {
       }
 
       h.mainNode.body.dataset.level = listLevel + "";
+      h.mainNode.refreshBodyRect();
 
       prevListLevel = listLevel;
 
@@ -206,6 +190,7 @@ export default class VFrame extends VTextEdit {
     delete this.helpersById[_id];
     this.helpers = this.helpers.filter((h) => h._id !== _id);
     node.body.dataset.level = "";
+    node.refreshBodyRect();
 
     const fromHelpers = helper.fromHelpers[0] as Helper_main;
     if (fromHelpers) fromHelpers.level = 0;

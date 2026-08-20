@@ -7,31 +7,9 @@ import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
 
 export default class VFrame_main extends VFrame {
-  // framesMain = new Map<string, VFrame>();
-
   constructor(node: INode, container: HTMLElement) {
     super(node, container);
-
     this.helperType = Helper_main as any;
-
-    // core.managerCore!.frames.main.set(node._id!, this);
-
-    this.unsubscribers
-      .push
-      // core.store.on(EVENTS.frame.sub.connected, ({ subFrame, mainFrame }) => {
-      //   if (mainFrame !== this) return;
-      //   this.framesMain.set(subFrame.nodeEss._id || "", subFrame);
-      // }),
-      // core.store.on(EVENTS.frame.sub.disconnected, ({ subFrame, mainFrame }) => {
-      //   if (mainFrame !== this) return;
-      //   this.framesMain.delete(subFrame.nodeEss._id || "");
-      // }),
-      // core.store.on(EVENTS.frame.sub.addNodeClone, (payload) => {
-      //   const { subFrame } = payload;
-      //   if (!this.subFrames.has(subFrame.nodeEss._id || "")) return;
-
-      // }),
-      ();
   }
   init(): void {
     super.init();
@@ -45,7 +23,7 @@ export default class VFrame_main extends VFrame {
       this.addFrame();
     };
   }
-  addFrame() {
+  async addFrame() {
     const bounds = this.bodyRect;
     const newNode: INode = {
       exData: {
@@ -57,10 +35,21 @@ export default class VFrame_main extends VFrame {
       y: Math.round(this.y),
       title: "Сортировщик",
     };
-    core.nodeManager.createNode(newNode);
-    // if (vNode instanceof VM_frame) {
-    //   vNode.render();
-    // }
+
+    const vNode = await core.nodeManager.createNode(newNode);
+    const frame = core.nodeRenderer.getVNode(vNode?._id || "") as VFrame_main;
+    if (frame) {
+      core.frameCore.addFrame(frame);
+      core.frameCore.refreshSpatialGrid();
+
+      this.subFrames.set(frame.nodeEss._id || "", frame);
+      frame.mainFrames.set(this.nodeEss._id || "", this);
+      this.refreshHelpersUp();
+    }
+
+    // const mainFrame = this as VFrame_main;
+    // const frame = core.nodeRenderer.getVNode(vNode?._id || "") as VFrame_main;
+    // core.frameCore.addFrame(frame);
   }
   async addTextEditCloneNode(nodeEss: INode) {
     const x = this.x; //+ AREA_PADDING.left;

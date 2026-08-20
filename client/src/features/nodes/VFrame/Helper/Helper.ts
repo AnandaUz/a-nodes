@@ -60,6 +60,7 @@ export class Helper {
     this.strBlockEl.innerHTML = str;
     this.parentsTitles = parentsTitles;
     this.mainNode.body.style.paddingTop = "10px";
+    this.mainNode.refreshBodyRect();
   }
   placeTo() {
     const x = this.mainNode.x || 0;

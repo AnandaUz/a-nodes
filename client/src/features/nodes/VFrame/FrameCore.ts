@@ -66,10 +66,6 @@ export class FrameCore {
           if (mainFrame instanceof VFrame) {
             mainFrame.subFrames.set(frame.nodeEss._id || "", frame);
             frame.mainFrames.set(mainFrame.nodeEss._id || "", mainFrame);
-            // core.store.emit(EVENTS.frame.sub.connected, {
-            //   mainFrame,
-            //   subFrame: this,
-            // });
           }
         });
       }
