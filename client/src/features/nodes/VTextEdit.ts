@@ -5,6 +5,7 @@ import { core } from "@features/core/core";
 export default class VTextEdit extends VNode {
   titleEl!: HTMLInputElement;
   protected isEditMode: boolean = false;
+  subNodes: Map<string, VTextEdit> = new Map();
 
   init(): void {
     super.init();
@@ -17,8 +18,8 @@ export default class VTextEdit extends VNode {
       this.turnOff_EditTitleMode();
     });
   }
-  onInput() {
-    this.title = this.titleEl.innerText;
+  setTitleText(v: string | undefined, putInInnerHTML = false) {
+    if (putInInnerHTML) this.titleEl.innerText = v || "";
     const startH = this.height;
     this.refreshBodyRect();
     const endH = this.height;
@@ -28,6 +29,15 @@ export default class VTextEdit extends VNode {
       const rect = { ...this.bodyRect, height: endH };
       core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [this]);
     }
+  }
+  onInput() {
+    this.title = this.titleEl.innerText;
+    this.setTitleText(this.title);
+
+    //обновляем детей
+    this.subNodes.forEach((subNode) => {
+      subNode.setTitleText(this.title, true);
+    });
   }
 
   onDoubleClick(e: PointerEvent): void {
@@ -78,7 +88,7 @@ export default class VTextEdit extends VNode {
     if (core.mode.selectedVNodeCount > 1) {
       return;
     }
-    console.log("turnOn", this.title);
+    // console.log("turnOn", this.title);
     core.mode.textEditing = true; // = DESK_MODE.TEXT_EDIT
     core.mode.textNode = true;
     this.isEditMode = true;
@@ -90,7 +100,7 @@ export default class VTextEdit extends VNode {
     document.addEventListener("keydown", this.turnOf_edit_byEsc);
   }
   turnOff_EditTitleMode() {
-    console.log("turnOff", this.title);
+    // console.log("turnOff", this.title);
     core.mode.textEditing = false;
     core.mode.textNode = false;
     this.isEditMode = false;
@@ -173,5 +183,29 @@ export default class VTextEdit extends VNode {
     // } else {
     //   this.moveAniTo(null, byNode.y - this.body.offsetHeight);
     // }
+  }
+  select(): void {
+    super.select();
+
+    this.highlight();
+  }
+  unselect(): void {
+    super.unselect();
+    this.unhighlight();
+  }
+  highlight() {
+    if (this.subNodes.size > 0) {
+      this.body.classList.add("highlight");
+
+      this.subNodes.forEach((subNode) => {
+        subNode.body.classList.add("highlight");
+      });
+    }
+  }
+  unhighlight() {
+    this.body.classList.remove("highlight");
+    this.subNodes.forEach((subNode) => {
+      subNode.body.classList.remove("highlight");
+    });
   }
 }

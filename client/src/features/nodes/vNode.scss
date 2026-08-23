@@ -98,7 +98,7 @@
             display: block;
             width: var(--w);
             height: var(--h);
-            background-color: rgba(114, 222, 255, 0.56);
+            background-color: rgba(0, 195, 255, 0.24);
             border-radius: 2px;
             position: absolute;
             top: 14px;
@@ -106,6 +106,10 @@
             z-index: 100;
             --h: 5px;
         }
+    }
+
+    &.highlight {
+        background: rgba(168, 216, 224, 0.356);
     }
 
     &.is-dragging {

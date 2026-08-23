@@ -11,6 +11,7 @@ export default class VTextEditClone extends VTextEdit {
     const sourceNodeId = this.nodeEss.exData?.ownerNodesIds?.[0];
     if (!sourceNodeId) return;
     this.sourceVNode = core.nodeRenderer.getVNode(sourceNodeId) as VTextEdit;
+    this.sourceVNode.subNodes.set(this.nodeEss._id || "", this);
     this.unsubscribers.push(
       core.store.on(EVENTS.nodes.updated, (nodeEss) => {
         if (nodeEss._id === this.sourceVNode?._id) {
@@ -19,12 +20,36 @@ export default class VTextEditClone extends VTextEdit {
       }),
     );
   }
+  onInput() {
+    this.setTitleText(this.titleEl.innerText);
+    if (this.sourceVNode) {
+      this.sourceVNode.title = this.titleEl.innerText;
+      this.sourceVNode.setTitleText(this.title, true);
 
-  // set title(v: string | undefined) {
+      //обновляем детей
+      this.sourceVNode.subNodes.forEach((subNode) => {
+        if (subNode === this) return;
+        subNode.setTitleText(this.title, true);
+      });
+    }
+  }
 
-  //   this.titleEl.innerHTML = v || "";
-  //   this.sourceNode.title = v;
-  //   this.sourceNode.turnOff_EditTitleMode();
+  // onInput() {
+  //   this.sourceVNodetitle = this.titleEl.innerText;
+  //   const startH = this.height;
+  //   this.refreshBodyRect();
+  //   const endH = this.height;
+
+  //   if (startH < endH) {
+  //     // this.moveAniTo(null, this.y - (endH - startH));
+  //     const rect = { ...this.bodyRect, height: endH };
+  //     core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [this]);
+  //   }
+
+  //   //обновляем детей
+  //   this.subNodes.forEach((subNode) => {
+  //     subNode.title = this.title;
+  //   });
   // }
   turnOff_EditTitleMode() {
     core.mode.textEditing = false;
@@ -48,5 +73,12 @@ export default class VTextEditClone extends VTextEdit {
   get title() {
     if (!this.sourceVNode) return "#######";
     return this.sourceVNode.nodeEss.title;
+  }
+
+  highlight() {
+    this.sourceVNode?.highlight();
+  }
+  unhighlight() {
+    this.sourceVNode?.unhighlight();
   }
 }
