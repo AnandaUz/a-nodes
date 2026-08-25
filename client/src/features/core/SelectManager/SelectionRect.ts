@@ -67,5 +67,7 @@ export default class SelectionRect {
   destroy() {
     this.el.remove();
     this.container.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
   }
 }

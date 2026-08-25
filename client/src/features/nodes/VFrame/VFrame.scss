@@ -52,6 +52,11 @@
                background-color: #fff1;
           }
      }
+
+     .btns-block {
+          display: flex;
+          gap: 5px;
+     }
 }
 
 .vnode-m-sub {
@@ -79,16 +84,26 @@
 
      &::before {
 
+          // display: block;
+          // position: absolute;
+          // content: "";
+          // border: 1px solid rgba(250, 125, 8, 0.5137254902);
+          // border-radius: 50%;
+          // --w: calc(var(--level) * var(--circle-radius));
+          // top: calc(var(--w) / -2 + var(--circle-radius) + 3px);
+          // right: 5px;
+          // height: var(--w);
+          // width: var(--w);
           display: block;
           position: absolute;
           content: "";
-          border: 1px solid rgba(250, 125, 8, 0.5137254902);
-          border-radius: 50%;
+          background: rgba(241, 68, 0, 0.2);
           --w: calc(var(--level) * var(--circle-radius));
-          top: calc(var(--w) / -2 + var(--circle-radius) + 3px);
+          top: 10px;
           right: 5px;
-          height: var(--w);
+          height: 5px;
           width: var(--w);
+          border-radius: 10px;
      }
 
      .str-block {

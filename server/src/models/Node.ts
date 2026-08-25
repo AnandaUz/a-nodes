@@ -20,6 +20,7 @@ const exDataSchema = new mongoose.Schema(
     repeatDay: { type: Date },
     url: { type: String },
     h: { type: String },
+    hh: { type: Number },
   },
   { _id: false },
 );

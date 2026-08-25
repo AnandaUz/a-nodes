@@ -5,6 +5,7 @@ import Tools from "@/features/core/Tools";
 import { NODE_TYPES } from "../node-registry";
 import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
+import type { VNode } from "../VNode";
 
 export default class VFrame_main extends VFrame {
   constructor(node: INode, container: HTMLElement) {
@@ -13,15 +14,82 @@ export default class VFrame_main extends VFrame {
   }
   init(): void {
     super.init();
-    const btnAddFrame = document.createElement("div");
-    btnAddFrame.className = "btn ico ico-plus";
-    btnAddFrame.title = "Add Frame";
-    this.elBtnsBlock?.appendChild(btnAddFrame);
+    this.elBtnsBlock!.innerHTML = `
+    <div class="btn ico ico-levels" title="Levels"></div>
+
+    <div class="btn ico ico-in-height" title="In Height"></div>
+    
+    <div class="btn ico ico-plus" title="Add Frame"></div>
+    `;
+    const btnAddFrame = this.body.querySelector(".ico-plus") as HTMLElement;
+    const btnInHeight = this.body.querySelector(
+      ".ico-in-height",
+    ) as HTMLElement;
+    const btnLevels = this.body.querySelector(".ico-levels") as HTMLElement;
 
     btnAddFrame.onclick = (e) => {
       Tools.stopEvent(e);
       this.addFrame();
     };
+    btnInHeight.onclick = (e) => {
+      Tools.stopEvent(e);
+      this.setHeightByNodes();
+    };
+    btnLevels.onclick = (e) => {
+      Tools.stopEvent(e);
+    };
+
+    this.nodeEss.exData?.hh && this.setHeight(this.nodeEss.exData.hh || 0);
+  }
+  setHeightByNodes() {
+    let maxY = this.y + 20;
+    this.helpers.forEach((h) => {
+      // h.elNodeFrame.style.height = "max-content";
+      const node = h.mainNode;
+      maxY = Math.max(maxY, node.y + node.height);
+      // maxHeight = Math.max(maxHeight, h.height);
+    });
+
+    // если внизу фрейма ктото есть, он их подхватит тоже
+    const STEP = 50;
+    const rect = {
+      x: this.x,
+      y: maxY,
+      width: this.width,
+      height: STEP,
+    } as DOMRect;
+    const m: VNode[] = [];
+    while (true) {
+      const nodesOverRect = core.selectManager.getNodeOverRect(rect);
+      if (nodesOverRect.length > 0) {
+        m.push(...nodesOverRect);
+      } else {
+        break;
+      }
+      rect.y += STEP;
+    }
+    if (m.length > 0) {
+      m.forEach((node: VNode) => {
+        if (node instanceof VFrame) return;
+        maxY = Math.max(maxY, node.y + node.height);
+        this.addHelper(node);
+      });
+      this.refreshHelpersUp();
+    }
+
+    this.height =
+      Math.max(maxY - this.y, AREA_PADDING.top + 40) + AREA_PADDING.bottom;
+
+    this.setHeight(this.height);
+    this.save();
+  }
+  setHeight(height: number) {
+    this.height = height;
+    this.body.style.height = `${height}px`;
+    if (!this.nodeEss.exData) {
+      this.nodeEss.exData = {};
+    }
+    this.nodeEss.exData.hh = height;
   }
   async addFrame() {
     const bounds = this.bodyRect;

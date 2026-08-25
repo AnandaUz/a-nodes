@@ -10,6 +10,7 @@ import { GRID } from "@/features/core/CONST";
 export const AREA_PADDING = {
   left: 30,
   top: 20,
+  bottom: 20,
 };
 
 export default class VFrame extends VTextEdit {

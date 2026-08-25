@@ -16,6 +16,7 @@ export interface INode {
     repeatMode?: string;
     repeatDay?: Date;
     url?: string;
-    h?: string;
+    h?: string; // поле для заголовков
+    hh?: number; // поле для высоты блока
   };
 }
