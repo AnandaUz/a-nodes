@@ -49,6 +49,7 @@ export class FrameCore {
     this.refreshFrames();
   }
   refreshFrames() {
+    console.log("refreshFrames");
     this.frames.main.forEach((frame) => {
       if (frame.mainFrames.size == 0) {
         frame.refreshHelpersUp();
@@ -72,6 +73,7 @@ export class FrameCore {
     });
   }
   refreshSpatialGrid() {
+    console.log("refreshSpatialGrid");
     const frames = this.frames.main;
     frames.forEach((frame) => {
       this.spatialGrid.registerFrame(frame);
@@ -81,6 +83,8 @@ export class FrameCore {
     this.frames.main.set(frame.nodeEss._id || "", frame as VFrame_main);
   }
   initHelper(vnode: VNode): { frame: VFrame | null; helper: Helper | null } {
+    console.log("intHelper");
+
     if (vnode instanceof VTextEdit && !(vnode instanceof VFrame)) {
       const { x, y } = vnode;
       if (x === undefined || y === undefined)
@@ -103,6 +107,7 @@ export class FrameCore {
   }
 
   initHelpers() {
+    console.log("initHelpers");
     // const frames = this.frames.main;
     core.nodeRenderer.getAllNodes().forEach((vnode) => {
       this.initHelper(vnode);

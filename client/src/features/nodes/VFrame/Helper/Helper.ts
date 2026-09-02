@@ -10,6 +10,8 @@ export class Helper {
   mainFrame: VM_frame_main;
   btnBlockEl: HTMLDivElement;
   strBlockEl: HTMLDivElement;
+  isMoving: boolean = false;
+  listLevel: number = 0;
 
   fromHelpers: Helper[] = [];
   toHelper: Map<string, Helper> = new Map();
@@ -32,15 +34,27 @@ export class Helper {
     this.strBlockEl = this.body.querySelector(".str-block") as HTMLDivElement;
     core.desk.nodesEl.appendChild(this.body);
     this.placeTo();
+
+    // let startSelectedNodes: Map<string, VNode> = new Map();
     this.unsubscribers.push(
       core.store.on(EVENTS.nodes.moving, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
           this.placeTo();
+
+          if (!this.isMoving) {
+            this.isMoving = true;
+            // startSelectedNodes = core.selectManager.selectedNodes;
+            const s = this.mainFrame.getAllSubHelpers(this);
+
+            core.selectManager.addToSelectedNodes(s.map((h) => h.mainNode));
+          }
         }
       }),
       core.store.on(EVENTS.nodes.updated, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
           this.placeTo();
+
+          this.isMoving = false;
         }
       }),
       core.store.on(EVENTS.nodes.inTrash, (nodeEss: INode) => {

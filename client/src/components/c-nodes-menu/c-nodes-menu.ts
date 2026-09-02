@@ -70,6 +70,7 @@ class BtnGroup {
     });
   }
   unActivAllBtn() {
+    this.isActivBtn = null;
     this.btns.forEach((btn) => {
       btn.active = false;
     });
@@ -169,14 +170,12 @@ class CNodesMenu extends HTMLElement {
         value: `h${i + 1}`,
       });
     }
-
     const HGroup = new BtnGroup(hBtns, hBlock, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
         if (!node.nodeEss.exData) {
           node.nodeEss.exData = {};
         }
         node.nodeEss.exData.h = value || "";
-
         node.save();
         node.render();
       });
@@ -197,7 +196,7 @@ class CNodesMenu extends HTMLElement {
       });
     }
 
-    const btnGroup = new BtnGroup(btnData, textColor, (value) => {
+    const btnGroup_color = new BtnGroup(btnData, textColor, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
         if (!node.nodeEss.exData) {
           node.nodeEss.exData = {};
@@ -233,7 +232,10 @@ class CNodesMenu extends HTMLElement {
 
       const firstNode = core.selectManager.selectedNodes.values().next().value;
       if (firstNode) {
-        btnGroup.setActiveBtn(firstNode.nodeEss.exData?.tColor || "", true);
+        btnGroup_color.setActiveBtn(
+          firstNode.nodeEss.exData?.tColor || "",
+          true,
+        );
         btnGroupBG.setActiveBtn(firstNode.nodeEss.exData?.bgColor || "", true);
         HGroup.setActiveBtn(firstNode.nodeEss.exData?.h || "", true);
       }

@@ -45,6 +45,20 @@ export default class VFrame extends VTextEdit {
   initMovingElement() {
     this.movingElement = this.body.querySelector(".top-block") as HTMLElement;
   }
+  getAllSubHelpers(helper: Helper) {
+    const subHelpers: Helper[] = [];
+    let isStart = false;
+    (this.helpers as Helper_main[]).some((h) => {
+      // console.log((h.mainNode as VTextEdit).title);
+      if (h === helper) {
+        isStart = true;
+      } else if (isStart) {
+        if (h.listLevel > helper.listLevel) subHelpers.push(h);
+        else return true;
+      }
+    });
+    return subHelpers;
+  }
 
   bodyInit() {
     this.body.innerHTML += `
@@ -67,6 +81,7 @@ export default class VFrame extends VTextEdit {
     superFrame.refreshHelpersUp();
   }
   refreshHelpersUp() {
+    console.log("refreshHelpersUp", new Date().getTime());
     this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
 
     let prevListLevel = 0;
@@ -130,6 +145,7 @@ export default class VFrame extends VTextEdit {
       }
 
       h.mainNode.body.dataset.level = listLevel + "";
+      h.listLevel = listLevel;
       h.mainNode.refreshBodyRect();
 
       prevListLevel = listLevel;

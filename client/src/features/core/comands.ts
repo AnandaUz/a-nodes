@@ -6,6 +6,7 @@ import { GRID } from "./CONST";
 import VFrame from "../nodes/VFrame/VFrame";
 import Tools from "./Tools";
 import VTextEditClone from "../nodes/VTextEditClone";
+import type VFrame_main from "../nodes/VFrame/VFrame_main";
 
 interface Command {
   label: string;
@@ -206,7 +207,9 @@ const commands: Command[] = [
                 x: Tools.getDiskPosition(x),
                 y: Math.round(y),
                 type: NODE_TYPES.MANAGER.frame_main,
-                exData: {},
+                exData: {
+                  bgColor: Math.round(Math.random() * 360).toString(),
+                },
               };
               const vnode = await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер
               if (vnode) {
@@ -214,6 +217,18 @@ const commands: Command[] = [
                 if (vnode1) {
                   (vnode1 as VTextEdit).turnOn_EditTitleMode();
                 }
+              }
+
+              const frame = core.nodeRenderer.getVNode(
+                vnode?._id || "",
+              ) as VFrame_main;
+              if (frame) {
+                core.frameCore.addFrame(frame);
+                core.frameCore.refreshSpatialGrid();
+
+                // this.subFrames.set(frame.nodeEss._id || "", frame);
+                // frame.mainFrames.set(this.nodeEss._id || "", this);
+                // this.refreshHelpersUp();
               }
             },
           },
@@ -345,7 +360,7 @@ const commands: Command[] = [
       },
       {
         label: "Отсортировать",
-        shortcuts: ["alt+1"],
+        shortcuts: ["ctrl+1"],
         execute: async () => {
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
