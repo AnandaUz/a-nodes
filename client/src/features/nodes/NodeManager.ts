@@ -220,19 +220,19 @@ export class NodeManager {
     const rightText = title.slice(cursorIndex).trimStart();
 
     vNode.title = leftText;
+    vNode.refreshBodyRect();
     vNode.render();
     vNode.save();
     // vNode.saveTitle();
+    vNode.turnOff_EditTitleMode();
+    core.selectManager.clearSelection();
 
     // создаём новую ноду с правым текстом
     const newNode = await this.copyNode(vNode.nodeEss, {
       x: vNode.x,
-      y: vNode.y + vNode.body.offsetHeight * 0.8,
+      y: vNode.y + vNode.height,
       title: rightText,
     });
-
-    vNode.turnOff_EditTitleMode();
-    core.selectManager.clearSelection();
 
     const newVnode = core.selectManager.selectNodeById(
       newNode?._id || "",
