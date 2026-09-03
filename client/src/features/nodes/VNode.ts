@@ -182,7 +182,10 @@ export class VNode {
     }
 
     if (!this.isSelected) {
-      core.selectManager.onVNodeClick(e, this);
+      if (!core.mode.inputMode.coarse) {
+        core.selectManager.onVNodeClick(e, this);
+      }
+
       // this.select();
     }
 
