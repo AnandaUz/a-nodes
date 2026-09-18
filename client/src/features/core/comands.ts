@@ -209,6 +209,7 @@ const commands: Command[] = [
                 type: NODE_TYPES.MANAGER.frame_main,
                 exData: {
                   bgColor: Math.round(Math.random() * 360).toString(),
+                  hh: 300,
                 },
               };
               const vnode = await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер

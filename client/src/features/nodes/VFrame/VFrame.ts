@@ -1,7 +1,7 @@
 import type { INode } from "@shared/types";
 import VTextEdit from "../VTextEdit";
 import "./VFrame.scss";
-import { core, EVENTS } from "@/features/core/core";
+// import { core, EVENTS } from "@/features/core/core";
 import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
 import Helper_main from "./Helper/Helper_main";
@@ -32,12 +32,17 @@ export default class VFrame extends VTextEdit {
 
     // if (!core.managerCore) core.managerCore = new ManagerCore();
 
-    this.unsubscribers.push(
-      core.store.on(EVENTS.nodes.moved, (nodeEss: INode) => {
-        if (!nodeEss || !nodeEss._id) return;
-        if (this.helpersById[nodeEss._id]) this.refreshHelpersUp();
-      }),
-    );
+    // this.unsubscribers.push(
+    //   core.store.on(EVENTS.nodes.selectedMoved, (nodes: VNode[]) => {
+    //     if (!nodes) return;
+
+    //     console.log("selectedMoved", nodes);
+
+    //     nodes.forEach((node: VNode) => {
+    //       if (this.helpersById[node._id]) this.refreshHelpersUp();
+    //     });
+    //   }),
+    // );
   }
   // init() {
   //   super.init();
@@ -196,6 +201,7 @@ export default class VFrame extends VTextEdit {
     const helper = new this.helperType(vnode, this);
     this.helpers.push(helper);
     this.helpersById[helper._id] = helper;
+
     return helper;
   }
   removeHelper(_id: string) {

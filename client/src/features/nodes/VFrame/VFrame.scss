@@ -71,9 +71,9 @@
 }
 
 .vnode-helper {
-     // width: 20px;
-     // height: 10px;
-     // background-color: rgb(211, 211, 211);
+     width: 3px;
+     height: 3px;
+     background-color: rgb(255, 84, 84);
      position: absolute;
      // top: 0;
      // left: 0;
@@ -83,17 +83,6 @@
      --circle-radius: 8px;
 
      &::before {
-
-          // display: block;
-          // position: absolute;
-          // content: "";
-          // border: 1px solid rgba(250, 125, 8, 0.5137254902);
-          // border-radius: 50%;
-          // --w: calc(var(--level) * var(--circle-radius));
-          // top: calc(var(--w) / -2 + var(--circle-radius) + 3px);
-          // right: 5px;
-          // height: var(--w);
-          // width: var(--w);
           display: block;
           position: absolute;
           content: "";

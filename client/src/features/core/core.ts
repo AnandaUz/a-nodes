@@ -47,6 +47,11 @@ export class Core {
       adding: false,
       select: false,
     },
+    mouseStatus: {
+      shift: false,
+      ctrl: false,
+      alt: false,
+    },
   };
 
   constructor() {
@@ -55,6 +60,24 @@ export class Core {
     this.clipboard = new Clipboard();
 
     initCommands();
+    window.addEventListener(
+      "pointerdown",
+      (e: PointerEvent) => {
+        this.mode.mouseStatus.shift = e.shiftKey;
+        this.mode.mouseStatus.ctrl = e.ctrlKey;
+        this.mode.mouseStatus.alt = e.altKey;
+      },
+      true,
+    );
+    window.addEventListener(
+      "pointerup",
+      (e: PointerEvent) => {
+        this.mode.mouseStatus.shift = e.shiftKey;
+        this.mode.mouseStatus.ctrl = e.ctrlKey;
+        this.mode.mouseStatus.alt = e.altKey;
+      },
+      true,
+    );
   }
 
   async init(_params: Record<string, string>) {

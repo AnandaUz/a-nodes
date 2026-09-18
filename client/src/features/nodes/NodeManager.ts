@@ -230,7 +230,7 @@ export class NodeManager {
     // создаём новую ноду с правым текстом
     const newNode = await this.copyNode(vNode.nodeEss, {
       x: vNode.x,
-      y: vNode.y + vNode.height,
+      y: vNode.y + vNode.height - 2,
       title: rightText,
     });
 

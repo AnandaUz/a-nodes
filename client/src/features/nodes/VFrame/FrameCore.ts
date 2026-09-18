@@ -17,16 +17,29 @@ export class FrameCore {
   protected spatialGrid = new SpatialGrid(100);
   init() {
     this.unsubscribers.push(
+      core.store.on(EVENTS.nodes.selectedMoved, (nodes: VNode[]) => {
+        if (!nodes) return;
+        if (this.frames.main.size == 0) return;
+
+        console.log("selectedMoved", nodes);
+
+        let frames = new Set<VFrame>();
+        nodes.forEach((node: VNode) => {
+          if (node instanceof VTextEdit || node instanceof VTextEditClone) {
+            const { frame } = this.initHelper(node);
+            if (frame) {
+              frames.add(frame);
+            }
+          }
+        });
+        // frames.forEach((frame) => {
+        //   frame.refreshHelpers_super();
+        // });
+      }),
       core.store.on(EVENTS.nodes.moved, (node) => {
         if (node instanceof VFrame) {
           this.refreshSpatialGrid();
         } else {
-          if (node instanceof VTextEdit || node instanceof VTextEditClone) {
-            const { frame } = this.initHelper(node);
-            if (frame) {
-              frame.refreshHelpers_super();
-            }
-          }
         }
       }),
       core.store.on(EVENTS.nodes.created, (nodeEss: INode) => {
@@ -41,6 +54,9 @@ export class FrameCore {
     );
   }
   refresh() {
+    // если нет фреймов, ничего не делаем
+    if (!this.frames.main.size) return;
+
     this.refreshSpatialGrid();
     this.initLinks();
 
@@ -83,12 +99,12 @@ export class FrameCore {
     this.frames.main.set(frame.nodeEss._id || "", frame as VFrame_main);
   }
   initHelper(vnode: VNode): { frame: VFrame | null; helper: Helper | null } {
-    console.log("intHelper");
-
     if (vnode instanceof VTextEdit && !(vnode instanceof VFrame)) {
       const { x, y } = vnode;
       if (x === undefined || y === undefined)
         return { frame: null, helper: null };
+
+      console.log("intHelper");
 
       const candidates = this.spatialGrid.getCandidates(x, y); // экономит перебор фреймов
 

@@ -97,6 +97,7 @@ export default class VFrame_main extends VFrame {
       exData: {
         ownerNodesIds: [this.nodeEss._id || ""],
         bgColor: Math.round(Math.random() * 360).toString(),
+        hh: 220,
       },
       type: NODE_TYPES.MANAGER.frame_main,
       x: Tools.getDiskPosition(this.x + bounds.width + GRID.x),

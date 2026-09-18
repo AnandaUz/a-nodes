@@ -9,10 +9,29 @@ import VFrame from "@/features/nodes/VFrame/VFrame";
 export class SelectManager {
   private body: HTMLElement;
   private selectionRect!: SelectionRect;
+  private _movedNodes: Set<VNode> = new Set();
 
   selectedNodes = new Map<string, VNode>();
 
   transformMove: TransformMove = new TransformMove(this);
+
+  onNodeMoveEnd(node: VNode): void {
+    // если несколько выделено — ждём пока все закончат
+    if (this.selectedNodes.size > 1) {
+      this._movedNodes.add(node);
+
+      // все выделенные завершили движение
+      if (this._movedNodes.size >= this.selectedNodes.size) {
+        core.store.emit(EVENTS.nodes.selectedMoved, [
+          ...this.selectedNodes.values(),
+        ]);
+        this._movedNodes.clear();
+      }
+    } else {
+      // одна нода — сразу испускаем
+      core.store.emit(EVENTS.nodes.selectedMoved, [node]);
+    }
+  }
 
   onVNodeClick(e: PointerEvent, vnode: VNode) {
     if (e.ctrlKey) {

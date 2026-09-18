@@ -33,7 +33,9 @@ export const EVENTS = {
       move: "pointer:move",
       up: "pointer:up",
     },
+    selectedMoved: "nodes:selectedMoved",
   },
+
   server: {
     updated: "server:updated",
     loaded: "server:loaded",
@@ -72,6 +74,7 @@ export type DeskEvents = {
   [EVENTS.server.loaded]: DeskSnapshot;
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;
+  [EVENTS.nodes.selectedMoved]: VNode[];
   [EVENTS.renderer.refreshAllVNodes]: void;
   [EVENTS.nodes.pointer.down]: VNode;
   [EVENTS.nodes.pointer.move]: VNode;

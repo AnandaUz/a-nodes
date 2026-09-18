@@ -44,16 +44,28 @@ export class Helper {
           if (!this.isMoving) {
             this.isMoving = true;
             // startSelectedNodes = core.selectManager.selectedNodes;
-            const s = this.mainFrame.getAllSubHelpers(this);
-
-            core.selectManager.addToSelectedNodes(s.map((h) => h.mainNode));
+            // выделяем подпункты, если не зажат шифт
+            if (!core.mode.mouseStatus.shift) {
+              const s = this.mainFrame.getAllSubHelpers(this);
+              if (s.length) {
+                core.selectManager.addToSelectedNodes(s.map((h) => h.mainNode));
+              }
+            }
           }
         }
       }),
       core.store.on(EVENTS.nodes.updated, (nodeEss: INode) => {
         if (nodeEss._id === this.mainNode.nodeEss._id) {
-          this.placeTo();
+          const x = this.mainNode.x;
+          const y = this.mainNode.y;
 
+          if (!this.mainFrame.checkPointOver(x, y)) {
+            this.mainFrame.removeHelper(this._id);
+
+            // this.refreshHelpers_super();
+            return;
+          }
+          this.placeTo();
           this.isMoving = false;
         }
       }),

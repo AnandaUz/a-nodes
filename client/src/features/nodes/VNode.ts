@@ -248,6 +248,8 @@ export class VNode {
 
     core.store.emit(EVENTS.nodes.moved, this);
 
+    core.selectManager.onNodeMoveEnd(this);
+
     core.mode.selectMoving = false;
 
     this.onStop();
