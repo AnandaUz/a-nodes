@@ -297,31 +297,71 @@ class CNodesMenu extends HTMLElement {
     const daysBlock = this.querySelector(".days-block") as HTMLElement;
     const inpEl = this.querySelector(".time-block") as HTMLDivElement;
 
-    const onInput = () => {
-      const date = Tools.parseDate(inpEl.textContent);
-      if (date) {
-        inpEl.innerHTML = Tools.formatDate(date);
-        core.selectManager.selectedNodes.forEach((node) => {
-          if (!node.nodeEss.exData) {
-            node.nodeEss.exData = {};
-          }
-          node.nodeEss.exData.repeatDay = date;
-          node.save();
-          node.render();
-        });
-      } else {
-        inpEl.innerHTML = "";
-        core.selectManager.selectedNodes.forEach((node) => {
-          if (!node.nodeEss.exData) {
-            node.nodeEss.exData = {};
-          }
+    const btnClear = this.querySelector(".btn-clear") as HTMLElement;
+    btnClear.addEventListener("click", () => {
+      inpEl.textContent = "";
+
+      core.selectManager.selectedNodes.forEach((node) => {
+        if (node.nodeEss.exData) {
+          delete node.nodeEss.exData.repeatMode;
           delete node.nodeEss.exData.repeatDay;
           node.save();
           node.render();
-        });
+        }
+      });
+    });
+
+    const onInput = () => {
+      const value = inpEl.textContent;
+      const regex = /\+(\d+)/;
+      const m = value.match(regex);
+
+      let isChanged = false;
+
+      let repeatDay: Date | undefined = undefined;
+
+      if (m) {
+        const n = Number(m[1]);
+        if (n) {
+          isChanged = true;
+          const d = new Date();
+          d.setDate(d.getDate() + n);
+          repeatDay = d;
+
+          if (d) inpEl.innerHTML = Tools.formatDate(d);
+        }
+      } else {
+        const date = Tools.parseDate(value);
+        if (date) {
+          inpEl.innerHTML = Tools.formatDate(date);
+          isChanged = true;
+          repeatDay = date;
+        } else {
+          inpEl.innerHTML = "";
+          isChanged = true;
+          repeatDay = undefined;
+        }
       }
 
-      inpEl.blur();
+      if (isChanged) {
+        core.selectManager.selectedNodes.forEach((node) => {
+          if (repeatDay) {
+            if (!node.nodeEss.exData) {
+              node.nodeEss.exData = {};
+            }
+            node.nodeEss.exData.repeatDay = repeatDay;
+          } else {
+            if (node.nodeEss.exData) {
+              delete node.nodeEss.exData.repeatDay;
+            }
+          }
+
+          node.save();
+          node.render();
+        });
+
+        inpEl.blur();
+      }
     };
     inpEl.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.key === "Enter") {

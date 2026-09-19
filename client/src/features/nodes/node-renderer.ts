@@ -92,10 +92,14 @@ export class NodeRenderer {
       mRes.push(node);
 
       const r = node.bodyRect;
+
+      const w1 = out_of_rect.width;
+      const w2 = r.x - out_of_rect.x + r.width;
+
       const rect = {
         x: out_of_rect.x,
         y: r.y + r.height,
-        width: 200, // переопределяем
+        width: Math.max(w1, w2), // переопределяем
         height: dy,
       } as DOMRect;
 
@@ -106,8 +110,8 @@ export class NodeRenderer {
 
     mRes
       .sort((a, b) => a.y - b.y)
-      .forEach((node, i) => {
-        node.moveAniTo(null, node.y + dy, i * 50);
+      .forEach((node) => {
+        node.moveAniTo(null, node.y + dy);
       });
   }
 }
