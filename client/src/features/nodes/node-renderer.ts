@@ -52,9 +52,15 @@ export class NodeRenderer {
     this.vNodes.delete(id);
   }
   renderAll() {
+    let t = 0;
+
     core.nodeManager.getAllNodes().forEach((node) => {
       this.createVNode(node);
+      t = Math.max(t, node.y || 0);
     });
+    console.log("all nodes max x:", t);
+    console.log("all nodes count:", this.vNodes.size);
+
     core.store.emit(EVENTS.renderer.refreshAllVNodes, undefined);
   }
   getVNode(id: string | undefined): VNode | undefined {

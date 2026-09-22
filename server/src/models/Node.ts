@@ -21,6 +21,9 @@ const exDataSchema = new mongoose.Schema(
     url: { type: String },
     h: { type: String },
     hh: { type: Number },
+    Fm: { type: Number },
+    Fp: { type: String },
+    Fi: { type: Number },
   },
   { _id: false },
 );
