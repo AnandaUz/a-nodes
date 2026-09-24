@@ -1,9 +1,9 @@
-import type { INode } from "@shared/types";
 import {
   getToken,
   refreshAccessToken,
   removeTokens,
 } from "@services/auth.service";
+import type { INodeDB } from "@shared/types/INodeDB";
 
 class API {
   private API_URL = import.meta.env.VITE_API_URL;
@@ -49,7 +49,7 @@ class API {
     }
     return await res.json();
   }
-  async saveNodes(nodes: INode[]) {
+  async saveNodes(nodes: INodeDB[]) {
     const data = { nodes };
     const response = await this.fetchWithAuth("/nodes/saveNodes", {
       method: "PUT",

@@ -1,4 +1,5 @@
 import type { INode } from "@shared/types/INode";
+import { fromDB } from "@shared/types/node.transform";
 import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot } from "../core/interfaces";
 import Tools from "../core/Tools";
@@ -33,11 +34,11 @@ export class NodeManager {
     for (const node of snapshot.nodes) {
       const { _id } = node;
       if (!_id) continue;
-      this.nodes.set(_id, node);
+      this.nodes.set(_id, fromDB(node));
     }
 
     if (snapshot.pageNode) {
-      this.pageNode = snapshot.pageNode;
+      this.pageNode = fromDB(snapshot.pageNode);
     }
     core.store.emit(EVENTS.NodeManager.reInitAllNodes, undefined);
   }
@@ -79,6 +80,10 @@ export class NodeManager {
       x: Tools.getDiskPosition(x),
       y: Math.round(y),
       type,
+      listData: {
+        parentLID: 100,
+        index: 200,
+      },
     };
     const newNode = await this.createNode(newNodeEss); //создание текстовой ноды
     if (newNode) {

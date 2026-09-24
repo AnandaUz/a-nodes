@@ -4,6 +4,7 @@ import type { INode } from "@shared/types";
 import api from "@/features/core/api";
 // import type { DeskSnapshot } from "./interfaces";
 import { core, EVENTS } from "./core";
+import { toDB } from "@shared/types/node.transform";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
@@ -64,7 +65,9 @@ export class ServerPersistence {
     if (this.isSaving || this.dirtyNodes.size === 0) return;
     this.isSaving = true;
 
-    const snapshot = this.data.filter((n) => this.dirtyNodes.has(n._id || ""));
+    const snapshot = this.data
+      .filter((n) => this.dirtyNodes.has(n._id || ""))
+      .map(toDB);
     this.dirtyNodes.clear();
 
     try {

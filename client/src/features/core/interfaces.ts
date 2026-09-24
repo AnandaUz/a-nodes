@@ -1,8 +1,8 @@
-import type { INode } from "@shared/types";
+import type { INodeDB } from "@shared/types/INodeDB";
 
 export interface DeskSnapshot {
-  nodes: INode[];
-  pageNode: INode | null;
+  nodes: INodeDB[];
+  pageNode: INodeDB | null;
 }
 export interface Command {
   execute: () => void;

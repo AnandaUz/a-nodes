@@ -1,8 +1,8 @@
 import mongoose, { Model, Document } from "mongoose";
-import type { INode } from "../../../shared/types/INode.js";
+import type { INodeDB } from "../../../shared/types/INodeDB.js";
 
 export interface INodeDocument
-  extends Omit<INode, "_id" | "userId" | "pageId">, Document {
+  extends Omit<INodeDB, "_id" | "userId" | "pageId">, Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   pageId?: mongoose.Types.ObjectId | null;
@@ -21,14 +21,12 @@ const exDataSchema = new mongoose.Schema(
     url: { type: String },
     h: { type: String },
     hh: { type: Number },
-    Fm: { type: Number },
-    Fp: { type: String },
-    Fi: { type: Number },
   },
   { _id: false },
 );
 
 const nodeSchema = new mongoose.Schema<INodeDocument>({
+  s: { type: Number }, // разные переменные
   //   _id: {
   //     type: mongoose.Schema.Types.ObjectId,
   //     required: true,s
@@ -46,6 +44,7 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   lastUpdate: { type: Date },
   title: { type: String },
   ok: { type: Boolean },
+  L: { type: Number },
   exData: {
     type: exDataSchema,
     default: undefined, // не записывать если пустой

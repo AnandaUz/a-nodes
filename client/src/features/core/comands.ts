@@ -210,7 +210,6 @@ const commands: Command[] = [
                 exData: {
                   bgColor: Math.round(Math.random() * 360).toString(),
                   hh: 300,
-                  Fm: 1,
                 },
               };
               const vnode = await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер
