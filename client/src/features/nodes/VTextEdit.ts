@@ -1,4 +1,4 @@
-import VFrame from "@/features/nodes/VFrame/VFrame";
+// import VFrame from "@/features/nodes/VFrame/VFrame";
 import { VNode } from "./VNode";
 import { core } from "@features/core/core";
 
@@ -69,15 +69,15 @@ export default class VTextEdit extends VNode {
   bodyInit() {
     super.bodyInit();
     this.body.innerHTML += `            
-            <div class="title-el"></div>        
+            <div class="title-el"></div>                 
 `;
   }
 
   set title(v: string | undefined) {
-    this.nodeEss.title = v || "";
+    this.lNode.title = v || "";
   }
   get title() {
-    return this.nodeEss.title || "";
+    return this.lNode.title || "";
   }
   turnOf_edit_byEsc = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
@@ -107,7 +107,7 @@ export default class VTextEdit extends VNode {
 
     this.titleEl.contentEditable = "false";
 
-    this.save();
+    this.lNode.save();
     this.refreshBodyRect();
 
     document.removeEventListener("keydown", this.turnOf_edit_byEsc);
@@ -123,67 +123,9 @@ export default class VTextEdit extends VNode {
       }
     }
   }
-  onStop() {
-    if (this instanceof VFrame) return;
-    const selectedVNodes = core.selectManager.selectedNodes;
-
-    let movedVNodeRect: DOMRect;
-    let movedVNodes: VNode[];
-    if (selectedVNodes.size > 1) {
-      movedVNodeRect = core.selectManager.getSelectedNodeRect();
-      movedVNodes = [...selectedVNodes.values()];
-    } else {
-      movedVNodeRect = this.bodyRect;
-      movedVNodes = [this];
-    }
-
-    // const scale = core.mode.scale;
-    const overRect = {
-      x: movedVNodeRect.x,
-      y: movedVNodeRect.y,
-      width: movedVNodeRect.width,
-      height: 2, //baseRect.height,
-    } as DOMRect;
-
-    const candidates = core.selectManager
-      .getNodeOverRect(overRect)
-      .filter((node) => !movedVNodes.includes(node)); // && node !== this
-
-    if (!candidates.length) return;
-
-    // // сначала ищем по тонкой полосе, потом первый попавшийся
-    // const rectIn = { ...overRect, height: 5 };
-    // const byNode =
-    //   candidates.find((node) => node.checkInRect(rectIn)) ?? candidates[0];
-
-    let byNode = candidates?.[0];
-    while (byNode instanceof VFrame) {
-      const idx = candidates.indexOf(byNode);
-      byNode = candidates?.[idx + 1];
-    }
-
-    if (!byNode) return;
-    if (byNode instanceof VFrame) return;
-
-    // exNodes.push(byNode);
-
-    const movedY = movedVNodeRect.y;
-    const byNodeRect = byNode.bodyRect;
-    const byNodeY = byNodeRect.y;
-    const dy0 = Math.round(byNodeY + byNode.height - movedY);
-
-    movedVNodes.forEach((node) => {
-      node.moveAniTo(null, node.y + dy0);
-      // node.moveTo({ x: undefined, y: node.y + dy0 });
-    });
-
-    movedVNodeRect.y = byNode.height + byNodeRect.y;
-
-    core.nodeRenderer.pushdown_nodes_out_of_rect(movedVNodeRect, movedVNodes);
-    // } else {
-    //   this.moveAniTo(null, byNode.y - this.body.offsetHeight);
-    // }
-  }
+  // onStop() {
+  //   super.onStop();
+  // }
   select(): void {
     super.select();
 

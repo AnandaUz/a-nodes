@@ -8,14 +8,14 @@ export default class VTextEditClone extends VTextEdit {
   init(): void {
     super.init();
     this.body.classList.add("is-clone");
-    const sourceNodeId = this.nodeEss.exData?.ownerNodesIds?.[0];
+    const sourceNodeId = this.lNode.exData?.ownerNodesIds?.[0];
     if (!sourceNodeId) return;
     this.sourceVNode = core.nodeRenderer.getVNode(sourceNodeId) as VTextEdit;
-    this.sourceVNode.subNodes.set(this.nodeEss._id || "", this);
+    this.sourceVNode.subNodes.set(this.lNode._id || "", this);
     this.unsubscribers.push(
-      core.store.on(EVENTS.nodes.updated, (nodeEss) => {
-        if (nodeEss._id === this.sourceVNode?._id) {
-          this.title = nodeEss.title;
+      core.store.on(EVENTS.lNode.updated, (lNode) => {
+        if (lNode._id === this.sourceVNode?.lNode._id) {
+          this.title = lNode.title;
         }
       }),
     );
@@ -72,7 +72,7 @@ export default class VTextEditClone extends VTextEdit {
   }
   get title() {
     if (!this.sourceVNode) return "#######";
-    return this.sourceVNode.nodeEss.title;
+    return this.sourceVNode.lNode.title;
   }
 
   highlight() {

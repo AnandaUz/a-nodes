@@ -101,12 +101,16 @@ export class Core {
             this.frameCore.addFrame(node);
           }
         });
+        this.nodeManager.setPositionForAllLinkedChildNodes();
         // core.desk.disconnectNodesEl(); //>
         core.frameCore.refresh(); //пересчитывает все
 
         // core.desk.connectNodesEl(); //
 
         console.timeEnd("Перерендер всех нод страницы");
+      }),
+      core.store.on(EVENTS.server.loaded, (snapshot) => {
+        this.nodeManager.loadSnapshot(snapshot);
       }),
     );
 
@@ -143,6 +147,7 @@ export class Core {
     this.nodeManager.unmount();
     this.nodeRenderer.unmount();
     this.frameCore.unmount();
+    this.serverPersistence.unmount();
     this.desk.unmount();
     if (this.selectManager) {
       this.selectManager.unmount();

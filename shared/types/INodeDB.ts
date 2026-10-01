@@ -9,8 +9,8 @@ export interface INodeDB {
   y?: number | undefined;
   title?: string | undefined;
   ok?: boolean | undefined;
-  L?: number | undefined;
-  s?: number | undefined; //sID - разные переменные
+  L?: number | undefined; //listData - разные переменные
+  s?: number | undefined; //lID - разные переменные
   exData?:
     | {
         ownerNodesIds?: string[] | undefined;

@@ -50,7 +50,13 @@ class API {
     return await res.json();
   }
   async saveNodes(nodes: INodeDB[]) {
-    const data = { nodes };
+    const prepared = nodes.map((node) =>
+      Object.fromEntries(
+        Object.entries(node).map(([k, v]) => [k, v === undefined ? null : v]),
+      ),
+    );
+    const data = { nodes: prepared };
+
     const response = await this.fetchWithAuth("/nodes/saveNodes", {
       method: "PUT",
       body: JSON.stringify(data),

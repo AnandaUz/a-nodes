@@ -139,14 +139,14 @@ class CNodesMenu extends HTMLElement {
     this.initBlTextStyle();
 
     this.unsubcripes.push(
-      core.store.on(EVENTS.nodes.selected, (_node) => {
+      core.store.on(EVENTS.lNode.selected, (_node) => {
         if (core.mode.selectedVNodeCount === 0) return;
 
         this.optionsBlocks.forEach((block) => {
           block.render();
         });
       }),
-      core.store.on(EVENTS.nodes.unselected, (_node) => {
+      core.store.on(EVENTS.lNode.unselected, (_node) => {
         this.optionsBlocks.forEach((block) => {
           block.hide();
         });
@@ -172,11 +172,11 @@ class CNodesMenu extends HTMLElement {
     }
     const HGroup = new BtnGroup(hBtns, hBlock, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.nodeEss.exData) {
-          node.nodeEss.exData = {};
+        if (!node.lNode.exData) {
+          node.lNode.exData = {};
         }
-        node.nodeEss.exData.h = value || "";
-        node.save();
+        node.lNode.exData.h = value || "";
+        node.lNode.save();
         node.render();
       });
     });
@@ -198,11 +198,11 @@ class CNodesMenu extends HTMLElement {
 
     const btnGroup_color = new BtnGroup(btnData, textColor, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.nodeEss.exData) {
-          node.nodeEss.exData = {};
+        if (!node.lNode.exData) {
+          node.lNode.exData = {};
         }
-        node.nodeEss.exData.tColor = value || "";
-        node.save();
+        node.lNode.exData.tColor = value || "";
+        node.lNode.save();
         node.render();
       });
     });
@@ -218,11 +218,11 @@ class CNodesMenu extends HTMLElement {
     const bgColor = this.querySelector(".bg-color") as HTMLDivElement;
     const btnGroupBG = new BtnGroup(btnDataBG, bgColor, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.nodeEss.exData) {
-          node.nodeEss.exData = {};
+        if (!node.lNode.exData) {
+          node.lNode.exData = {};
         }
-        node.nodeEss.exData.bgColor = value || "";
-        node.save();
+        node.lNode.exData.bgColor = value || "";
+        node.lNode.save();
         node.render();
       });
     });
@@ -232,12 +232,9 @@ class CNodesMenu extends HTMLElement {
 
       const firstNode = core.selectManager.selectedNodes.values().next().value;
       if (firstNode) {
-        btnGroup_color.setActiveBtn(
-          firstNode.nodeEss.exData?.tColor || "",
-          true,
-        );
-        btnGroupBG.setActiveBtn(firstNode.nodeEss.exData?.bgColor || "", true);
-        HGroup.setActiveBtn(firstNode.nodeEss.exData?.h || "", true);
+        btnGroup_color.setActiveBtn(firstNode.lNode.exData?.tColor || "", true);
+        btnGroupBG.setActiveBtn(firstNode.lNode.exData?.bgColor || "", true);
+        HGroup.setActiveBtn(firstNode.lNode.exData?.h || "", true);
       }
     });
 
@@ -257,9 +254,9 @@ class CNodesMenu extends HTMLElement {
           f = false;
         } else {
           if (urlValue === "-") {
-            urlValue = node.nodeEss.exData?.url || "";
+            urlValue = node.lNode.exData?.url || "";
           } else {
-            if (urlValue !== node.nodeEss.exData?.url) {
+            if (urlValue !== node.lNode.exData?.url) {
               urlValue = "--";
             }
           }
@@ -284,11 +281,11 @@ class CNodesMenu extends HTMLElement {
     url.addEventListener("blur", () => {
       core.mode.textEditing = false;
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.nodeEss.exData) {
-          node.nodeEss.exData = {};
+        if (!node.lNode.exData) {
+          node.lNode.exData = {};
         }
-        node.nodeEss.exData.url = url.textContent;
-        node.save();
+        node.lNode.exData.url = url.textContent;
+        node.lNode.save();
       });
     });
   }
@@ -302,10 +299,10 @@ class CNodesMenu extends HTMLElement {
       inpEl.textContent = "";
 
       core.selectManager.selectedNodes.forEach((node) => {
-        if (node.nodeEss.exData) {
-          delete node.nodeEss.exData.repeatMode;
-          delete node.nodeEss.exData.repeatDay;
-          node.save();
+        if (node.lNode.exData) {
+          delete node.lNode.exData.repeatMode;
+          delete node.lNode.exData.repeatDay;
+          node.lNode.save();
           node.render();
         }
       });
@@ -346,17 +343,17 @@ class CNodesMenu extends HTMLElement {
       if (isChanged) {
         core.selectManager.selectedNodes.forEach((node) => {
           if (repeatDay) {
-            if (!node.nodeEss.exData) {
-              node.nodeEss.exData = {};
+            if (!node.lNode.exData) {
+              node.lNode.exData = {};
             }
-            node.nodeEss.exData.repeatDay = repeatDay;
+            node.lNode.exData.repeatDay = repeatDay;
           } else {
-            if (node.nodeEss.exData) {
-              delete node.nodeEss.exData.repeatDay;
+            if (node.lNode.exData) {
+              delete node.lNode.exData.repeatDay;
             }
           }
 
-          node.save();
+          node.lNode.save();
           node.render();
         });
 
@@ -403,16 +400,16 @@ class CNodesMenu extends HTMLElement {
 
         let f = true;
         core.selectManager.selectedNodes.forEach((node) => {
-          if (!node.nodeEss.exData) {
-            node.nodeEss.exData = {};
+          if (!node.lNode.exData) {
+            node.lNode.exData = {};
           }
-          if (node.nodeEss.exData.repeatMode === i.toString()) {
-            delete node.nodeEss.exData.repeatMode;
+          if (node.lNode.exData.repeatMode === i.toString()) {
+            delete node.lNode.exData.repeatMode;
             f = false;
           } else {
-            node.nodeEss.exData.repeatMode = i.toString();
+            node.lNode.exData.repeatMode = i.toString();
           }
-          node.save();
+          node.lNode.save();
           node.render();
         });
         if (f) {
@@ -422,25 +419,25 @@ class CNodesMenu extends HTMLElement {
     });
 
     this.unsubcripes.push(
-      core.store.on(EVENTS.nodes.selected, (_node) => {
+      core.store.on(EVENTS.lNode.selected, (_node) => {
         repeatBlock.classList.add("active");
         clearBtns();
         inpEl.textContent = "";
         core.selectManager.selectedNodes.forEach((node) => {
-          if (node.nodeEss.exData?.repeatMode) {
-            const idx = parseInt(node.nodeEss.exData.repeatMode) || 0;
+          if (node.lNode.exData?.repeatMode) {
+            const idx = parseInt(node.lNode.exData.repeatMode) || 0;
             if (dayBtns[idx]) {
               dayBtns[idx].classList.add("active");
             }
           }
-          if (node.nodeEss.exData?.repeatDay) {
+          if (node.lNode.exData?.repeatDay) {
             inpEl.textContent = Tools.formatDate(
-              new Date(node.nodeEss.exData.repeatDay),
+              new Date(node.lNode.exData.repeatDay),
             );
           }
         });
       }),
-      core.store.on(EVENTS.nodes.unselected, (_node) => {
+      core.store.on(EVENTS.lNode.unselected, (_node) => {
         repeatBlock.classList.remove("active");
       }),
     );

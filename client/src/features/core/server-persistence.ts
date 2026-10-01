@@ -1,10 +1,7 @@
-// import { store, type DeskSnapshot } from "./store";
-
-import type { INode } from "@shared/types";
+// import type { INode } from "@shared/types";
 import api from "@/features/core/api";
-// import type { DeskSnapshot } from "./interfaces";
 import { core, EVENTS } from "./core";
-import { toDB } from "@shared/types/node.transform";
+import type { LNode } from "@shared/types/LNode";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
@@ -15,17 +12,23 @@ interface ServerPersistenceOptions {
 export class ServerPersistence {
   private opts: ServerPersistenceOptions;
 
-  data: INode[] = [];
-  private dirtyNodes: Set<string> = new Set();
+  data: LNode[] = [];
+  private dirtyNodes: Set<LNode> = new Set();
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  // private unsubscribers: Array<() => void> = [];
+  private unsubscribers: Array<() => void> = [];
   private isSaving = false;
 
   private readonly DEBOUNCE_MS = 1000; // серверу даём чуть больше времени
 
   constructor(opts: ServerPersistenceOptions) {
     this.opts = opts;
+
+    this.unsubscribers = [
+      core.store.on(EVENTS.lNode.updated, (lNode) => {
+        this.updateNode(lNode);
+      }),
+    ];
   }
   async init(): Promise<void> {
     await this.load();
@@ -35,46 +38,44 @@ export class ServerPersistence {
     const snapshot = await api.loadNodes(this.opts.deskId);
     core.store.emit(EVENTS.server.loaded, snapshot);
   }
-  async createNode(node: INode): Promise<string> {
+  async createNode(lNode: LNode): Promise<string> {
     if (this.opts.deskId !== "root") {
-      node.pageId = this.opts.deskId;
+      lNode.pageId = this.opts.deskId;
     }
-    const _ids = await api.saveNodes([node]);
+    const _ids = await api.saveNodes([lNode]);
     if (!_ids || _ids.length === 0) return "";
-    node._id = _ids[0] || "";
-    this.data.push(node);
-    return node._id;
+    lNode._id = _ids[0] || "";
+    this.data.push(lNode);
+    return lNode._id;
   }
-  async updateNode(node: INode): Promise<void> {
-    const now = new Date();
-    const index = this.data.findIndex((n) => n._id === node._id);
+  async updateNode(lNode: LNode): Promise<void> {
+    // const now = ;
+    // let node = this.data.find((n) => n._id === lNode._id);
 
-    let _node: INode;
-    if (index === -1) {
-      _node = { ...node, lastUpdate: now };
-      this.data.push(_node);
-    } else {
-      _node = { ...this.data[index], ...node, lastUpdate: now };
-      this.data[index] = _node;
-    }
-
-    if (_node._id) this.dirtyNodes.add(_node._id);
+    // if (node !== undefined) {
+    //   let index = this.data.indexOf(node);
+    //   node = { ...this.data[index], ...lNode, lastUpdate: now };
+    //   this.data[index] = node;
+    // } else {
+    //   node = { ...lNode, lastUpdate: now };
+    //   this.data.push(node);
+    // }
+    lNode.lastUpdate = new Date();
+    if (!this.dirtyNodes.has(lNode)) this.dirtyNodes.add(lNode);
     this.scheduleSave();
   }
   private async save(): Promise<void> {
     if (this.isSaving || this.dirtyNodes.size === 0) return;
     this.isSaving = true;
 
-    const snapshot = this.data
-      .filter((n) => this.dirtyNodes.has(n._id || ""))
-      .map(toDB);
+    const snapshot = Array.from(this.dirtyNodes).map((lNode) => lNode.toDB());
     this.dirtyNodes.clear();
 
     try {
       await api.saveNodes(snapshot);
     } catch (err) {
       // при ошибке возвращаем ноды обратно в dirty
-      snapshot.forEach((n) => this.dirtyNodes.add(n._id || ""));
+      // snapshot.forEach((n) => this.dirtyNodes.add(n._id || ""));
       console.warn("[ServerPersistence] Ошибка сохранения:", err);
     } finally {
       this.isSaving = false;
@@ -88,18 +89,8 @@ export class ServerPersistence {
       this.debounceTimer = null;
     }, this.DEBOUNCE_MS);
   }
-
-  // ─── Store subscription ───────────────────────────────────────
-
-  // private bindStore(): void {
-  //   const save = (data: any) => this.scheduleSave(data);
-  //   const saveNode = (data: any) => this.saveNode(data);
-
-  //   // this.unsubscribers = [
-  //   //     this.store.on(NODE_EVENTS.Created,      saveNode),
-  //   //     // this.store.on(NODE_EVENTS.Moved,        save),
-  //   //     this.store.on(NODE_EVENTS.Updated,      save),
-  //   //     this.store.on(NODE_EVENTS.Deleted,      save),
-  //   // ];
-  // }
+  unmount() {
+    this.unsubscribers.forEach((fn) => fn());
+    this.unsubscribers = [];
+  }
 }

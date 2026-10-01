@@ -54,11 +54,11 @@ export default class Helper_main extends Helper {
 
     this.mainFrame.subFrames.forEach((subFrame) => {
       const btn = new Btn();
-      const subFrame_id = subFrame.nodeEss._id || "";
+      const subFrame_id = subFrame.lNode._id || "";
 
       btn.onTurnOn(async () => {
         await (subFrame as VM_frame_main).addTextEditCloneNode(
-          this.mainNode.nodeEss,
+          this.mainNode.lNode,
         );
         this.mainFrame.refreshHelpersUp();
       });
@@ -73,7 +73,7 @@ export default class Helper_main extends Helper {
 
       btn.body.style.setProperty(
         "--color",
-        `hsl(${subFrame.nodeEss.exData?.bgColor || 0}, 100%, 50%)`,
+        `hsl(${subFrame.lNode.exData?.bgColor || 0}, 100%, 50%)`,
       );
       this.btnBlockEl.appendChild(btn.body);
     });
@@ -99,7 +99,7 @@ export default class Helper_main extends Helper {
   }
   removeWithNode() {
     this.mainFrame.removeHelper(this._id);
-    core.nodeManager.putInTrashNode(this._id);
+    core.nodeManager.putNodeInTrash(this._id);
   }
   constructor(mainNode: VNode, _mainFrame: VM_frame_main) {
     super(mainNode, _mainFrame);
@@ -109,12 +109,12 @@ export default class Helper_main extends Helper {
     // );
     // this.unsubscribers.push(
     //   core.store.on(EVENTS.helper.sub.btnOk, ({ helperSub }) => {
-    //     const subId = helperSub.mainNode.nodeEss.exData?.ownerNodesIds?.[0];
+    //     const subId = helperSub.mainNode.lNode.exData?.ownerNodesIds?.[0];
     //     if (!subId) return;
-    //     if (this.mainNode.nodeEss._id !== subId) return;
+    //     if (this.mainNode.lNode._id !== subId) return;
 
     //     const btn = this.btnsConnection.get(
-    //       helperSub.mainFrame.nodeEss._id || "",
+    //       helperSub.mainFrame.lNode._id || "",
     //     );
     //     if (btn) {
     //       btn.active = false;
@@ -125,7 +125,7 @@ export default class Helper_main extends Helper {
     //       f = f || btn.active;
     //     });
     //     if (!f) {
-    //       core.nodeManager.okNode(this.mainNode.nodeEss._id || "");
+    //       core.nodeManager.okNode(this.mainNode.lNode._id || "");
 
     //       return;
     //     }

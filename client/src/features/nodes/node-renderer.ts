@@ -1,9 +1,9 @@
-import type { INode } from "@shared/types";
 import "./vNode.scss";
 import { VNode } from "./VNode";
 import { core, EVENTS } from "../core/core";
 import { NODE_REGISTRY } from "./node-registry";
 import VFrame from "@/features/nodes/VFrame/VFrame";
+import type { LNode } from "@shared/types/LNode";
 
 export class NodeRenderer {
   private vNodes = new Map<string, VNode>();
@@ -19,29 +19,30 @@ export class NodeRenderer {
   init() {
     this.nodesEl = core.desk.nodesEl;
     this.unsubscribers.push(
-      core.store.on(EVENTS.nodes.created, (node) => {
+      core.store.on(EVENTS.lNode.created, (node: LNode) => {
         this.createVNode(node);
       }),
-      core.store.on(EVENTS.nodes.inTrash, (node) => {
+      core.store.on(EVENTS.lNode.inTrash, (node: LNode) => {
         this.removeVNode(node._id || "");
       }),
-      core.store.on(EVENTS.nodes.ok, (node) => {
+      core.store.on(EVENTS.lNode.ok, (node) => {
         this.removeVNode(node._id || "");
       }),
     );
   }
 
-  createVNode(nodeEss: INode): VNode | null {
-    const NodeClass = NODE_REGISTRY[nodeEss.type || 1]!;
+  createVNode(lNode: LNode): VNode | null {
+    const NodeClass = NODE_REGISTRY[lNode.type || 1]!;
     try {
-      const vNode = new NodeClass(nodeEss, this.nodesEl);
+      const vNode = new NodeClass(lNode, this.nodesEl);
+      lNode.vNode = vNode;
       vNode.init();
       vNode.render();
       vNode.refreshBodyRect();
-      this.vNodes.set(nodeEss._id || "", vNode);
+      this.vNodes.set(lNode._id || "", vNode);
       return vNode;
     } catch (e) {
-      console.error("Ошибка рендеринга ноды:", nodeEss, e);
+      console.error("Ошибка рендеринга ноды:", lNode, e);
       return null;
     }
   }
@@ -52,15 +53,10 @@ export class NodeRenderer {
     this.vNodes.delete(id);
   }
   renderAll() {
-    let t = 0;
-
-    core.nodeManager.getAllNodes().forEach((node) => {
-      this.createVNode(node);
-      t = Math.max(t, node.y || 0);
+    core.nodeManager.getAllNodes().forEach((lNode) => {
+      if (!lNode.visible) return;
+      this.createVNode(lNode);
     });
-    console.log("all nodes max x:", t);
-    console.log("all nodes count:", this.vNodes.size);
-
     core.store.emit(EVENTS.renderer.refreshAllVNodes, undefined);
   }
   getVNode(id: string | undefined): VNode | undefined {
@@ -84,7 +80,7 @@ export class NodeRenderer {
     const overNodes = core.selectManager.getNodeOverRect(out_of_rect);
     const firstNode = overNodes
       .filter((n) => !exSet.has(n) && !(n instanceof VFrame))
-      .sort((a, b) => a.y - b.y)[0];
+      .sort((a, b) => a.lNode.y - b.lNode.y)[0];
     if (!firstNode) return;
 
     const firstNodeRect = firstNode.bodyRect;
@@ -115,9 +111,10 @@ export class NodeRenderer {
     core.selectManager.getNodeOverRect(out_of_rect).forEach(collect);
 
     mRes
-      .sort((a, b) => a.y - b.y)
+      .sort((a, b) => a.lNode.y - b.lNode.y)
       .forEach((node) => {
-        node.moveAniTo(null, node.y + dy);
+        // node.moveAniTo(null, node.lNode.y + dy);
+        node.moveTo({ x: undefined, y: node.lNode.y + dy });
       });
   }
 }

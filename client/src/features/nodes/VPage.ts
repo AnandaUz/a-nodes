@@ -11,9 +11,9 @@ export class VPage extends VTextEdit {
 
     btnEl.addEventListener("pointerup", (e) => {
       Tools.stopEvent(e);
-      const _id = this.nodeEss._id;
+      const _id = this.lNode._id;
       let url = "";
-      const essUrl = this.nodeEss.exData?.url;
+      const essUrl = this.lNode.exData?.url;
       if (essUrl) {
         if (/^[a-f0-9]{24}$/i.test(essUrl)) {
           url = "/desk/" + essUrl;

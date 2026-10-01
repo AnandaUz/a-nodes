@@ -17,7 +17,7 @@ export class FrameCore {
   protected spatialGrid = new SpatialGrid(100);
   init() {
     this.unsubscribers.push(
-      core.store.on(EVENTS.nodes.selectedMoved, (nodes: VNode[]) => {
+      core.store.on(EVENTS.lNode.selectedMoved, (nodes: VNode[]) => {
         if (!nodes) return;
         if (this.frames.main.size == 0) return;
 
@@ -36,14 +36,14 @@ export class FrameCore {
         //   frame.refreshHelpers_super();
         // });
       }),
-      core.store.on(EVENTS.nodes.moved, (node) => {
+      core.store.on(EVENTS.lNode.moved, (node) => {
         if (node instanceof VFrame) {
           this.refreshSpatialGrid();
         } else {
         }
       }),
-      core.store.on(EVENTS.nodes.created, (nodeEss: INode) => {
-        const node = core.nodeRenderer.getVNode(nodeEss._id);
+      core.store.on(EVENTS.lNode.created, (lNode: INode) => {
+        const node = core.nodeRenderer.getVNode(lNode._id);
         if (node instanceof VTextEdit || node instanceof VTextEditClone) {
           const { frame } = this.initHelper(node);
           if (frame) {
@@ -76,13 +76,13 @@ export class FrameCore {
   initLinks() {
     const frames = this.frames.main;
     frames.forEach((frame) => {
-      const mainFrames = frame.nodeEss.exData?.ownerNodesIds;
+      const mainFrames = frame.lNode.exData?.ownerNodesIds;
       if (mainFrames) {
         mainFrames.forEach((id) => {
           const mainFrame = core.nodeRenderer.getVNode(id);
           if (mainFrame instanceof VFrame) {
-            mainFrame.subFrames.set(frame.nodeEss._id || "", frame);
-            frame.mainFrames.set(mainFrame.nodeEss._id || "", mainFrame);
+            mainFrame.subFrames.set(frame.lNode._id || "", frame);
+            frame.mainFrames.set(mainFrame.lNode._id || "", mainFrame);
           }
         });
       }
@@ -96,7 +96,7 @@ export class FrameCore {
     });
   }
   addFrame(frame: VFrame) {
-    this.frames.main.set(frame.nodeEss._id || "", frame as VFrame_main);
+    this.frames.main.set(frame.lNode._id || "", frame as VFrame_main);
   }
   initHelper(vnode: VNode): { frame: VFrame | null; helper: Helper | null } {
     if (vnode instanceof VTextEdit && !(vnode instanceof VFrame)) {

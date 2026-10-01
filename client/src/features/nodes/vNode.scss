@@ -27,6 +27,16 @@
     background-color: hsl(var(--bg-color), 100%, 90%);
     border-radius: 4px;
 
+    .el-tools {
+        font-size: 6px;
+        color: #f72a2a62;
+        position: absolute;
+        left: -10px;
+        top: 0;
+
+
+    }
+
     &:hover,
     &.is-selected {
         border-bottom: 1px solid #0002;

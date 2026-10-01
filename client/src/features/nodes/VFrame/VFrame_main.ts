@@ -39,14 +39,14 @@ export default class VFrame_main extends VFrame {
       Tools.stopEvent(e);
     };
 
-    this.nodeEss.exData?.hh && this.setHeight(this.nodeEss.exData.hh || 0);
+    this.lNode.exData?.hh && this.setHeight(this.lNode.exData.hh || 0);
   }
   setHeightByNodes() {
-    let maxY = this.y + 20;
+    let maxY = this.lNode.y + 20;
     this.helpers.forEach((h) => {
       // h.elNodeFrame.style.height = "max-content";
       const node = h.mainNode;
-      maxY = Math.max(maxY, node.y + node.height);
+      maxY = Math.max(maxY, node.lNode.y + node.height);
       // maxHeight = Math.max(maxHeight, h.height);
     });
 
@@ -71,37 +71,37 @@ export default class VFrame_main extends VFrame {
     if (m.length > 0) {
       m.forEach((node: VNode) => {
         if (node instanceof VFrame) return;
-        maxY = Math.max(maxY, node.y + node.height);
+        maxY = Math.max(maxY, node.lNode.y + node.height);
         this.addHelper(node);
       });
       this.refreshHelpersUp();
     }
 
     this.height =
-      Math.max(maxY - this.y, AREA_PADDING.top + 40) + AREA_PADDING.bottom;
+      Math.max(maxY - this.lNode.y, AREA_PADDING.top + 40) + AREA_PADDING.bottom;
 
     this.setHeight(this.height);
-    this.save();
+    this.lNode.save();
   }
   setHeight(height: number) {
     this.height = height;
     this.body.style.height = `${height}px`;
-    if (!this.nodeEss.exData) {
-      this.nodeEss.exData = {};
+    if (!this.lNode.exData) {
+      this.lNode.exData = {};
     }
-    this.nodeEss.exData.hh = height;
+    this.lNode.exData.hh = height;
   }
   async addFrame() {
     const bounds = this.bodyRect;
     const newNode: INode = {
       exData: {
-        ownerNodesIds: [this.nodeEss._id || ""],
+        ownerNodesIds: [this.lNode._id || ""],
         bgColor: Math.round(Math.random() * 360).toString(),
         hh: 220,
       },
       type: NODE_TYPES.MANAGER.frame_main,
-      x: Tools.getDiskPosition(this.x + bounds.width + GRID.x),
-      y: Math.round(this.y),
+      x: Tools.getDiskPosition(this.lNode.x + bounds.width + GRID.x),
+      y: Math.round(this.lNode.y),
       title: "Сортировщик",
     };
 
@@ -111,8 +111,8 @@ export default class VFrame_main extends VFrame {
       core.frameCore.addFrame(frame);
       core.frameCore.refreshSpatialGrid();
 
-      this.subFrames.set(frame.nodeEss._id || "", frame);
-      frame.mainFrames.set(this.nodeEss._id || "", this);
+      this.subFrames.set(frame.lNode._id || "", frame);
+      frame.mainFrames.set(this.lNode._id || "", this);
       this.refreshHelpersUp();
     }
 
@@ -120,12 +120,12 @@ export default class VFrame_main extends VFrame {
     // const frame = core.nodeRenderer.getVNode(vNode?._id || "") as VFrame_main;
     // core.frameCore.addFrame(frame);
   }
-  async addTextEditCloneNode(nodeEss: INode) {
-    const x = this.x; //+ AREA_PADDING.left;
-    const y = this.y + 20 + AREA_PADDING.top;
+  async addTextEditCloneNode(lNode: INode) {
+    const x = this.lNode.x; //+ AREA_PADDING.left;
+    const y = this.lNode.y + 20 + AREA_PADDING.top;
 
     const cloneNodeEss = await core.nodeManager.create_TextEditCloneNode(
-      nodeEss,
+      lNode,
       x,
       y,
     );

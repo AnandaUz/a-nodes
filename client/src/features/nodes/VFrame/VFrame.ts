@@ -1,4 +1,3 @@
-import type { INode } from "@shared/types";
 import VTextEdit from "../VTextEdit";
 import "./VFrame.scss";
 // import { core, EVENTS } from "@/features/core/core";
@@ -25,7 +24,7 @@ export default class VFrame extends VTextEdit {
 
   // static frames: VFrame[] = [];
 
-  constructor(node: INode, container: HTMLElement) {
+  constructor(node: LNode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-frame");
     // VFrame.frames.push(this);
@@ -33,7 +32,7 @@ export default class VFrame extends VTextEdit {
     // if (!core.managerCore) core.managerCore = new ManagerCore();
 
     // this.unsubscribers.push(
-    //   core.store.on(EVENTS.nodes.selectedMoved, (nodes: VNode[]) => {
+    //   core.store.on(EVENTS.lNode.selectedMoved, (nodes: VNode[]) => {
     //     if (!nodes) return;
 
     //     console.log("selectedMoved", nodes);
@@ -87,18 +86,18 @@ export default class VFrame extends VTextEdit {
   }
   refreshHelpersUp() {
     console.log("refreshHelpersUp", new Date().getTime());
-    this.helpers.sort((a, b) => a.mainNode.y - b.mainNode.y);
+    this.helpers.sort((a, b) => a.mainNode.lNode.y - b.mainNode.lNode.y);
 
     let prevListLevel = 0;
     let prevHelpers: Helper[] = [];
 
-    // if (this.nodeEss.title === "s1") {
-    //   console.log(this.nodeEss.title);
+    // if (this.lNode.title === "s1") {
+    //   console.log(this.lNode.title);
     // }
 
     this.helpers.forEach((h, i) => {
-      const vNodeX = h.mainNode.x;
-      const vNodeY = h.mainNode.y;
+      const vNodeX = h.mainNode.lNode.x;
+      const vNodeY = h.mainNode.lNode.y;
 
       if (!this.checkPointOver(vNodeX, vNodeY)) {
         this.removeHelper(h._id);
@@ -117,11 +116,11 @@ export default class VFrame extends VTextEdit {
       this.subFrames.forEach((subFrame) => {
         subFrame.helpers.forEach((subH) => {
           const mainID =
-            h.mainNode.nodeEss.exData?.ownerNodesIds?.[0] ||
-            h.mainNode.nodeEss._id ||
+            h.mainNode.lNode.exData?.ownerNodesIds?.[0] ||
+            h.mainNode.lNode._id ||
             "";
-          if (subH.mainNode.nodeEss.exData?.ownerNodesIds?.includes(mainID)) {
-            h.toHelper.set(subFrame._id, subH);
+          if (subH.mainNode.lNode.exData?.ownerNodesIds?.includes(mainID)) {
+            h.toHelper.set(subFrame.lNode._id, subH);
             subH.fromHelpers.push(h);
           }
         });
@@ -155,8 +154,8 @@ export default class VFrame extends VTextEdit {
 
       prevListLevel = listLevel;
 
-      const x = this.x + listLevel * GRID.x;
-      const y = h.mainNode.y;
+      const x = this.lNode.x + listLevel * GRID.x;
+      const y = h.mainNode.lNode.y;
 
       h.mainNode.moveTo({ x, y });
       h.placeTo();

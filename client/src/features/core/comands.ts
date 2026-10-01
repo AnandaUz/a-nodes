@@ -1,6 +1,6 @@
 import { core } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
-import type { INode } from "@shared/types";
+// import type { INode } from "@shared/types";
 import VTextEdit from "../nodes/VTextEdit";
 import { GRID } from "./CONST";
 import VFrame from "../nodes/VFrame/VFrame";
@@ -50,12 +50,12 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           const vNodes = Array.from(
             core.selectManager.selectedNodes.values(),
-          ).sort((a: INode, b: INode) => (a.y ?? 0) - (b.y ?? 0));
+          ).sort((a, b) => (a.lNode.y ?? 0) - (b.lNode.y ?? 0));
 
-          // const nodeEsses = vNodes.map((vNode) => vNode.nodeEss);
+          // const lNodes = vNodes.map((vNode) => vNode.lNode);
 
           vNodes.forEach((vNode) => {
-            delete vNode.nodeEss._id;
+            vNode.lNode._id = undefined;
           });
 
           core.clipboard.copyVNode(vNodes);
@@ -68,14 +68,14 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           const vNodes = Array.from(
             core.selectManager.selectedNodes.values(),
-          ).sort((a: INode, b: INode) => (a.y ?? 0) - (b.y ?? 0));
+          ).sort((a, b) => (a.lNode.y ?? 0) - (b.lNode.y ?? 0));
           core.clipboard.copyVNode(vNodes);
           vNodes.forEach((vNode) => {
-            // const vNode = core.nodeRenderer.getVNode(nodeEss._id || "");
+            // const vNode = core.nodeRenderer.getVNode(lNode._id || "");
             if (vNode) {
               vNode.body.classList.add("cutted");
             }
-            core.nodeManager.putInTrashNode(vNode.nodeEss._id || "");
+            core.nodeManager.putNodeInTrash(vNode.lNode._id || "");
           });
         },
       },
@@ -84,17 +84,17 @@ const commands: Command[] = [
         shortcuts: ["ctrl+v", "cmd+v"],
         execute: async () => {
           if (core.mode.textEditing) return;
-          const nodeEsses = await core.clipboard.paste();
-          if (!nodeEsses?.nodes) return;
+          const lNodes = await core.clipboard.paste();
+          if (!lNodes?.nodes) return;
 
           let x = Infinity,
             y = Infinity;
-          nodeEsses.nodes.forEach((nodeEss) => {
-            if (nodeEss.x !== undefined) {
-              x = Math.min(x, nodeEss.x);
+          lNodes.nodes.forEach((lNode) => {
+            if (lNode.x !== undefined) {
+              x = Math.min(x, lNode.x);
             }
-            if (nodeEss.y !== undefined) {
-              y = Math.min(y, nodeEss.y);
+            if (lNode.y !== undefined) {
+              y = Math.min(y, lNode.y);
             }
           });
           const pointerPos = core.desk.viewport.screenToWorld(
@@ -102,13 +102,13 @@ const commands: Command[] = [
             core.desk.pointer.y,
           );
           core.selectManager.clearSelection();
-          nodeEsses.nodes.forEach(async (nodeEss) => {
-            nodeEss.pageId = core.mode.deskId;
-            nodeEss.inTrash = false;
-            nodeEss.x = (nodeEss.x ?? 0) - x + pointerPos.x;
-            nodeEss.y = (nodeEss.y ?? 0) - y + pointerPos.y;
+          lNodes.nodes.forEach(async (lNode) => {
+            lNode.pageId = core.mode.deskId;
+            lNode.inTrash = false;
+            lNode.x = (lNode.x ?? 0) - x + pointerPos.x;
+            lNode.y = (lNode.y ?? 0) - y + pointerPos.y;
 
-            const newNodeEss = await core.nodeManager.createNode(nodeEss);
+            const newNodeEss = await core.nodeManager.createNode(lNode);
 
             if (newNodeEss) {
               core.selectManager.selectNodeById(newNodeEss._id || "", {
@@ -127,7 +127,7 @@ const commands: Command[] = [
 
           const newNodeEsses: INode[] = [];
           for (const vnode of vNodes) {
-            const newNodeEss = await core.nodeManager.copyNode(vnode.nodeEss);
+            const newNodeEss = await core.nodeManager.copyNode(vnode.lNode);
             if (newNodeEss) newNodeEsses.push(newNodeEss);
           }
 
@@ -150,7 +150,7 @@ const commands: Command[] = [
           const newNodeEsses = (
             await Promise.all(
               vNodes.map((vnode) =>
-                core.nodeManager.create_TextEditCloneNode(vnode.nodeEss),
+                core.nodeManager.create_TextEditCloneNode(vnode.lNode),
               ),
             )
           ).filter((n): n is INode => !!n);
@@ -227,8 +227,8 @@ const commands: Command[] = [
                 core.frameCore.addFrame(frame);
                 core.frameCore.refreshSpatialGrid();
 
-                // this.subFrames.set(frame.nodeEss._id || "", frame);
-                // frame.mainFrames.set(this.nodeEss._id || "", this);
+                // this.subFrames.set(frame.lNode._id || "", frame);
+                // frame.mainFrames.set(this.lNode._id || "", this);
                 // this.refreshHelpersUp();
               }
             },
@@ -241,7 +241,7 @@ const commands: Command[] = [
         execute: async () => {
           if (core.mode.textEditing) return;
           core.selectManager.selectedNodes.forEach((node) => {
-            core.nodeManager.putInTrashNode(node._id || "");
+            core.nodeManager.putNodeInTrash(node.lNode._id || "");
           });
         },
       },
@@ -267,7 +267,7 @@ const commands: Command[] = [
           e.preventDefault();
           const vnode = core.selectManager.selectedNodes.values().next().value;
           if (!vnode) return;
-          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x + GRID.x, vnode.y);
+          core.nodeManager.moveToNode(vnode.lNode, vnode.x + GRID.x, vnode.y);
         },
       },
       {
@@ -278,7 +278,7 @@ const commands: Command[] = [
           e.preventDefault();
           const vnode = core.selectManager.selectedNodes.values().next().value;
           if (!vnode) return;
-          core.nodeManager.moveToNode(vnode.nodeEss, vnode.x - GRID.x, vnode.y);
+          core.nodeManager.moveToNode(vnode.lNode, vnode.x - GRID.x, vnode.y);
         },
       },
       {
@@ -297,15 +297,12 @@ const commands: Command[] = [
             y = -1000000;
           for (const vNode of m) {
             if (y === -1000000) {
-              y = vNode.y;
-              x = vNode.x;
+              y = vNode.lNode.y;
+              x = vNode.lNode.x;
             } else {
-              const xx = Math.round((vNode.x - x) / paddingLeft);
-              core.nodeManager.moveToNode(
-                vNode.nodeEss,
-                x + xx * paddingLeft,
-                y,
-              );
+              const xx = Math.round((vNode.lNode.x - x) / paddingLeft);
+
+              core.nodeManager.moveToNode(vNode.lNode, x + xx * paddingLeft, y);
             }
 
             y += vNode.body.offsetHeight;
@@ -327,10 +324,10 @@ const commands: Command[] = [
             y = -1000000;
           for (const vNode of m) {
             if (y === -1000000) {
-              y = vNode.y;
-              x = vNode.x;
+              y = vNode.lNode.y;
+              x = vNode.lNode.x;
             } else {
-              core.nodeManager.moveToNode(vNode.nodeEss, x, y);
+              core.nodeManager.moveToNode(vNode.lNode, x, y);
             }
 
             y += vNode.body.offsetHeight;
@@ -352,9 +349,9 @@ const commands: Command[] = [
 
           for (const vNode of m) {
             if (x === -1000000) {
-              x = vNode.x;
+              x = vNode.lNode.x;
             } else {
-              core.nodeManager.moveToNode(vNode.nodeEss, x, vNode.y);
+              core.nodeManager.moveToNode(vNode.lNode, x, vNode.lNode.y);
             }
           }
         },
@@ -375,12 +372,12 @@ const commands: Command[] = [
           const ss = m.map((vnode, index) => {
             if (vnode instanceof VTextEditClone) {
               return {
-                value: vnode.sourceVNode?.nodeEss.title || "??",
+                value: vnode.sourceVNode?.lNode.title || "??",
                 index,
               };
             } else {
               return {
-                value: vnode.nodeEss.title || "??",
+                value: vnode.lNode.title || "??",
                 index,
               };
             }
@@ -397,7 +394,7 @@ const commands: Command[] = [
             if (!n) continue;
             const vNode = m[n.index];
             if (!vNode) continue;
-            vNode.moveAniTo(vNode.x, y, i * 50);
+            vNode.moveAniTo(vNode.lNode.x, y, i * 50);
             y += vNode.body.offsetHeight;
           }
         },

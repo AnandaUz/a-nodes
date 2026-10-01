@@ -22,39 +22,39 @@ export class SelectManager {
 
       // все выделенные завершили движение
       if (this._movedNodes.size >= this.selectedNodes.size) {
-        core.store.emit(EVENTS.nodes.selectedMoved, [
+        core.store.emit(EVENTS.lNode.selectedMoved, [
           ...this.selectedNodes.values(),
         ]);
         this._movedNodes.clear();
       }
     } else {
       // одна нода — сразу испускаем
-      core.store.emit(EVENTS.nodes.selectedMoved, [node]);
+      core.store.emit(EVENTS.lNode.selectedMoved, [node]);
     }
   }
 
   onVNodeClick(e: PointerEvent, vnode: VNode) {
     if (e.ctrlKey) {
       if (vnode.isSelected) {
-        this.selectedNodes.set(vnode._id, vnode);
+        this.selectedNodes.set(vnode.lNode._id || "", vnode);
       } else {
-        this.selectedNodes.delete(vnode._id);
+        this.selectedNodes.delete(vnode.lNode._id || "");
       }
     } else {
       this.clearSelection();
       vnode.select();
-      this.selectedNodes.set(vnode._id, vnode);
+      this.selectedNodes.set(vnode.lNode._id || "", vnode);
     }
     core.mode.selectedVNodeCount = this.selectedNodes.size;
-    core.store?.emit(EVENTS.nodes.selected, vnode.nodeEss);
+    core.store?.emit(EVENTS.lNode.selected, vnode.lNode);
   }
   addToSelectedNodes(vnodes: VNode[]) {
     vnodes.forEach((vnode) => {
-      this.selectedNodes.set(vnode._id, vnode);
+      this.selectedNodes.set(vnode.lNode._id || "", vnode);
       vnode.select();
     });
     core.mode.selectedVNodeCount = this.selectedNodes.size;
-    // core.store?.emit(EVENTS.nodes.selected, vnodes[0].nodeEss);
+    // core.store?.emit(EVENTS.lNode.selected, vnodes[0].lNode);
   }
   selectNodeById(
     id: string,
@@ -72,7 +72,7 @@ export class SelectManager {
     }
     vnode.select();
     core.mode.selectedVNodeCount = this.selectedNodes.size;
-    core.store?.emit(EVENTS.nodes.selected, vnode.nodeEss);
+    core.store?.emit(EVENTS.lNode.selected, vnode.lNode);
     return vnode;
   }
 
@@ -87,7 +87,7 @@ export class SelectManager {
       if (!core.mode.selectMoving && (rect.width < 10 || rect.height < 10)) {
         if (!core.mode.wasMoving) {
           this.clearSelection();
-          core.store?.emit(EVENTS.nodes.unselected, null);
+          core.store?.emit(EVENTS.lNode.unselected, null);
         }
         core.mode.wasMoving = false;
         return;
@@ -101,20 +101,20 @@ export class SelectManager {
 
       if (!core.mode.selectMoving && !pointerEvent.ctrlKey) {
         this.clearSelection();
-        core.store?.emit(EVENTS.nodes.unselected, null);
+        core.store?.emit(EVENTS.lNode.unselected, null);
       }
       core.nodeRenderer.getAllNodes().forEach((vnode) => {
         if (vnode instanceof VFrame) return;
         if (vnode.checkInRect(realRect)) {
           if (!vnode.isSelected) {
-            this.selectedNodes.set(vnode._id, vnode);
+            this.selectedNodes.set(vnode.lNode._id || "", vnode);
             vnode.select();
             core.mode.selectedVNodeCount = this.selectedNodes.size;
           }
         }
       });
       if (this.selectedNodes.size > 0) {
-        core.store?.emit(EVENTS.nodes.selected, null);
+        core.store?.emit(EVENTS.lNode.selected, null);
       }
       core.mode.selectMoving = false;
     });
@@ -141,13 +141,33 @@ export class SelectManager {
     this.selectedNodes.clear();
     core.mode.selectedVNodeCount = 0;
   }
-  getSelectedNodeRect() {
+  getSelectedNodeRect(withChildren = false) {
     let x0 = Infinity,
       y0 = Infinity,
       x1 = -Infinity,
       y1 = -Infinity;
 
-    this.selectedNodes.forEach((vNode) => {
+    const nodesToMeasure = new Set(this.selectedNodes.values());
+    if (withChildren) {
+      const visited = new Set();
+      const gather = (node: any) => {
+        if (!node || visited.has(node)) return;
+        visited.add(node);
+
+        if (node.list?.children) {
+          for (const child of node.list.children) {
+            if (child.vNode) {
+              nodesToMeasure.add(child.vNode);
+            }
+            gather(child);
+          }
+        }
+      };
+      this.selectedNodes.forEach((vNode) => {
+        gather(vNode.lNode);
+      });
+    }
+    nodesToMeasure.forEach((vNode) => {
       const r = vNode.bodyRect;
       x0 = Math.min(x0, r.x);
       y0 = Math.min(y0, r.y);

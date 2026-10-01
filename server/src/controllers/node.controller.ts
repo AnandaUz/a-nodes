@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import { Node } from "../models/Node";
-// import type { AuthRequest } from "../middleware/auth.middleware";
 import mongoose from "mongoose";
 
 export const getNodesByParentNodeId = async (req: Request, res: Response) => {
@@ -81,14 +80,27 @@ export const saveNodes = async (nodes: any[]) => {
   try {
     const operations = nodes.map((node: any) => {
       const { _id, ...updateData } = node;
+
+      const setFields: Record<string, any> = {};
+      const unsetFields: Record<string, ""> = {};
+
+      for (const [key, value] of Object.entries(updateData)) {
+        if (value === null) {
+          // ← проверяем null, не undefined
+          unsetFields[key] = "";
+        } else {
+          setFields[key] = value;
+        }
+      }
+
+      const update: Record<string, any> = {};
+      if (Object.keys(setFields).length > 0) update.$set = setFields;
+      if (Object.keys(unsetFields).length > 0) update.$unset = unsetFields;
+
       return {
         updateOne: {
-          filter: {
-            _id: _id || new mongoose.Types.ObjectId(),
-          },
-          update: {
-            $set: updateData,
-          },
+          filter: { _id: _id || new mongoose.Types.ObjectId() },
+          update,
           upsert: true,
         },
       };
@@ -96,9 +108,7 @@ export const saveNodes = async (nodes: any[]) => {
 
     const result = await Node.bulkWrite(operations, { ordered: true });
 
-    // Собираем _id в той же последовательности что и nodes
     const ids = nodes.map((node: any, index: number) => {
-      // если нода была создана (upsert) — берём из результата
       const upsertedId = result.upsertedIds[index];
       return upsertedId ? upsertedId.toString() : node._id;
     });
@@ -108,56 +118,3 @@ export const saveNodes = async (nodes: any[]) => {
     return null;
   }
 };
-
-// ─── PUT /api/desk/:deskId ────────────────────────────────────────
-// Сохраняем весь снапшот desk'а — заменяем ноды и коннекторы
-// export const saveDesk = async (req: AuthRequest, res: Response) => {
-//   try {
-//     const ownerId = req.user!.id;
-//     const deskId = req.params["deskId"];
-
-//     if (!deskId) {
-//       res.status(400).json({ message: "Не указан ID стола" });
-//       return;
-//     }
-
-//     const { nodes } = req.body as {
-//       nodes: Array<{
-//         id: string;
-//         x: number;
-//         y: number;
-//         width: number;
-//         height: number;
-//         text: string;
-//         type: string;
-//       }>;
-//       // connectors: Array<{ id: string; fromId: string; toId: string }>;
-//     };
-
-//     const parentId = deskId === "root" ? null : deskId;
-
-//     if (nodes && nodes.length > 0) {
-//       await Node.insertMany(
-//         nodes.map((n) => ({
-//           _id: n.id,
-//           ownerId,
-//           ...(parentId !== null ? { parentId } : {}),
-//           type: n.type || "default",
-//           x: n.x,
-//           y: n.y,
-//           width: n.width,
-//           height: n.height,
-//           text: n.text,
-//         })) as any[],
-//       );
-//     }
-
-//     res.json({ ok: true });
-//   } catch (err: any) {
-//     console.error("[saveDesk Error]:", err);
-//     res.status(500).json({
-//       message: "Ошибка сохранения desk",
-//       error: err?.message || String(err),
-//     });
-//   }
-// };
