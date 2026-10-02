@@ -6,6 +6,7 @@ import "@components/c-mobi-submenu/c-mobi-submenu";
 import html from "./desk.html?raw";
 import { EVENTS } from "../core/store";
 import { core } from "../core/core";
+import { DeskSVG } from "./DeskSVG";
 
 export class Desk {
   nodesEl!: HTMLElement;
@@ -17,6 +18,7 @@ export class Desk {
   private sceneEl!: HTMLElement;
   private h1El!: HTMLHeadingElement;
   viewport!: Viewport;
+  svgLayer!: DeskSVG;
   pointer = { x: 0, y: 0 };
   private faviconCanvas = document.createElement("canvas");
 
@@ -26,7 +28,7 @@ export class Desk {
       this.pointer.y = e.clientY;
     });
 
-    core.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
+    core.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
       const title = core.nodeManager.pageNode?.title || "a-nodes";
       this.h1El.innerHTML = title;
 
@@ -72,9 +74,13 @@ export class Desk {
     this.sceneEl = container.querySelector<HTMLElement>(".desk-scene")!;
     this.nodesEl = container.querySelector<HTMLElement>(".desk-nodes")!;
     this.viewport = new Viewport(viewportEl, this.sceneEl);
+
+    const svgLayerEl = container.querySelector<HTMLElement>(".desk-svg-layer")!;
+    this.svgLayer = new DeskSVG(svgLayerEl);
   }
 
   unmount() {
+    this.svgLayer.destroy();
     this.viewport?.destroy();
   }
   setEmojiFavicon(emoji: string) {

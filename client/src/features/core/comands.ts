@@ -1,12 +1,10 @@
 import { core } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
-// import type { INode } from "@shared/types";
-import VTextEdit from "../nodes/VTextEdit";
 import { GRID } from "./CONST";
 import VFrame from "../nodes/VFrame/VFrame";
 import Tools from "./Tools";
-import VTextEditClone from "../nodes/VTextEditClone";
 import type VFrame_main from "../nodes/VFrame/VFrame_main";
+import type { LNode } from "../nodes/LNode/LNode";
 
 interface Command {
   label: string;
@@ -48,17 +46,15 @@ const commands: Command[] = [
         shortcuts: ["ctrl+c", "cmd+c"],
         execute: () => {
           if (core.mode.textEditing) return;
-          const vNodes = Array.from(
+          const nodes = Array.from(
             core.selectManager.selectedNodes.values(),
-          ).sort((a, b) => (a.lNode.y ?? 0) - (b.lNode.y ?? 0));
+          ).sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
 
-          // const lNodes = vNodes.map((vNode) => vNode.lNode);
-
-          vNodes.forEach((vNode) => {
-            vNode.lNode._id = undefined;
+          nodes.forEach((node) => {
+            node._id = undefined;
           });
 
-          core.clipboard.copyVNode(vNodes);
+          core.clipboard.copyVNode(nodes);
         },
       },
       {
@@ -66,16 +62,16 @@ const commands: Command[] = [
         shortcuts: ["ctrl+x", "cmd+x"],
         execute: () => {
           if (core.mode.textEditing) return;
-          const vNodes = Array.from(
+          const nodes = Array.from(
             core.selectManager.selectedNodes.values(),
-          ).sort((a, b) => (a.lNode.y ?? 0) - (b.lNode.y ?? 0));
-          core.clipboard.copyVNode(vNodes);
-          vNodes.forEach((vNode) => {
-            // const vNode = core.nodeRenderer.getVNode(lNode._id || "");
-            if (vNode) {
-              vNode.body.classList.add("cutted");
+          ).sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+          core.clipboard.copyVNode(nodes);
+          nodes.forEach((node) => {
+            // const vNode = core.nodeRenderer.getVNode(node._id || "");
+            if (node.vNode) {
+              node.vNode.body.classList.add("cutted");
             }
-            core.nodeManager.putNodeInTrash(vNode.lNode._id || "");
+            core.nodeManager.putNodeInTrash(node._id || "");
           });
         },
       },
@@ -84,17 +80,17 @@ const commands: Command[] = [
         shortcuts: ["ctrl+v", "cmd+v"],
         execute: async () => {
           if (core.mode.textEditing) return;
-          const lNodes = await core.clipboard.paste();
-          if (!lNodes?.nodes) return;
+          const nodes = await core.clipboard.paste();
+          if (!nodes?.nodes) return;
 
           let x = Infinity,
             y = Infinity;
-          lNodes.nodes.forEach((lNode) => {
-            if (lNode.x !== undefined) {
-              x = Math.min(x, lNode.x);
+          nodes.nodes.forEach((node) => {
+            if (node.x !== undefined) {
+              x = Math.min(x, node.x);
             }
-            if (lNode.y !== undefined) {
-              y = Math.min(y, lNode.y);
+            if (node.y !== undefined) {
+              y = Math.min(y, node.y);
             }
           });
           const pointerPos = core.desk.viewport.screenToWorld(
@@ -102,13 +98,13 @@ const commands: Command[] = [
             core.desk.pointer.y,
           );
           core.selectManager.clearSelection();
-          lNodes.nodes.forEach(async (lNode) => {
-            lNode.pageId = core.mode.deskId;
-            lNode.inTrash = false;
-            lNode.x = (lNode.x ?? 0) - x + pointerPos.x;
-            lNode.y = (lNode.y ?? 0) - y + pointerPos.y;
+          nodes.nodes.forEach(async (node) => {
+            node.pageId = core.mode.deskId;
+            node.inTrash = false;
+            node.x = (node.x ?? 0) - x + pointerPos.x;
+            node.y = (node.y ?? 0) - y + pointerPos.y;
 
-            const newNodeEss = await core.nodeManager.createNode(lNode);
+            const newNodeEss = await core.nodeManager.createNode(node);
 
             if (newNodeEss) {
               core.selectManager.selectNodeById(newNodeEss._id || "", {
@@ -127,7 +123,7 @@ const commands: Command[] = [
 
           const newNodeEsses: INode[] = [];
           for (const vnode of vNodes) {
-            const newNodeEss = await core.nodeManager.copyNode(vnode.lNode);
+            const newNodeEss = await core.nodeManager.copyNode(vnode.node);
             if (newNodeEss) newNodeEsses.push(newNodeEss);
           }
 
@@ -145,19 +141,24 @@ const commands: Command[] = [
         shortcuts: ["alt+d"],
         execute: async (e) => {
           Tools.stopEvent(e);
-          const vNodes = Array.from(core.selectManager.selectedNodes.values());
+          const nodes = Array.from(core.selectManager.selectedNodes.values());
 
-          const newNodeEsses = (
-            await Promise.all(
-              vNodes.map((vnode) =>
-                core.nodeManager.create_TextEditCloneNode(vnode.lNode),
-              ),
-            )
-          ).filter((n): n is INode => !!n);
+          const newNodes: LNode[] = [];
+          nodes.forEach((node) => {
+            core.nodeManager.create_TextEditCloneNode(node);
+          });
+
+          // const newNodeEsses = (
+          //   await Promise.all(
+          //     vNodes.map((vnode) =>
+          //       core.nodeManager.create_TextEditCloneNode(vnode.node),
+          //     ),
+          //   )
+          // ).filter((n): n is INode => !!n);
 
           core.selectManager.clearSelection();
-          newNodeEsses.forEach((newNodeEss) => {
-            core.selectManager.selectNodeById(newNodeEss._id || "", {
+          newNodes.forEach((newNode) => {
+            core.selectManager.selectNodeById(newNode._id || "", {
               ctrlKey: true,
             });
           });
@@ -175,20 +176,23 @@ const commands: Command[] = [
           {
             label: "Текстовую ноду",
             shortcuts: ["1"],
-            execute: async () => {
+            execute: (e) => {
               if (core.mode.textEditing) return;
-              console.time("createNode");
+              Tools.stopEvent(e);
+
+              // console.time("createNode");
               core.nodeManager.createNodeWithTypeAndPositionFromCursor(
                 NODE_TYPES.TEXT_EDIT.id,
               );
-              console.timeEnd("createNode");
+              // console.timeEnd("createNode");
             },
           },
           {
             label: "страничную ноду",
             shortcuts: ["2"],
-            execute: async () => {
+            execute: (e) => {
               if (core.mode.textEditing) return;
+              Tools.stopEvent(e);
               core.nodeManager.createNodeWithTypeAndPositionFromCursor(
                 NODE_TYPES.PAGE.id,
               );
@@ -197,39 +201,27 @@ const commands: Command[] = [
           {
             label: "Менеджер",
             shortcuts: ["3"],
-            execute: async () => {
+            execute: (e) => {
+              //создание ноды менеджер
               if (core.mode.textEditing) return;
+              Tools.stopEvent(e);
               const { x, y } = core.desk.viewport.screenToWorld(
                 core.desk.pointer.x,
                 core.desk.pointer.y,
               );
-              const newNodeEss: INode = {
+
+              const node = core.nodeManager.createNode({
                 x: Tools.getDiskPosition(x),
                 y: Math.round(y),
-                type: NODE_TYPES.MANAGER.frame_main,
+                type: NODE_TYPES.FRAME.main,
                 exData: {
                   bgColor: Math.round(Math.random() * 360).toString(),
-                  hh: 300,
                 },
-              };
-              const vnode = await core.nodeManager.createNode(newNodeEss); //создание ноды менеджер
-              if (vnode) {
-                const vnode1 = core.nodeRenderer.getVNode(vnode._id || "");
-                if (vnode1) {
-                  (vnode1 as VTextEdit).turnOn_EditTitleMode();
-                }
-              }
-
-              const frame = core.nodeRenderer.getVNode(
-                vnode?._id || "",
-              ) as VFrame_main;
-              if (frame) {
-                core.frameCore.addFrame(frame);
+              });
+              const vNode = node?.vNode as VFrame_main;
+              if (vNode) {
+                core.frameCore.addFrame(vNode);
                 core.frameCore.refreshSpatialGrid();
-
-                // this.subFrames.set(frame.lNode._id || "", frame);
-                // frame.mainFrames.set(this.lNode._id || "", this);
-                // this.refreshHelpersUp();
               }
             },
           },
@@ -241,7 +233,7 @@ const commands: Command[] = [
         execute: async () => {
           if (core.mode.textEditing) return;
           core.selectManager.selectedNodes.forEach((node) => {
-            core.nodeManager.putNodeInTrash(node.lNode._id || "");
+            core.nodeManager.putNodeInTrash(node._id || "");
           });
         },
       },
@@ -265,9 +257,9 @@ const commands: Command[] = [
         execute: (e: KeyboardEvent) => {
           if (core.mode.selectedVNodeCount !== 1) return;
           e.preventDefault();
-          const vnode = core.selectManager.selectedNodes.values().next().value;
-          if (!vnode) return;
-          core.nodeManager.moveToNode(vnode.lNode, vnode.x + GRID.x, vnode.y);
+          const node = core.selectManager.selectedNodes.values().next().value;
+          if (!node) return;
+          core.nodeManager.moveToNode(node, node.x + GRID.x, node.y);
         },
       },
       {
@@ -276,9 +268,9 @@ const commands: Command[] = [
         execute: (e: KeyboardEvent) => {
           if (core.mode.selectedVNodeCount !== 1) return;
           e.preventDefault();
-          const vnode = core.selectManager.selectedNodes.values().next().value;
-          if (!vnode) return;
-          core.nodeManager.moveToNode(vnode.lNode, vnode.x - GRID.x, vnode.y);
+          const node = core.selectManager.selectedNodes.values().next().value;
+          if (!node) return;
+          core.nodeManager.moveToNode(node, node.x - GRID.x, node.y);
         },
       },
       {
@@ -289,23 +281,23 @@ const commands: Command[] = [
           if (core.mode.selectedVNodeCount < 1) return;
           const paddingLeft = GRID.x;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VFrame),
+            (node) => !(node instanceof VFrame),
           );
           m.sort((a, b) => a.y - b.y);
 
           let x = 0,
             y = -1000000;
-          for (const vNode of m) {
+          for (const node of m) {
             if (y === -1000000) {
-              y = vNode.lNode.y;
-              x = vNode.lNode.x;
+              y = node.y;
+              x = node.x;
             } else {
-              const xx = Math.round((vNode.lNode.x - x) / paddingLeft);
+              const xx = Math.round((node.x - x) / paddingLeft);
 
-              core.nodeManager.moveToNode(vNode.lNode, x + xx * paddingLeft, y);
+              core.nodeManager.moveToNode(node, x + xx * paddingLeft, y);
             }
 
-            y += vNode.body.offsetHeight;
+            y += node.vNode?.height || 0;
           }
         },
       },
@@ -316,21 +308,21 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VFrame),
+            (node) => !(node instanceof VFrame),
           );
           m.sort((a, b) => a.y - b.y);
 
           let x = 0,
             y = -1000000;
-          for (const vNode of m) {
+          for (const node of m) {
             if (y === -1000000) {
-              y = vNode.lNode.y;
-              x = vNode.lNode.x;
+              y = node.y;
+              x = node.x;
             } else {
-              core.nodeManager.moveToNode(vNode.lNode, x, y);
+              core.nodeManager.moveToNode(node, x, y);
             }
 
-            y += vNode.body.offsetHeight;
+            y += node.vNode?.height || 0;
           }
         },
       },
@@ -341,17 +333,17 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           if (core.mode.selectedVNodeCount < 1) return;
           const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VFrame),
+            (node) => !(node instanceof VFrame),
           );
           m.sort((a, b) => a.y - b.y);
 
           let x = -1000000;
 
-          for (const vNode of m) {
+          for (const node of m) {
             if (x === -1000000) {
-              x = vNode.lNode.x;
+              x = node.x;
             } else {
-              core.nodeManager.moveToNode(vNode.lNode, x, vNode.lNode.y);
+              core.nodeManager.moveToNode(node, x, node.y);
             }
           }
         },
@@ -360,43 +352,37 @@ const commands: Command[] = [
         label: "Отсортировать",
         shortcuts: ["ctrl+1"],
         execute: async () => {
-          if (core.mode.textEditing) return;
-          if (core.mode.selectedVNodeCount < 1) return;
-          const m = [...core.selectManager.selectedNodes.values()].filter(
-            (vnode) => !(vnode instanceof VFrame),
-          );
-
-          if (m.length < 2) return;
-          m.sort((a, b) => a.y - b.y);
-
-          const ss = m.map((vnode, index) => {
-            if (vnode instanceof VTextEditClone) {
-              return {
-                value: vnode.sourceVNode?.lNode.title || "??",
-                index,
-              };
-            } else {
-              return {
-                value: vnode.lNode.title || "??",
-                index,
-              };
-            }
-          });
-
-          const sorted = await core.popupSort.start(ss);
-
-          let y = m[0]?.y || 0;
-
-          // let x = -1000000;
-
-          for (let i = 0; i < sorted.length; i++) {
-            const n = sorted[i];
-            if (!n) continue;
-            const vNode = m[n.index];
-            if (!vNode) continue;
-            vNode.moveAniTo(vNode.lNode.x, y, i * 50);
-            y += vNode.body.offsetHeight;
-          }
+          // if (core.mode.textEditing) return;
+          // if (core.mode.selectedVNodeCount < 1) return;
+          // const m = [...core.selectManager.selectedNodes.values()].filter(
+          //   (node) => !(node instanceof VFrame),
+          // );
+          // if (m.length < 2) return;
+          // m.sort((a, b) => a.y - b.y);
+          // const ss = m.map((node, index) => {
+          //   if (node instanceof VTextEditClone) {
+          //     return {
+          //       value: node.sourceVNode?.node.title || "??",
+          //       index,
+          //     };
+          //   } else {
+          //     return {
+          //       value: node.title || "??",
+          //       index,
+          //     };
+          //   }
+          // });
+          // const sorted = await core.popupSort.start(ss);
+          // let y = m[0]?.y || 0;
+          // // let x = -1000000;
+          // for (let i = 0; i < sorted.length; i++) {
+          //   const n = sorted[i];
+          //   if (!n) continue;
+          //   const vNode = m[n.index];
+          //   if (!vNode) continue;
+          //   vNode.moveAniTo(vNode.node.x, y, i * 50);
+          //   y += vNode.body.offsetHeight;
+          // }
         },
       },
     ],

@@ -21,10 +21,10 @@ export default class Helper_sub extends Helper {
       core.store.emit(EVENTS.helper.sub.btnOk, { helperSub: this });
 
       // const mainNode = this.mainNode;
-      // mainNode.lNode.ok = true;
+      // mainNode.node.ok = true;
       // mainNode.save();
 
-      core.nodeManager.okNode(this.mainNode.lNode._id || "");
+      core.nodeManager.okNode(this.mainNode.node._id || "");
     });
   }
 }

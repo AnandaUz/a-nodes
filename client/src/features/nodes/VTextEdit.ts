@@ -1,49 +1,26 @@
 // import VFrame from "@/features/nodes/VFrame/VFrame";
+import type { LNode_TextEdit } from "./LNode/LNode_TextEdit";
 import { VNode } from "./VNode";
-import { core } from "@features/core/core";
 
 export default class VTextEdit extends VNode {
   titleEl!: HTMLInputElement;
-  protected isEditMode: boolean = false;
-  subNodes: Map<string, VTextEdit> = new Map();
 
   init(): void {
     super.init();
     this.titleEl = this.body.querySelector(".title-el") as HTMLInputElement;
     this.titleEl.addEventListener("input", () => {
-      this.onInput();
+      (this.node as LNode_TextEdit).onInput();
     });
 
     this.titleEl.addEventListener("blur", () => {
-      this.turnOff_EditTitleMode();
-    });
-  }
-  setTitleText(v: string | undefined, putInInnerHTML = false) {
-    if (putInInnerHTML) this.titleEl.innerText = v || "";
-    const startH = this.height;
-    this.refreshBodyRect();
-    const endH = this.height;
-
-    if (startH < endH) {
-      // this.moveAniTo(null, this.y - (endH - startH));
-      const rect = { ...this.bodyRect, height: endH };
-      core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [this]);
-    }
-  }
-  onInput() {
-    this.title = this.titleEl.innerText;
-    this.setTitleText(this.title);
-
-    //обновляем детей
-    this.subNodes.forEach((subNode) => {
-      subNode.setTitleText(this.title, true);
+      (this.node as LNode_TextEdit).turnOff_EditTitleMode();
     });
   }
 
   onDoubleClick(e: PointerEvent): void {
     e.preventDefault();
     super.onDoubleClick(e);
-    this.turnOn_EditTitleMode();
+    (this.node as LNode_TextEdit).turnOn_EditTitleMode();
 
     const x = e.clientX;
     const y = e.clientY;
@@ -74,44 +51,12 @@ export default class VTextEdit extends VNode {
   }
 
   set title(v: string | undefined) {
-    this.lNode.title = v || "";
+    this.node.title = v || "";
   }
   get title() {
-    return this.lNode.title || "";
+    return this.node.title || "";
   }
-  turnOf_edit_byEsc = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      this.turnOff_EditTitleMode();
-    }
-  };
-  turnOn_EditTitleMode() {
-    if (core.mode.selectedVNodeCount > 1) {
-      return;
-    }
-    // console.log("turnOn", this.title);
-    core.mode.textEditing = true; // = DESK_MODE.TEXT_EDIT
-    core.mode.textNode = true;
-    this.isEditMode = true;
-    // this.title = this.title; //так надо
-    // this.elMove.turnOff()
-    this.titleEl.contentEditable = "true";
-    this.titleEl.focus();
 
-    document.addEventListener("keydown", this.turnOf_edit_byEsc);
-  }
-  turnOff_EditTitleMode() {
-    // console.log("turnOff", this.title);
-    core.mode.textEditing = false;
-    core.mode.textNode = false;
-    this.isEditMode = false;
-
-    this.titleEl.contentEditable = "false";
-
-    this.lNode.save();
-    this.refreshBodyRect();
-
-    document.removeEventListener("keydown", this.turnOf_edit_byEsc);
-  }
   render() {
     super.render();
     const title = this.title;
@@ -126,28 +71,27 @@ export default class VTextEdit extends VNode {
   // onStop() {
   //   super.onStop();
   // }
-  select(): void {
-    super.select();
-
-    this.highlight();
-  }
-  unselect(): void {
-    super.unselect();
-    this.unhighlight();
-  }
+  // select(): void {
+  //   super.select();
+  //   this.highlight();
+  // }
+  // unselect(): void {
+  //   super.unselect();
+  //   this.unhighlight();
+  // }
   highlight() {
-    if (this.subNodes.size > 0) {
-      this.body.classList.add("highlight");
+    this.body.classList.add("highlight");
+    // if (this.subNodes.size > 0) {
 
-      this.subNodes.forEach((subNode) => {
-        subNode.body.classList.add("highlight");
-      });
-    }
+    //   this.subNodes.forEach((subNode) => {
+    //     subNode.body.classList.add("highlight");
+    //   });
+    // }
   }
   unhighlight() {
     this.body.classList.remove("highlight");
-    this.subNodes.forEach((subNode) => {
-      subNode.body.classList.remove("highlight");
-    });
+    // this.subNodes.forEach((subNode) => {
+    //   subNode.body.classList.remove("highlight");
+    // });
   }
 }

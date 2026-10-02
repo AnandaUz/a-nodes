@@ -1,7 +1,6 @@
-// import type { INode } from "@shared/types";
 import api from "@/features/core/api";
 import { core, EVENTS } from "./core";
-import type { LNode } from "@shared/types/LNode";
+import type { LNode } from "@/features/nodes/LNode/LNode";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
@@ -12,7 +11,7 @@ interface ServerPersistenceOptions {
 export class ServerPersistence {
   private opts: ServerPersistenceOptions;
 
-  data: LNode[] = [];
+  // data: LNode[] = [];
   private dirtyNodes: Set<LNode> = new Set();
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -25,8 +24,8 @@ export class ServerPersistence {
     this.opts = opts;
 
     this.unsubscribers = [
-      core.store.on(EVENTS.lNode.updated, (lNode) => {
-        this.updateNode(lNode);
+      core.store.on(EVENTS.node.updated, (node) => {
+        this.updateNode(node);
       }),
     ];
   }
@@ -38,37 +37,45 @@ export class ServerPersistence {
     const snapshot = await api.loadNodes(this.opts.deskId);
     core.store.emit(EVENTS.server.loaded, snapshot);
   }
-  async createNode(lNode: LNode): Promise<string> {
+  createNode(node: LNode, onCreated?: (id: string) => void): void {
     if (this.opts.deskId !== "root") {
-      lNode.pageId = this.opts.deskId;
+      node.pageId = this.opts.deskId;
     }
-    const _ids = await api.saveNodes([lNode]);
-    if (!_ids || _ids.length === 0) return "";
-    lNode._id = _ids[0] || "";
-    this.data.push(lNode);
-    return lNode._id;
+    // Запрос летит параллельно — основной код не блокируется.
+    // Когда ответ придёт, ID проставится прямо в объект node (по ссылке).
+    api
+      .saveNodes([node])
+      .then((_ids) => {
+        if (!_ids || _ids.length === 0) return;
+        node._id = _ids[0] || "";
+        onCreated?.(node._id);
+        // this.data.push(node);
+      })
+      .catch((err) => {
+        console.warn("[ServerPersistence] Ошибка создания ноды:", err);
+      });
   }
-  async updateNode(lNode: LNode): Promise<void> {
+  async updateNode(node: LNode): Promise<void> {
     // const now = ;
-    // let node = this.data.find((n) => n._id === lNode._id);
+    // let node = this.data.find((n) => n._id === node._id);
 
     // if (node !== undefined) {
     //   let index = this.data.indexOf(node);
-    //   node = { ...this.data[index], ...lNode, lastUpdate: now };
+    //   node = { ...this.data[index], ...node, lastUpdate: now };
     //   this.data[index] = node;
     // } else {
-    //   node = { ...lNode, lastUpdate: now };
+    //   node = { ...node, lastUpdate: now };
     //   this.data.push(node);
     // }
-    lNode.lastUpdate = new Date();
-    if (!this.dirtyNodes.has(lNode)) this.dirtyNodes.add(lNode);
+    node.lastUpdate = new Date();
+    if (!this.dirtyNodes.has(node)) this.dirtyNodes.add(node);
     this.scheduleSave();
   }
   private async save(): Promise<void> {
     if (this.isSaving || this.dirtyNodes.size === 0) return;
     this.isSaving = true;
 
-    const snapshot = Array.from(this.dirtyNodes).map((lNode) => lNode.toDB());
+    const snapshot = Array.from(this.dirtyNodes).map((node) => node.toDB());
     this.dirtyNodes.clear();
 
     try {

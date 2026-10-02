@@ -26,15 +26,14 @@
     overflow: visible; // якоря выглядывают за края
     background-color: hsl(var(--bg-color), 100%, 90%);
     border-radius: 4px;
+    padding: 0 5px;
 
     .el-tools {
         font-size: 6px;
-        color: #f72a2a62;
+        color: #049db162;
         position: absolute;
         left: -10px;
         top: 0;
-
-
     }
 
     &:hover,
@@ -50,7 +49,7 @@
         opacity: 0.5;
     }
 
-    &[data-level="0"] {
+    &[data-totaltab="0"] {
         .title-el {
             // background: rgba(222, 235, 231, 0.4);
             font-size: var(--f-font-size-start);
@@ -58,7 +57,7 @@
         }
     }
 
-    &[data-level="1"] {
+    &[data-totaltab="1"] {
         .title-el {
             // background: rgba(222, 235, 231, 0.4);
             width: calc(var(--f-start-width) - var(--f-widthStep)*1);
@@ -67,7 +66,7 @@
         }
     }
 
-    &[data-level="2"] {
+    &[data-totaltab="2"] {
         .title-el {
             // background: rgba(222, 235, 231, 0.2);
             width: calc(var(--f-start-width) - var(--f-widthStep)*2);
@@ -76,7 +75,7 @@
         }
     }
 
-    &[data-level="3"] {
+    &[data-totaltab="3"] {
         .title-el {
             width: calc(var(--f-start-width) - var(--f-widthStep)*3);
             font-size: calc(var(--f-font-size-start) - var(--f-font-step)*3);
@@ -84,7 +83,7 @@
         }
     }
 
-    &[data-level="4"] {
+    &[data-totaltab="4"] {
         .title-el {
             width: calc(var(--f-start-width) - var(--f-widthStep)*4);
             font-size: calc(var(--f-font-size-start) - var(--f-font-step)*4);
@@ -92,7 +91,7 @@
         }
     }
 
-    &[data-level="5"] {
+    &[data-totaltab="5"] {
         .title-el {
             width: calc(var(--f-start-width) - var(--f-widthStep)*5);
             font-size: calc(var(--f-font-size-start) - var(--f-font-step)*5);

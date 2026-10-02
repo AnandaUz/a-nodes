@@ -1,16 +1,13 @@
-import VFrame_main from "./VFrame/VFrame_main";
-import type { VNode } from "./VNode";
-import VTextEdit from "./VTextEdit";
-import type { INode } from "@shared/types";
-import VTextEditClone from "./VTextEditClone";
-import { VPage } from "./VPage";
+import { LNode_TEClone } from "./LNode/LNode_TEClone";
+import { LNode_Frame_main } from "./LNode/LNode_Frame_main";
+import { LNode_TextEdit } from "./LNode/LNode_TextEdit";
+import type { LNode } from "@/features/nodes/LNode/LNode";
 export const NODE_TYPES = {
   TEXT_EDIT: {
     id: 1,
   },
-  MANAGER: {
-    frame_main: 21,
-    frame_sub: 22,
+  FRAME: {
+    main: 201,
   },
   TEXT_EDIT_CLONE: {
     id: 3,
@@ -21,13 +18,11 @@ export const NODE_TYPES = {
 };
 export type NodeType = (typeof NODE_TYPES)[keyof typeof NODE_TYPES];
 
-export const NODE_REGISTRY: Record<
-  number,
-  new (node: INode, container: HTMLElement) => VNode
-> = {
-  [NODE_TYPES.TEXT_EDIT.id]: VTextEdit,
-  [NODE_TYPES.MANAGER.frame_main]: VFrame_main,
-  // [NODE_TYPES.MANAGER.frame_sub]: VM_frame_sub,
-  [NODE_TYPES.TEXT_EDIT_CLONE.id]: VTextEditClone,
-  [NODE_TYPES.PAGE.id]: VPage,
+export const NODE_REGISTRY: Record<number, new () => LNode> = {
+  [NODE_TYPES.TEXT_EDIT.id]: LNode_TextEdit,
+
+  [21]: LNode_Frame_main, // для совместимости - прежний тип для фреймов 21
+  [NODE_TYPES.FRAME.main]: LNode_Frame_main,
+  [NODE_TYPES.TEXT_EDIT_CLONE.id]: LNode_TEClone,
+  // [NODE_TYPES.PAGE.id]: LNode_Page,
 };

@@ -54,11 +54,11 @@ export default class Helper_main extends Helper {
 
     this.mainFrame.subFrames.forEach((subFrame) => {
       const btn = new Btn();
-      const subFrame_id = subFrame.lNode._id || "";
+      const subFrame_id = subFrame.node._id || "";
 
       btn.onTurnOn(async () => {
         await (subFrame as VM_frame_main).addTextEditCloneNode(
-          this.mainNode.lNode,
+          this.mainNode.node,
         );
         this.mainFrame.refreshHelpersUp();
       });
@@ -73,7 +73,7 @@ export default class Helper_main extends Helper {
 
       btn.body.style.setProperty(
         "--color",
-        `hsl(${subFrame.lNode.exData?.bgColor || 0}, 100%, 50%)`,
+        `hsl(${subFrame.node.exData?.bgColor || 0}, 100%, 50%)`,
       );
       this.btnBlockEl.appendChild(btn.body);
     });
@@ -109,12 +109,12 @@ export default class Helper_main extends Helper {
     // );
     // this.unsubscribers.push(
     //   core.store.on(EVENTS.helper.sub.btnOk, ({ helperSub }) => {
-    //     const subId = helperSub.mainNode.lNode.exData?.ownerNodesIds?.[0];
+    //     const subId = helperSub.mainNode.node.exData?.ownerNodesIds?.[0];
     //     if (!subId) return;
-    //     if (this.mainNode.lNode._id !== subId) return;
+    //     if (this.mainNode.node._id !== subId) return;
 
     //     const btn = this.btnsConnection.get(
-    //       helperSub.mainFrame.lNode._id || "",
+    //       helperSub.mainFrame.node._id || "",
     //     );
     //     if (btn) {
     //       btn.active = false;
@@ -125,7 +125,7 @@ export default class Helper_main extends Helper {
     //       f = f || btn.active;
     //     });
     //     if (!f) {
-    //       core.nodeManager.okNode(this.mainNode.lNode._id || "");
+    //       core.nodeManager.okNode(this.mainNode.node._id || "");
 
     //       return;
     //     }

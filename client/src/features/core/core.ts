@@ -88,12 +88,12 @@ export class Core {
     this.store = new Store();
 
     this.unsubscribers.push(
-      this.store.on(EVENTS.NodeManager.reInitAllNodes, () => {
+      this.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
         console.time("Перерендер всех нод страницы");
         core.desk.disconnectNodesEl(); //>
         core.nodeRenderer.renderAll();
         core.desk.connectNodesEl(); //<
-        core.nodeRenderer.getAllNodes().forEach((node) => {
+        core.nodeRenderer.getAlnodes().forEach((node) => {
           node.refreshBodyRect();
 
           if (node instanceof VFrame) {
@@ -101,9 +101,14 @@ export class Core {
             this.frameCore.addFrame(node);
           }
         });
+
         this.nodeManager.setPositionForAllLinkedChildNodes();
+        core.nodeRenderer.getAlnodes().forEach((node) => {
+          node.renderSVG();
+        });
+
         // core.desk.disconnectNodesEl(); //>
-        core.frameCore.refresh(); //пересчитывает все
+        // core.frameCore.refresh(); //пересчитывает все
 
         // core.desk.connectNodesEl(); //
 

@@ -1,8 +1,9 @@
 import { core, EVENTS } from "@/features/core/core";
-import type { INodeDB } from "./INodeDB";
+import type { INodeDB } from "@shared/types/INodeDB";
 import type { VNode } from "@/features/nodes/VNode";
 import { GRID } from "@/features/core/CONST";
 import Tools from "@/features/core/Tools";
+import VTextEdit from "../VTextEdit";
 
 // для упаковки
 const PARENT_LID_BITS = 17; // 0x1ffff
@@ -13,9 +14,9 @@ const PARENT_LID_MASK = (1 << PARENT_LID_BITS) - 1; // 0x1ffff
 const INDEX_MASK = (1 << INDEX_BITS) - 1; // 0xfff
 const TAB_MASK = (1 << TAB_BITS) - 1; // 0xfff
 
-type TLNodeList = {
+type TNodeList = {
   parentLID?: number | undefined;
-  parentLNode?: LNode | null;
+  parentNode?: LNode | null;
   index?: number;
   tab?: number;
   children?: Set<LNode>;
@@ -23,7 +24,7 @@ type TLNodeList = {
 const TRACKED_LIST_KEYS = new Set<string | symbol>([
   "index",
   "tab",
-  "parentLNode",
+  "parentNode",
 ]);
 const proxiedLists = new WeakSet<object>();
 
@@ -35,8 +36,9 @@ export class LNode {
   lastUpdate: Date | undefined;
   type: number = 0;
   title: string | undefined;
+  isSelected = false;
 
-  private _list?: TLNodeList | undefined;
+  private _list?: TNodeList | undefined;
 
   x: number = 0;
   y: number = 0;
@@ -57,13 +59,16 @@ export class LNode {
   lID?: number | undefined;
   vNode?: VNode;
   visible: boolean = true;
-  get list(): TLNodeList | undefined {
+  get list(): TNodeList {
+    if (!this._list) {
+      this._list = {} as TNodeList;
+    }
     return this._list;
   }
-  set list(value: TLNodeList | undefined) {
+  set list(value: TNodeList | undefined) {
     this._list = value ? this.wrapList(value) : undefined;
   }
-  private wrapList(target: TLNodeList): TLNodeList {
+  private wrapList(target: TNodeList): TNodeList {
     // не оборачиваем повторно
     if (proxiedLists.has(target)) return target;
 
@@ -97,6 +102,7 @@ export class LNode {
     this.vNode?.render();
   }
   constructor() {}
+  init() {}
   /** проверяем дерево выстроенно верно или случились ошибки */
   checkListTree() {
     const descendants: LNode[] = [];
@@ -115,19 +121,19 @@ export class LNode {
 
     const list = [this, ...descendants];
 
-    type TLevelParent = { lNode: LNode; count: number } | undefined | null;
+    type TLevelParent = { node: LNode; count: number } | undefined | null;
     let levelsParents: TLevelParent[] = [];
-    levelsParents[-1] = { lNode: this, count: 0 };
+    levelsParents[-1] = { node: this, count: 0 };
 
-    list.forEach((chlNode, index) => {
+    list.forEach((chnode, index) => {
       if (index === 0) return;
-      if (!chlNode) return;
+      if (!chnode) return;
 
       const tabIndex =
-        (Tools.getDiskPosition(chlNode.x) - Tools.getDiskPosition(this.x)) /
+        (Tools.getDiskPosition(chnode.x) - Tools.getDiskPosition(this.x)) /
         GRID.x;
 
-      levelsParents[tabIndex] = { lNode: chlNode, count: 0 };
+      levelsParents[tabIndex] = { node: chnode, count: 0 };
       levelsParents.splice(tabIndex + 1);
 
       let t = 1;
@@ -141,44 +147,48 @@ export class LNode {
       }
 
       let isChanged = false;
-      if (chlNode.list && chlNode.list?.parentLNode !== mParent?.lNode) {
-        chlNode.list?.parentLNode?.list?.children?.delete(chlNode);
-        const s = mParent?.lNode.list;
+      if (chnode.list && chnode.list?.parentNode !== mParent?.node) {
+        chnode.list?.parentNode?.list?.children?.delete(chnode);
+        const s = mParent?.node.list;
         if (s && !s.children) s.children = new Set();
-        s?.children?.add(chlNode);
-        chlNode.list.parentLNode = mParent?.lNode || null;
-        chlNode.list.parentLID = mParent?.lNode?.lID || 0;
+        s?.children?.add(chnode);
+        chnode.list.parentNode = mParent?.node || null;
+        chnode.list.parentLID = mParent?.node?.lID || 0;
 
         console.log("тут!!!!");
         isChanged = true;
       }
-      if (mParent && chlNode && chlNode.list?.index !== mParent.count) {
-        chlNode.list!.index = mParent.count;
+      if (mParent && chnode && chnode.list?.index !== mParent.count) {
+        chnode.list!.index = mParent.count;
         const t =
-          (Tools.getDiskPosition(chlNode.x) -
-            Tools.getDiskPosition(mParent.lNode.x)) /
+          (Tools.getDiskPosition(chnode.x) -
+            Tools.getDiskPosition(mParent.node.x)) /
           GRID.x;
-        chlNode.list!.tab = t;
+        chnode.list!.tab = t;
         console.log("тут!!!!");
         isChanged = true;
       }
       if (mParent) mParent.count++;
 
-      if (isChanged) chlNode.save();
+      if (isChanged) chnode.save();
     });
+  }
+  /** возращает тип для VNode */
+  getVNodeType(): typeof VNode {
+    return VTextEdit;
   }
   /**  удаляем из списком прошлого родителя */
   clearListParent(): LNode[] {
     const willRefParent: LNode[] = [];
-    const parentLNode = this.list?.parentLNode;
-    if (parentLNode) {
-      parentLNode.list?.children?.delete(this);
-      willRefParent.push(parentLNode);
+    const parentNode = this.list?.parentNode;
+    if (parentNode) {
+      parentNode.list?.children?.delete(this);
+      willRefParent.push(parentNode);
     }
     const list = this.list;
     if (list) {
       list.parentLID = undefined;
-      list.parentLNode = undefined;
+      list.parentNode = null;
     }
 
     return willRefParent;
@@ -188,26 +198,26 @@ export class LNode {
     let t = 0;
     // если родитель принадлежит списку
 
-    if (parent.list?.parentLNode) {
-      let plNode: LNode | null | undefined = parent;
+    if (parent.list?.parentNode) {
+      let pnode: LNode | null | undefined = parent;
       newIndex = (parent.list?.index ?? 0) + 0.1;
 
       t = Math.round((this.x - parent.x) / GRID.x);
       if (t <= 0) {
         let tt = 10;
         while (t <= 0) {
-          if (!plNode?.list?.parentLNode) break;
+          if (!pnode?.list?.parentNode) break;
 
-          newIndex = (plNode.list?.index ?? 0) + 0.5;
-          plNode = plNode?.list?.parentLNode;
+          newIndex = (pnode.list?.index ?? 0) + 0.5;
+          pnode = pnode?.list?.parentNode;
 
-          t = Math.round((this.x - plNode.x) / GRID.x);
+          t = Math.round((this.x - pnode.x) / GRID.x);
           if (tt-- < 0) break;
         }
 
-        if (!plNode) return willRefParent;
+        if (!pnode) return willRefParent;
 
-        parent = plNode;
+        parent = pnode;
       }
     }
     if (!parent.lID) {
@@ -219,15 +229,15 @@ export class LNode {
     const tab = Math.round((this.x - parent.x) / GRID.x);
 
     // удаляем из списком прошлого родителя
-    if (this.list && this.list.parentLNode) {
-      this.list.parentLNode.list?.children?.delete(this);
-      willRefParent.push(this.list.parentLNode);
+    if (this.list && this.list.parentNode) {
+      this.list.parentNode.list?.children?.delete(this);
+      willRefParent.push(this.list.parentNode);
     }
     if (!this.list) {
       this.list = {};
     }
     this.list!.parentLID = parent.lID ?? 0;
-    this.list!.parentLNode = parent;
+    this.list!.parentNode = parent;
     this.list!.index = newIndex - 0.5;
     this.list!.tab = tab;
 
@@ -237,11 +247,11 @@ export class LNode {
     const m = [...parent.list.children].sort(
       (a, b) => (a.list?.index ?? 0) - (b.list?.index ?? 0),
     );
-    m.forEach((lNode, index) => {
-      if (lNode.list) {
-        if (lNode.list.index != index) {
-          lNode.list.index = index;
-          lNode.save();
+    m.forEach((node, index) => {
+      if (node.list) {
+        if (node.list.index != index) {
+          node.list.index = index;
+          node.save();
         }
       }
     });
@@ -251,15 +261,38 @@ export class LNode {
   }
   getMainListParent(): LNode | null {
     let parent: LNode = this;
-    while (parent.list?.parentLNode) {
-      parent = parent.list.parentLNode;
+    while (parent.list?.parentNode) {
+      parent = parent.list.parentNode;
     }
     return parent;
+  }
+  /** возращает прямоугольник в который входит и родитель и все его дети */
+  getNodeRect(): DOMRect {
+    let x0 = this.x,
+      y0 = this.y,
+      x1 = this.x + (this.vNode?.width ?? 0),
+      y1 = this.y + (this.vNode?.height ?? 0);
+
+    if (this.list?.children?.size) {
+      for (const child of this.list.children) {
+        const childRect = child.getNodeRect();
+        x0 = Math.min(x0, childRect.x);
+        y0 = Math.min(y0, childRect.y);
+        x1 = Math.max(x1, childRect.x + childRect.width);
+        y1 = Math.max(y1, childRect.y + childRect.height);
+      }
+    }
+    return {
+      x: x0,
+      y: y0,
+      width: x1 - x0,
+      height: y1 - y0,
+    } as DOMRect;
   }
   /**
    * Рекурсивно устанавливает позиции для всех дочерних узлов
    */
-  setPositionForAllLinkedChildNodes() {
+  setPositionForAllLinkedChildNodes(parentX: number | undefined = undefined) {
     if (this.list?.children?.size) {
       const m = [...this.list.children].sort(
         (a, b) => (a.list?.index ?? 0) - (b.list?.index ?? 0),
@@ -270,15 +303,23 @@ export class LNode {
         child.x = this.x + GRID.x * (child.list?.tab ?? 0);
         child.y = startY + h;
         child.vNode?.applyPosition();
-        h += child.vNode?.height ?? 0;
-        h += child.setPositionForAllLinkedChildNodes();
+        const xx = Math.round((child.x - (parentX || this.x)) / GRID.x);
+
+        const chVNode = child.vNode;
+        if (chVNode) {
+          chVNode.body.dataset.totaltab = xx.toString();
+          chVNode.refreshBodyRect();
+        }
+
+        h += chVNode?.height ?? 0;
+        h += child.setPositionForAllLinkedChildNodes(parentX || this.x);
       }
       return h;
     }
     return 0;
   }
   save() {
-    core.store.emit(EVENTS.lNode.updated, this);
+    core.store.emit(EVENTS.node.updated, this);
   }
   toDB(): INodeDB {
     const res: INodeDB = {

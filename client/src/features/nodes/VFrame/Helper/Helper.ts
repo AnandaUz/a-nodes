@@ -1,7 +1,7 @@
 import { core, EVENTS } from "@/features/core/core";
 import type { VNode } from "../../VNode";
 import type VM_frame_main from "../VFrame_main";
-import type { INode } from "@shared/types";
+import type { LNode } from "../../LNode/LNode";
 
 export class Helper {
   body: HTMLDivElement;
@@ -25,7 +25,7 @@ export class Helper {
     this.body = document.createElement("div");
     this.mainNode = mainNode;
     this.mainFrame = mainFrame;
-    this._id = mainNode.lNode._id || "";
+    this._id = mainNode.node._id || "";
     // this.subFrames = subFrames;
     this.body.className = "vnode-helper";
     this.body.innerHTML = `<div class="bt-block"></div>
@@ -37,8 +37,8 @@ export class Helper {
 
     // let startSelectedNodes: Map<string, VNode> = new Map();
     this.unsubscribers.push(
-      core.store.on(EVENTS.lNode.moving, (lNode: INode) => {
-        if (lNode._id === this.mainNode.lNode._id) {
+      core.store.on(EVENTS.node.moving, (node: LNode) => {
+        if (node._id === this.mainNode.node._id) {
           this.placeTo();
 
           if (!this.isMoving) {
@@ -54,10 +54,10 @@ export class Helper {
           }
         }
       }),
-      core.store.on(EVENTS.lNode.updated, (lNode: INode) => {
-        if (lNode._id === this.mainNode.lNode._id) {
-          const x = lNode.x || 0;
-          const y = lNode.y || 0;
+      core.store.on(EVENTS.node.updated, (node: LNode) => {
+        if (node._id === this.mainNode.node._id) {
+          const x = node.x || 0;
+          const y = node.y || 0;
 
           if (!this.mainFrame.checkPointOver(x, y)) {
             this.mainFrame.removeHelper(this._id);
@@ -69,8 +69,8 @@ export class Helper {
           this.isMoving = false;
         }
       }),
-      core.store.on(EVENTS.lNode.inTrash, (lNode: INode) => {
-        if (lNode._id === this.mainNode.lNode._id) {
+      core.store.on(EVENTS.node.inTrash, (node: LNode) => {
+        if (node._id === this.mainNode.node._id) {
           this.mainFrame.removeHelper(this._id);
 
           this.mainFrame.refreshHelpers_super();
@@ -89,8 +89,8 @@ export class Helper {
     this.mainNode.refreshBodyRect();
   }
   placeTo() {
-    const x = this.mainNode.lNode.x || 0;
-    const y = this.mainNode.lNode.y || 0;
+    const x = this.mainNode.node.x || 0;
+    const y = this.mainNode.node.y || 0;
     this.body.style.transform = `translate(${x}px, ${y}px)`;
   }
   render() {}

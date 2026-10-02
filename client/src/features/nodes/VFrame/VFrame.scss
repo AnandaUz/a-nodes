@@ -1,15 +1,18 @@
 .vnode-frame {
      --bg-color: 165;
-     background: url(@assets/btn-bg-b.svg) bottom repeat-x,
-          url(@assets/btn-bg-t.svg) top repeat-x,
-          url(@assets/bg-m-2.svg) top left repeat;
+     //d: url(@assets/btn-bg-b.svg) bottom repeat-x,
+
+     // background:
+     //      url(@assets/btn-bg-t.svg) top repeat-x,
+     //      url(@assets/bg-m-2.svg) top left repeat;
      background-color: hsl(var(--bg-color), 30%, 96%);
      background-size: auto 20px, auto, 35px 35px;
      width: 600px;
-     height: 2000px;
+     // height: 2000px;
      border-radius: 5px;
      z-index: 5;
-     margin: 0 0 0 -20px;
+     margin: 0 0 10px -20px;
+     padding: 0;
 
      &.is-selected {
           border: none;
@@ -24,6 +27,8 @@
           background-color: hsl(var(--bg-color) 90% 26% / 25%);
 
           border-radius: 5px 5px 0 0;
+          padding: 0 5px;
+          // margin: 0 0 5px;
 
           .title-el {
                background: none;

@@ -5,6 +5,8 @@ import { Helper } from "./Helper/Helper";
 import type { VNode } from "../VNode";
 import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
+import type { LNode } from "@/features/nodes/LNode/LNode";
+import { core } from "@/features/core/core";
 
 export const AREA_PADDING = {
   left: 30,
@@ -27,25 +29,8 @@ export default class VFrame extends VTextEdit {
   constructor(node: LNode, container: HTMLElement) {
     super(node, container);
     this.body.classList.add("vnode-frame");
-    // VFrame.frames.push(this);
-
-    // if (!core.managerCore) core.managerCore = new ManagerCore();
-
-    // this.unsubscribers.push(
-    //   core.store.on(EVENTS.lNode.selectedMoved, (nodes: VNode[]) => {
-    //     if (!nodes) return;
-
-    //     console.log("selectedMoved", nodes);
-
-    //     nodes.forEach((node: VNode) => {
-    //       if (this.helpersById[node._id]) this.refreshHelpersUp();
-    //     });
-    //   }),
-    // );
   }
-  // init() {
-  //   super.init();
-  // }
+
   initMovingElement() {
     this.movingElement = this.body.querySelector(".top-block") as HTMLElement;
   }
@@ -62,6 +47,36 @@ export default class VFrame extends VTextEdit {
       }
     });
     return subHelpers;
+  }
+  renderSVG() {
+    // если есть дети, то рисуется фон в виде прямоугольника
+    const children = this.node.list?.children;
+
+    const lRect = this.node.getNodeRect();
+
+    lRect.height = Math.max(lRect.height + 15, 60);
+
+    if (!this.elSVG) {
+      // const color = this.node.exData?.bgColor || "#d2eeff59";
+      this.elSVG = core.desk.svgLayer.drawRect(
+        lRect.x,
+        lRect.y,
+        lRect.width,
+        lRect.height,
+        `hsla(${this.node.exData?.bgColor || 0}, 70%, 90%, 0.3)`,
+      );
+    }
+
+    this.elSVG.setAttribute("x", (lRect.x - 20).toString());
+    this.elSVG.setAttribute("y", lRect.y.toString());
+    this.elSVG.setAttribute("width", lRect.width.toString());
+    this.elSVG.setAttribute("height", lRect.height.toString());
+
+    // if (children && children.size > 0) {
+    //   children?.forEach((c) => {
+    //     c.vNode?.renderSVG();
+    //   });
+    // }
   }
 
   bodyInit() {
@@ -86,18 +101,18 @@ export default class VFrame extends VTextEdit {
   }
   refreshHelpersUp() {
     console.log("refreshHelpersUp", new Date().getTime());
-    this.helpers.sort((a, b) => a.mainNode.lNode.y - b.mainNode.lNode.y);
+    this.helpers.sort((a, b) => a.mainNode.node.y - b.mainNode.node.y);
 
     let prevListLevel = 0;
     let prevHelpers: Helper[] = [];
 
-    // if (this.lNode.title === "s1") {
-    //   console.log(this.lNode.title);
+    // if (this.node.title === "s1") {
+    //   console.log(this.node.title);
     // }
 
     this.helpers.forEach((h, i) => {
-      const vNodeX = h.mainNode.lNode.x;
-      const vNodeY = h.mainNode.lNode.y;
+      const vNodeX = h.mainNode.node.x;
+      const vNodeY = h.mainNode.node.y;
 
       if (!this.checkPointOver(vNodeX, vNodeY)) {
         this.removeHelper(h._id);
@@ -116,11 +131,11 @@ export default class VFrame extends VTextEdit {
       this.subFrames.forEach((subFrame) => {
         subFrame.helpers.forEach((subH) => {
           const mainID =
-            h.mainNode.lNode.exData?.ownerNodesIds?.[0] ||
-            h.mainNode.lNode._id ||
+            h.mainNode.node.exData?.ownerNodesIds?.[0] ||
+            h.mainNode.node._id ||
             "";
-          if (subH.mainNode.lNode.exData?.ownerNodesIds?.includes(mainID)) {
-            h.toHelper.set(subFrame.lNode._id, subH);
+          if (subH.mainNode.node.exData?.ownerNodesIds?.includes(mainID)) {
+            h.toHelper.set(subFrame.node._id, subH);
             subH.fromHelpers.push(h);
           }
         });
@@ -154,8 +169,8 @@ export default class VFrame extends VTextEdit {
 
       prevListLevel = listLevel;
 
-      const x = this.lNode.x + listLevel * GRID.x;
-      const y = h.mainNode.lNode.y;
+      const x = this.node.x + listLevel * GRID.x;
+      const y = h.mainNode.node.y;
 
       h.mainNode.moveTo({ x, y });
       h.placeTo();

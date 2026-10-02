@@ -1,8 +1,7 @@
-// import type { INode } from "@shared/types";
 import { core, EVENTS } from "../core/core";
 import type { Command } from "../core/interfaces";
 import Tools from "../core/Tools";
-import type { LNode } from "@shared/types/LNode";
+import type { LNode } from "@/features/nodes/LNode/LNode";
 
 interface Position {
   x: number;
@@ -15,14 +14,14 @@ export class VNode {
   body: HTMLElement;
   private isDragging: boolean = false;
   private pointerOffset = { x: 0, y: 0 };
-  lNode: LNode;
+  node!: LNode;
   private startPos: { x: number; y: number } = { x: 0, y: 0 };
   // public _id: string;
   // public x: number;
   // public y: number;
   width: number = 0;
   height: number = 0;
-  public isSelected = false;
+
   // private isSelectAble = true;
   protected isMoved = false;
   protected movingElement!: HTMLElement;
@@ -31,15 +30,16 @@ export class VNode {
 
   private lastClickTime: number = 0;
   private lastClickPos: { x: number; y: number } = { x: 0, y: 0 };
+  protected elSVG?: SVGRectElement | null = null;
 
   // Константы для настройки чувствительности
 
-  constructor(lNode: LNode, container: HTMLElement) {
-    this.lNode = lNode;
+  constructor(node: LNode, container: HTMLElement) {
+    this.node = node;
 
-    // this._id = lNode._id || "";
-    // this.x = lNode.x ?? 0;
-    // this.y = lNode.y ?? 0;
+    // this._id = node._id || "";
+    // this.x = node.x ?? 0;
+    // this.y = node.y ?? 0;
 
     this.container = container;
 
@@ -58,8 +58,8 @@ export class VNode {
   // }
   get bodyRect() {
     return {
-      x: this.lNode.x,
-      y: this.lNode.y,
+      x: this.node.x,
+      y: this.node.y,
       width: this.width,
       height: this.height,
     } as DOMRect;
@@ -75,11 +75,11 @@ export class VNode {
     this.movingElement?.classList.add("moving-element");
 
     this.unsubscribers.push(
-      core.store.on(EVENTS.lNode.updated, (lNode) => {
-        if (lNode._id !== this.lNode._id) return;
-        // this.lNode = lNode;
-        // this.x = lNode.x ?? 0;
-        // this.y = lNode.y ?? 0;
+      core.store.on(EVENTS.node.updated, (node) => {
+        if (node._id !== this.node._id) return;
+        // this.node = node;
+        // this.x = node.x ?? 0;
+        // this.y = node.y ?? 0;
         this.applyPosition();
       }),
     );
@@ -90,21 +90,15 @@ export class VNode {
     this.movingElement = this.body;
   }
   applyPosition() {
-    let x = this.lNode.x || 0;
-    let y = this.lNode.y || 0;
-    // // let y = 0;
-    // if (this.lNode.list?.parentLNode) {
-    //   x = this.lNode.list.parentLNode?.x || 0;
-    //   y = (this.lNode.list.parentLNode?.y || 0) + 21;
-    // } else {
-    //   x =
-    // }
+    let x = this.node.x || 0;
+    let y = this.node.y || 0;
     this.body.style.transform = `translate(${x}px, ${y}px)`;
+    this.renderSVG();
   }
   bodyInit() {
-    this.body.innerHTML += `            
-           <div class="el-tools"></div>               
-`;
+    this.body.innerHTML += `
+               <div class="el-tools"></div>
+    `;
   }
 
   updatePosition() {
@@ -132,7 +126,7 @@ export class VNode {
       if (this.isSelected) return;
       // если режим редактирования, то клик по ноде переходит в редактирование
       // core.selectManager.clearSelection();
-      core.selectManager.selectNodeById(this.lNode._id || "", {
+      core.selectManager.selectNodeById(this.node._id || "", {
         ctrlKey: false,
       });
       // this.select();
@@ -167,16 +161,16 @@ export class VNode {
     Tools.stopEvent(e);
 
     this.isDragging = true;
-    // core.store.emit(EVENTS.lNode.pointer.down, this);
+    // core.store.emit(EVENTS.node.pointer.down, this);
 
     const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
 
     this.pointerOffset = {
-      x: worldPos.x - (this.lNode.x || 0),
-      y: worldPos.y - (this.lNode.y || 0),
+      x: worldPos.x - (this.node.x || 0),
+      y: worldPos.y - (this.node.y || 0),
     };
 
-    this.startPos = { x: this.lNode.x, y: this.lNode.y };
+    this.startPos = { x: this.node.x, y: this.node.y };
 
     this.movingElement.setPointerCapture(e.pointerId);
   };
@@ -212,40 +206,39 @@ export class VNode {
       x = Tools.getDiskPosition(x);
     }
 
-    this.lNode.x = x;
-    this.lNode.y = Math.round(worldPos.y - this.pointerOffset.y);
+    this.node.x = x;
+    this.node.y = Math.round(worldPos.y - this.pointerOffset.y);
 
     this.applyPosition();
-    core.store.emit(EVENTS.lNode.moving, this.lNode);
+    core.store.emit(EVENTS.node.moving, this.node);
 
     // если у него есть дети
-    if (this.lNode.list?.children?.size) {
-      this.lNode.setPositionForAllLinkedChildNodes();
+    if (this.node.list?.children?.size) {
+      this.node.setPositionForAllLinkedChildNodes();
     }
   };
 
   moveTo(position: { x: number | undefined; y: number | undefined }) {
-    if (position.x !== undefined) this.lNode.x = Math.round(position.x);
-    if (position.y !== undefined) this.lNode.y = Math.round(position.y);
+    if (position.x !== undefined) this.node.x = Math.round(position.x);
+    if (position.y !== undefined) this.node.y = Math.round(position.y);
     this.applyPosition();
-    this.lNode.save();
-    // core.nodeManager.moveToNode(this.lNode, this.x, this.y);
+    this.node.save();
   }
 
   select() {
-    this.isSelected = true;
+    this.node.isSelected = true;
     this.body.classList.add("is-selected");
   }
 
   unselect() {
-    this.isSelected = false;
+    this.node.isSelected = false;
     this.body.classList.remove("is-selected");
-    core.store.emit(EVENTS.lNode.unselected, this.lNode);
+    core.store.emit(EVENTS.node.unselected, this.node);
   }
 
   toggleSelect() {
-    this.isSelected = !this.isSelected;
-    this.body.classList.toggle("is-selected", this.isSelected);
+    this.node.isSelected = !this.node.isSelected;
+    this.body.classList.toggle("is-selected", this.node.isSelected);
   }
 
   onPointerUp = (e: PointerEvent) => {
@@ -257,7 +250,7 @@ export class VNode {
       core.selectManager.onVNodeClick(e, this);
       return;
     }
-    this.moveTo({ x: this.lNode.x, y: this.lNode.y });
+    this.moveTo({ x: this.node.x, y: this.node.y });
 
     const moveCommand = (from: Position, to: Position): Command => ({
       execute: () => this.moveTo(to),
@@ -265,10 +258,10 @@ export class VNode {
     });
 
     core.history.execute(
-      moveCommand(this.startPos, { x: this.lNode.x, y: this.lNode.y }),
+      moveCommand(this.startPos, { x: this.node.x, y: this.node.y }),
     );
 
-    core.store.emit(EVENTS.lNode.moved, this.lNode);
+    core.store.emit(EVENTS.node.moved, this.node);
 
     core.selectManager.onNodeMoveEnd(this);
 
@@ -281,10 +274,10 @@ export class VNode {
     const rect = this.bodyRect; // Получаем координаты и размеры элемента
     // Проверяем, находится ли точка внутри границ элемента
     return (
-      x >= this.lNode.x &&
-      x <= this.lNode.x + rect.width &&
-      y >= this.lNode.y &&
-      y <= this.lNode.y + rect.height
+      x >= this.node.x &&
+      x <= this.node.x + rect.width &&
+      y >= this.node.y &&
+      y <= this.node.y + rect.height
     );
   }
   checkInRect(selectedArea: DOMRect) {
@@ -321,9 +314,9 @@ export class VNode {
     return f_x && f_y;
   }
   render() {
-    const idx = parseInt(this.lNode.exData?.repeatMode || "");
+    const idx = parseInt(this.node.exData?.repeatMode || "");
     const iconBlock = this.body.querySelector(".repeat-icon");
-    if (!isNaN(idx) || this.lNode.exData?.repeatDay) {
+    if (!isNaN(idx) || this.node.exData?.repeatDay) {
       this.body.classList.add("repeat-day");
       if (!iconBlock) {
         const el = document.createElement("div");
@@ -336,7 +329,7 @@ export class VNode {
         iconBlock.remove();
       }
     }
-    const tColor = this.lNode.exData?.tColor;
+    const tColor = this.node.exData?.tColor;
     if (tColor) {
       let c = tColor;
       if (/^\d{1,3}$/g.test(tColor)) {
@@ -347,7 +340,7 @@ export class VNode {
     } else {
       this.body.style.removeProperty("--color");
     }
-    const bgColor = this.lNode.exData?.bgColor;
+    const bgColor = this.node.exData?.bgColor;
     if (bgColor) {
       let c = bgColor;
       if (/^\d{1,3}$/g.test(bgColor)) {
@@ -359,20 +352,50 @@ export class VNode {
       this.body.style.removeProperty("--bg-color");
     }
     this.body.classList.remove("h1", "h2", "h3", "h4");
-    const h = this.lNode.exData?.h;
+    const h = this.node.exData?.h;
     if (h) {
       this.body.classList.add(h);
     }
 
-    if (this.lNode.list) {
+    // для атладки
+    /*if (this.node.list) {
       const elTools = this.body.querySelector(".el-tools");
       if (elTools) {
         elTools.innerHTML =
-          this.lNode.list.parentLNode?.title +
-          ` i -  ${this.lNode.list.index} 
-          t -  ${this.lNode.list.tab}`;
+          this.node.list.parentNode?.title +
+          ` i -  ${this.node.list.index}
+          t -  ${this.node.list.tab}`;
       }
-    }
+    }  */
+  }
+  renderSVG() {
+    // если есть дети, то рисуется фон в виде прямоугольника
+    // const children = this.node.list?.children;
+    // if (children && children.size > 0) {
+    //   const lRect = this.node.getNodeRect();
+    //   if (!this.elSVG) {
+    //     this.elSVG = core.desk.svgLayer.drawRect(
+    //       lRect.x,
+    //       lRect.y,
+    //       lRect.width,
+    //       lRect.height,
+    //       "#dce4e920",
+    //     );
+    //   } else {
+    //     this.elSVG.setAttribute("x", lRect.x.toString());
+    //     this.elSVG.setAttribute("y", lRect.y.toString());
+    //     this.elSVG.setAttribute("width", lRect.width.toString());
+    //     this.elSVG.setAttribute("height", lRect.height.toString());
+    //   }
+    // } else {
+    //   if (this.elSVG) {
+    //     this.elSVG.remove();
+    //     this.elSVG = null;
+    //   }
+    // }
+    // children?.forEach((c) => {
+    //   c.vNode?.renderSVG();
+    // });
   }
 
   moveAniTo(x: number | null = null, y: number | null = null, delay = 0) {
@@ -384,11 +407,11 @@ export class VNode {
       this.animationId = null;
     }
 
-    const targetX = x ?? this.lNode.x;
-    const targetY = y ?? this.lNode.y;
+    const targetX = x ?? this.node.x;
+    const targetY = y ?? this.node.y;
 
-    const startX = this.lNode.x;
-    const startY = this.lNode.y;
+    const startX = this.node.x;
+    const startY = this.node.y;
     const duration = 200;
 
     const easeOut = (t: number) => 1 - Math.pow(1 - t, 2);
@@ -404,9 +427,9 @@ export class VNode {
         const newX = startX + (targetX - startX) * ease;
         const newY = startY + (targetY - startY) * ease;
 
-        this.lNode.x = newX;
+        this.node.x = newX;
 
-        this.lNode.y = newY;
+        this.node.y = newY;
         this.applyPosition();
 
         if (t < 1) {

@@ -1,12 +1,11 @@
-import { LNode } from "@shared/types/LNode";
-
+import { LNode } from "@/features/nodes/LNode/LNode";
 import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot } from "../core/interfaces";
 import Tools from "../core/Tools";
 import VTextEdit from "./VTextEdit";
-import { NODE_TYPES } from "./node-registry";
-import type { VNode } from "./VNode";
-// import type { INode } from "@shared/types/INode";
+import { NODE_REGISTRY, NODE_TYPES } from "./node-registry";
+import { LNode_TextEdit } from "./LNode/LNode_TextEdit";
+import { LNode_TEClone } from "./LNode/LNode_TEClone";
 
 export class NodeManager {
   private nodes = new Map<string, LNode>();
@@ -20,18 +19,20 @@ export class NodeManager {
 
   init() {
     this.unsubscribers.push(
-      core.store.on(EVENTS.lNode.selectedMoved, () => {
-        this.onSelectedLNodesMoved();
+      core.store.on(EVENTS.node.selectedMoved, () => {
+        this.onSelectedNodesMoved();
       }),
     );
   }
-  getRectForNodes(nodes: Set<VNode>) {
+  getRectForNodes(nodes: Set<LNode>) {
     let x0 = Infinity,
       y0 = Infinity,
       x1 = -Infinity,
       y1 = -Infinity;
 
-    nodes.forEach((vNode) => {
+    nodes.forEach((node) => {
+      const vNode = node.vNode;
+      if (!vNode) return;
       const r = vNode.bodyRect;
       x0 = Math.min(x0, r.x);
       y0 = Math.min(y0, r.y);
@@ -41,34 +42,34 @@ export class NodeManager {
     return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } as DOMRect;
   }
 
-  onSelectedLNodesMoved() {
+  onSelectedNodesMoved() {
     const selectedVNodes = core.selectManager.selectedNodes;
     if (selectedVNodes.size < 1) return;
 
     //// работа со списком
 
     let movedVNodeRect: DOMRect;
-    let movedVNodes = new Set(selectedVNodes.values());
+    let movedNodes = new Set(selectedVNodes.values());
 
     const visited = new Set();
-    const gather = (node: any) => {
+    const gather = (node: LNode) => {
       if (!node || visited.has(node)) return;
       visited.add(node);
 
       if (node.list?.children) {
         for (const child of node.list.children) {
           if (child.vNode) {
-            movedVNodes.add(child.vNode);
+            movedNodes.add(child);
           }
           gather(child);
         }
       }
     };
-    selectedVNodes.forEach((vNode) => {
-      gather(vNode.lNode);
+    selectedVNodes.forEach((node) => {
+      gather(node);
     });
 
-    movedVNodeRect = this.getRectForNodes(movedVNodes);
+    movedVNodeRect = this.getRectForNodes(movedNodes);
     // movedVNodes = [...selectedVNodes.values()];
 
     // const scale = core.mode.scale;
@@ -81,69 +82,70 @@ export class NodeManager {
 
     const candidates = core.selectManager
       .getNodeOverRect(overRect)
-      .filter((node) => !movedVNodes.has(node));
+      .filter((node) => !movedNodes.has(node));
 
-    candidates.sort((a, b) => a.lNode.y - b.lNode.y);
+    candidates.sort((a, b) => a.y - b.y);
 
     let byNode = candidates?.[0];
 
-    const selectedLNodes: LNode[] = [];
+    const selectedNodes: LNode[] = [];
     // оставим только родителей
-    const refFunc = (vNode: VNode) => {
-      const lNode = vNode.lNode;
-      const parentLNode = lNode.list?.parentLNode;
-      const parentVNode = parentLNode?.vNode;
+    const refFunc = (node: LNode) => {
+      const parentNode = node.list?.parentNode;
 
       // если нода имеет родителя среди выбранны, но не берём её
-      if (parentVNode && selectedVNodes.has(parentLNode._id || "")) return;
+      if (parentNode && selectedVNodes.has(parentNode)) return;
 
-      selectedLNodes.push(lNode);
+      selectedNodes.push(node);
     };
-    selectedVNodes.forEach((vNode: VNode) => refFunc(vNode));
+    selectedVNodes.forEach((node: LNode) => refFunc(node));
 
-    selectedLNodes.sort((a, b) => b.y - a.y); // в обратном порядке
+    selectedNodes.sort((a, b) => b.y - a.y); // в обратном порядке
 
     const wasRef = new Set<LNode>();
     if (byNode) {
       // установим его новым родителем
       const willRefParent: LNode[] = [];
-      selectedLNodes.forEach((lNode) => {
-        if (overRect.y < byNode.lNode.y) {
-          const parentLNode = byNode.lNode.list?.parentLNode;
-          const parentVNode = parentLNode?.vNode;
-          if (parentVNode) {
-            const index = byNode.lNode.list?.index || 0;
+      selectedNodes.forEach((node) => {
+        if (overRect.y < byNode.y) {
+          const parentNode = byNode.list?.parentNode;
+          if (parentNode) {
+            const index = byNode.list?.index || 0;
             willRefParent.push(
-              ...lNode.setNewListParent(parentLNode, index - 0.6),
+              ...node.setNewListParent(parentNode, index - 0.6),
             );
           }
         } else {
-          willRefParent.push(...lNode.setNewListParent(byNode.lNode, 0));
+          willRefParent.push(...node.setNewListParent(byNode, 0));
         }
       });
 
-      willRefParent.forEach((lNode) => {
-        const mainParent = lNode.getMainListParent();
+      willRefParent.forEach((node) => {
+        const mainParent = node.getMainListParent();
         if (!mainParent) return;
         if (wasRef.has(mainParent)) return;
         wasRef.add(mainParent);
         mainParent.setPositionForAllLinkedChildNodes();
         mainParent.checkListTree();
+
+        mainParent.vNode?.renderSVG();
 
         mainParent.save();
       });
     } else {
       const willRefParent: LNode[] = [];
-      selectedLNodes.forEach((lNode) => {
-        willRefParent.push(...lNode.clearListParent());
+      selectedNodes.forEach((node) => {
+        willRefParent.push(...node.clearListParent());
       });
-      willRefParent.forEach((lNode) => {
-        const mainParent = lNode.getMainListParent();
+      willRefParent.forEach((node) => {
+        const mainParent = node.getMainListParent();
         if (!mainParent) return;
         if (wasRef.has(mainParent)) return;
         wasRef.add(mainParent);
         mainParent.setPositionForAllLinkedChildNodes();
         mainParent.checkListTree();
+
+        mainParent.vNode?.renderSVG();
 
         mainParent.save();
       });
@@ -153,12 +155,13 @@ export class NodeManager {
   loadSnapshot(snapshot: DeskSnapshot): void {
     this.nodes.clear();
 
-    for (const node of snapshot.nodes) {
-      const { _id } = node;
+    for (const nodeData of snapshot.nodes) {
+      const { _id } = nodeData;
       if (!_id) continue;
-      const lNode = new LNode();
-      lNode.fromDB(node);
-      this.nodes.set(_id, lNode);
+      const node = this.addNode(nodeData.type || 0);
+      if (!node) continue;
+      node.fromDB(nodeData);
+      this.nodes.set(_id, node);
     }
 
     if (snapshot.pageNode) {
@@ -168,7 +171,7 @@ export class NodeManager {
 
     this.initAllLinks();
 
-    core.store.emit(EVENTS.NodeManager.reInitAllNodes, undefined);
+    core.store.emit(EVENTS.NodeManager.reInitAlnodes, undefined);
   }
   getNodeByLID(lID: number) {
     for (const node of this.nodes.values()) {
@@ -193,173 +196,218 @@ export class NodeManager {
           if (!node.list) {
             node.list = {};
           }
-          node.list.parentLNode = parentNode;
+          node.list.parentNode = parentNode;
         }
       }
     }
   }
   setPositionForAllLinkedChildNodes() {
     for (const node of this.nodes.values()) {
+      if (!node.list) continue;
+      if (node.list.parentNode) continue;
+      if (!node.list.children || node.list.children.size < 1) continue;
       node.setPositionForAllLinkedChildNodes();
     }
   }
 
-  async copyNode(
-    lNode: LNode,
-    options?: Partial<LNode>,
-  ): Promise<LNode | null> {
-    const newLNode = new LNode();
+  async copyNode(node: LNode, options?: Partial<LNode>): Promise<LNode | null> {
+    const newNode = new LNode();
 
     // то что нужно склонировать из родителя
-    newLNode.exData = structuredClone(lNode.exData);
+    newNode.exData = structuredClone(node.exData);
 
     for (const [key, value] of Object.entries(options || {})) {
-      (newLNode as any)[key] = value;
+      (newNode as any)[key] = value;
     }
 
-    // newLNode.x = Tools.getDiskPosition(options?.x ?? lNode.x + 20);
-    // newLNode.y = options?.y ?? lNode.y;
-    // newLNode.title = options?.title ?? lNode.title;
+    // newNode.x = Tools.getDiskPosition(options?.x ?? node.x + 20);
+    // newNode.y = options?.y ?? node.y;
+    // newNode.title = options?.title ?? node.title;
 
     console.time("save node");
-    const id = await core.serverPersistence.createNode(newLNode);
+    const id = await core.serverPersistence.createNode(newNode);
     console.timeEnd("save node");
 
     if (!id) return null;
-    newLNode._id = id;
-    this.nodes.set(id, newLNode);
+    newNode._id = id;
+    this.nodes.set(id, newNode);
 
-    core.store.emit(EVENTS.lNode.created, newLNode);
+    core.store.emit(EVENTS.node.created, newNode);
 
-    return newLNode;
+    return newNode;
   }
-  async createNodeWithTypeAndPositionFromCursor(type: number) {
+  createNodeWithTypeAndPositionFromCursor(type: number) {
     const { x, y } = core.desk.viewport.screenToWorld(
       core.desk.pointer.x,
       core.desk.pointer.y,
     );
-    const newLNode = await this.createNode({
+    const newNode = this.createNode({
       x: Tools.getDiskPosition(x),
       y: Math.round(y),
       type,
     });
-    if (newLNode) {
-      const vnode = core.nodeRenderer.getVNode(newLNode._id || "");
-      core.selectManager.selectNodeById(newLNode._id || "");
+    if (newNode) {
+      const vnode = newNode.vNode;
+      vnode?.select();
       if (vnode instanceof VTextEdit) {
-        vnode.turnOn_EditTitleMode();
+        (newNode as LNode_TextEdit).turnOn_EditTitleMode();
       }
+      // core.selectManager.selectNodeById(newNode._id || "");
     }
   }
-  async createNode({
+  addNode(type: number): LNode | null {
+    const NodeClass = NODE_REGISTRY[type];
+    if (!NodeClass) return null;
+    const node: LNode = new NodeClass() as LNode;
+    node.type = type;
+    return node;
+  }
+  createNode({
     x = 0,
     y = 0,
     type = 0,
+    exData = null,
   }: {
     x?: number;
     y?: number;
     type?: number;
+    exData?: Record<string, any> | null;
   }) {
-    const lNode = new LNode();
-    lNode.x = Tools.getDiskPosition(x);
-    lNode.y = Math.round(y);
-    lNode.type = type;
+    const node = this.addNode(type);
+    if (!node) return;
+    node.x = Tools.getDiskPosition(x);
+    node.y = Math.round(y);
 
-    const id = await core.serverPersistence.createNode(lNode);
+    if (exData) node.exData = exData;
 
-    if (!id) return null;
-
-    this.nodes.set(id, lNode);
-    core.store.emit(EVENTS.lNode.created, lNode);
-    return lNode;
+    core.serverPersistence.createNode(node, (id: string) => {
+      node._id = id;
+      this.nodes.set(id, node);
+    });
+    core.store.emit(EVENTS.node.created, node);
+    return node;
   }
 
   getNode(_id: string) {
     return this.nodes.get(_id);
   }
 
-  getAllNodes(): LNode[] {
+  getAlnodes(): LNode[] {
     return Array.from(this.nodes.values());
   }
-  // moveNodeTo(lNode: LNode, x: number, y: number): void {
-  //   if (lNode.x === x && lNode.y === y) return;
-  //   lNode.x = x;
-  //   lNode.y = y;
-  //   this.saveNode(lNode);
+  // moveNodeTo(node: LNode, x: number, y: number): void {
+  //   if (node.x === x && node.y === y) return;
+  //   node.x = x;
+  //   node.y = y;
+  //   this.saveNode(node);
   // }
-  // saveNode(lNode: INode) {
-  //   core.store.emit(EVENTS.lNode.updated, lNode);
-  // }
+
   // okNode(id: string): void {
   //   if (!this.nodes.has(id)) return;
 
-  //   const lNode = this.nodes.get(id)!;
-  //   lNode.ok = true;
+  //   const node = this.nodes.get(id)!;
+  //   node.ok = true;
 
-  //   if (lNode.exData?.repeatMode) {
+  //   if (node.exData?.repeatMode) {
   //     const nextDate = Tools.getNextWeekday(
-  //       parseInt(lNode.exData.repeatMode),
+  //       parseInt(node.exData.repeatMode),
   //     );
   //     nextDate.setHours(0, 0, 0, 0);
-  //     lNode.exData.repeatDay = nextDate;
+  //     node.exData.repeatDay = nextDate;
   //   }
-  //   this.saveNode(lNode);
-  //   core.store.emit(EVENTS.lNode.deleted, lNode);
+  //   this.saveNode(node);
+  //   core.store.emit(EVENTS.node.deleted, node);
   //   this.nodes.delete(id);
   // }
   putNodeInTrash(id: string): void {
-    const lNode = this.nodes.get(id);
-    if (!lNode) return;
+    const node = this.nodes.get(id);
+    if (!node) return;
 
-    lNode.inTrash = true;
-    if (lNode.exData?.repeatMode) {
-      const nextDate = Tools.getNextWeekday(parseInt(lNode.exData.repeatMode));
+    node.inTrash = true;
+    if (node.exData?.repeatMode) {
+      const nextDate = Tools.getNextWeekday(parseInt(node.exData.repeatMode));
       nextDate.setHours(0, 0, 0, 0);
-      lNode.exData.repeatDay = nextDate;
+      node.exData.repeatDay = nextDate;
     }
-    lNode.save();
-    core.store.emit(EVENTS.lNode.inTrash, lNode);
+    node.save();
+    core.store.emit(EVENTS.node.inTrash, node);
     this.nodes.delete(id);
   }
-  async create_TextEditCloneNode(lNode: LNode, x?: number, y?: number) {
-    if (!lNode.type) return;
+  async create_TextEditCloneNode(mainNode: LNode, x?: number, y?: number) {
+    if (!mainNode.type) return;
 
-    let vNode: VNode;
-    let cloneNodeEss: INode = {
-      type: NODE_TYPES.TEXT_EDIT_CLONE.id,
-    };
+    if (!(mainNode instanceof LNode_TextEdit)) return;
+
+    const cloneNode = this.addNode(
+      NODE_TYPES.TEXT_EDIT_CLONE.id,
+    ) as LNode_TEClone;
+    if (!cloneNode) return;
+    cloneNode.x = Tools.getDiskPosition(x ?? mainNode.x);
+    cloneNode.y = y ?? mainNode.y;
+
+    if (!mainNode.lID) {
+      mainNode.lID = this.getMaxLID() + 1;
+      mainNode.save();
+    }
+
+    cloneNode.mainNode = mainNode;
+
+    switch (mainNode.type) {
+      case NODE_TYPES.TEXT_EDIT.id:
+        cloneNode.sourceNode = mainNode;
+        break;
+      case NODE_TYPES.TEXT_EDIT_CLONE.id:
+        if (mainNode instanceof LNode_TEClone) {
+          cloneNode.sourceNode = mainNode.sourceNode;
+        }
+        break;
+    }
+
+    if (mainNode instanceof LNode_TextEdit) {
+      if (!mainNode.cloneNodes) mainNode.cloneNodes = new Set();
+      mainNode.cloneNodes.add(cloneNode);
+    }
+
+    cloneNode.save();
+
+    core.nodeRenderer.createVNode(cloneNode);
+
+    /*
+
+
+    if (node instanceof )
     if (
-      lNode.type == NODE_TYPES.TEXT_EDIT.id ||
-      lNode.type == NODE_TYPES.TEXT_EDIT_CLONE.id
+       ||
+      node.type == NODE_TYPES.TEXT_EDIT_CLONE.id
     ) {
       // ищим главную ноду от которой идут все клоны
-      let mainNodeEss = lNode;
+      let mainNodeEss = node;
       while (mainNodeEss.exData?.ownerNodesIds?.length) {
         mainNodeEss = this.getNode(mainNodeEss.exData.ownerNodesIds[0]!)!;
       }
       //
-      vNode = core.nodeRenderer.getVNode(lNode._id || "") as VTextEdit;
+      vNode = core.nodeRenderer.getVNode(node._id || "") as VTextEdit;
       if (!vNode) return;
       cloneNodeEss = {
         ...cloneNodeEss,
-        x: x ?? vNode.lNode.x, //+ vNode.width + 20,
-        y: y ?? vNode.lNode.y,
+        x: x ?? vNode.node.x, //+ vNode.width + 20,
+        y: y ?? vNode.node.y,
         exData: {
           ownerNodesIds: [mainNodeEss._id!],
         },
       };
       if (
-        lNode.type == NODE_TYPES.TEXT_EDIT_CLONE.id &&
+        node.type == NODE_TYPES.TEXT_EDIT_CLONE.id &&
         cloneNodeEss.exData &&
-        lNode.exData?.ownerNodesIds &&
-        lNode.exData.ownerNodesIds.length > 0
+        node.exData?.ownerNodesIds &&
+        node.exData.ownerNodesIds.length > 0
       ) {
-        cloneNodeEss.exData.ownerNodesIds = [lNode.exData.ownerNodesIds[0]!];
+        cloneNodeEss.exData.ownerNodesIds = [node.exData.ownerNodesIds[0]!];
       }
     } else return;
 
     const cloneNode = await this.createNode(cloneNodeEss);
-    if (!cloneNode) return null;
+    if (!cloneNode) return null;*/
     return cloneNode;
   }
   /**
@@ -384,12 +432,12 @@ export class NodeManager {
 
     const vNode = core.selectManager.selectedNodes.values().next()
       .value as VTextEdit;
-    const lNode = vNode.lNode;
-    const title = lNode.title || "";
+    const node = vNode.node;
+    const title = node.title || "";
 
     // пустая нода — просто сдвигаем вниз
     if (!title) {
-      vNode.moveAniTo(null, (lNode.y ?? 0) + 25);
+      vNode.moveAniTo(null, (node.y ?? 0) + 25);
       return;
     }
 
@@ -409,31 +457,31 @@ export class NodeManager {
     vNode.render();
     // добавляем lID
     let parentLID = 1;
-    if (lNode.lID) {
-      parentLID = lNode.lID;
+    if (node.lID) {
+      parentLID = node.lID;
     } else {
       parentLID = this.getMaxLID() + 1;
-      lNode.lID = parentLID;
+      node.lID = parentLID;
     }
 
-    lNode.save();
+    node.save();
 
     vNode.turnOff_EditTitleMode();
     core.selectManager.clearSelection();
 
     // создаём новую ноду с правым текстом
-    const newLNode = await this.copyNode(lNode, {
-      x: lNode.x,
-      y: lNode.y + vNode.height,
+    const newNode = await this.copyNode(node, {
+      x: node.x,
+      y: node.y + vNode.height,
       title: rightText,
       lID: undefined,
     });
-    if (newLNode) {
-      newLNode.setNewListParent(lNode, 0);
+    if (newNode) {
+      newNode.setNewListParent(node, 0);
     }
 
     const newVnode = core.selectManager.selectNodeById(
-      newLNode?._id || "",
+      newNode?._id || "",
     ) as VTextEdit;
     newVnode?.onStop();
     if (newVnode) {

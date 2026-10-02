@@ -1,12 +1,10 @@
 import { EventEmitter } from "@base/client/features/event-emitter";
 import type { DeskSnapshot } from "./interfaces";
 import type { VNode } from "../nodes/VNode";
-
-// import type { INode } from "@shared/types";
 import type Helper_main from "../nodes/VFrame/Helper/Helper_main";
 import type Helper_sub from "../nodes/VFrame/Helper/Helper_sub";
 import type VM_frame from "../nodes/VFrame/VFrame";
-import type { LNode } from "@shared/types/LNode";
+import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export const EVENTS = {
   page: {
@@ -16,9 +14,9 @@ export const EVENTS = {
     refreshAllVNodes: "renderer:refreshAll", //срабатывает когда все ноды иницированы и отрендерены
   },
   NodeManager: {
-    reInitAllNodes: "nodeManager:reInitAllNodes",
+    reInitAlnodes: "nodeManager:reInitAlnodes",
   },
-  lNode: {
+  node: {
     created: "node:created",
     updated: "node:updated",
     moved: "node:moved",
@@ -64,20 +62,20 @@ export const EVENTS = {
 } as const;
 
 export type DeskEvents = {
-  [EVENTS.NodeManager.reInitAllNodes]: void;
-  [EVENTS.lNode.created]: LNode;
-  [EVENTS.lNode.updated]: LNode;
-  [EVENTS.lNode.moved]: LNode;
-  [EVENTS.lNode.moving]: LNode;
-  [EVENTS.lNode.deleted]: LNode;
-  [EVENTS.lNode.selected]: LNode | null;
-  [EVENTS.lNode.unselected]: LNode | null;
-  [EVENTS.lNode.inTrash]: LNode;
-  [EVENTS.lNode.ok]: LNode;
+  [EVENTS.NodeManager.reInitAlnodes]: void;
+  [EVENTS.node.created]: LNode;
+  [EVENTS.node.updated]: LNode;
+  [EVENTS.node.moved]: LNode;
+  [EVENTS.node.moving]: LNode;
+  [EVENTS.node.deleted]: LNode;
+  [EVENTS.node.selected]: LNode | null;
+  [EVENTS.node.unselected]: LNode | null;
+  [EVENTS.node.inTrash]: LNode;
+  [EVENTS.node.ok]: LNode;
   [EVENTS.server.loaded]: DeskSnapshot;
   [EVENTS.server.updated]: DeskSnapshot;
   [EVENTS.server.error]: Error;
-  [EVENTS.lNode.selectedMoved]: VNode[];
+  [EVENTS.node.selectedMoved]: LNode[];
   [EVENTS.renderer.refreshAllVNodes]: void;
   [EVENTS.vNode.pointer.down]: VNode;
   [EVENTS.vNode.pointer.move]: VNode;
@@ -92,7 +90,7 @@ export type DeskEvents = {
     subFrame: VM_frame;
     mainFrame: VM_frame;
   };
-  [EVENTS.frame.sub.addNodeClone]: { lNode: LNode; subFrame: VM_frame };
+  [EVENTS.frame.sub.addNodeClone]: { node: LNode; subFrame: VM_frame };
   [EVENTS.helper.main.btnConnection]: {
     mainHelper: Helper_main;
     subFrame: VM_frame;

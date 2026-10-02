@@ -27,9 +27,6 @@ export interface INode {
         url?: string | undefined;
         h?: string | undefined; // поле для заголовков
         hh?: number | undefined; // поле для высоты блока
-        // Fm?: number; //фрайм - режим списка/свободный
-        // Fp?: string; //фрайм - родительская нода
-        // Fi?: number; //фрайм - порядковый номер в списке
       }
     | undefined;
 }

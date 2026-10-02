@@ -139,14 +139,14 @@ class CNodesMenu extends HTMLElement {
     this.initBlTextStyle();
 
     this.unsubcripes.push(
-      core.store.on(EVENTS.lNode.selected, (_node) => {
+      core.store.on(EVENTS.node.selected, (_node) => {
         if (core.mode.selectedVNodeCount === 0) return;
 
         this.optionsBlocks.forEach((block) => {
           block.render();
         });
       }),
-      core.store.on(EVENTS.lNode.unselected, (_node) => {
+      core.store.on(EVENTS.node.unselected, (_node) => {
         this.optionsBlocks.forEach((block) => {
           block.hide();
         });
@@ -172,12 +172,12 @@ class CNodesMenu extends HTMLElement {
     }
     const HGroup = new BtnGroup(hBtns, hBlock, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.lNode.exData) {
-          node.lNode.exData = {};
+        if (!node.exData) {
+          node.exData = {};
         }
-        node.lNode.exData.h = value || "";
-        node.lNode.save();
-        node.render();
+        node.exData.h = value || "";
+        node.save();
+        node.vNode?.render();
       });
     });
 
@@ -198,12 +198,12 @@ class CNodesMenu extends HTMLElement {
 
     const btnGroup_color = new BtnGroup(btnData, textColor, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.lNode.exData) {
-          node.lNode.exData = {};
+        if (!node.exData) {
+          node.exData = {};
         }
-        node.lNode.exData.tColor = value || "";
-        node.lNode.save();
-        node.render();
+        node.exData.tColor = value || "";
+        node.save();
+        node.vNode?.render();
       });
     });
     //--- bg ---//
@@ -218,12 +218,12 @@ class CNodesMenu extends HTMLElement {
     const bgColor = this.querySelector(".bg-color") as HTMLDivElement;
     const btnGroupBG = new BtnGroup(btnDataBG, bgColor, (value) => {
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.lNode.exData) {
-          node.lNode.exData = {};
+        if (!node.exData) {
+          node.exData = {};
         }
-        node.lNode.exData.bgColor = value || "";
-        node.lNode.save();
-        node.render();
+        node.exData.bgColor = value || "";
+        node.save();
+        node.vNode?.render();
       });
     });
 
@@ -232,9 +232,9 @@ class CNodesMenu extends HTMLElement {
 
       const firstNode = core.selectManager.selectedNodes.values().next().value;
       if (firstNode) {
-        btnGroup_color.setActiveBtn(firstNode.lNode.exData?.tColor || "", true);
-        btnGroupBG.setActiveBtn(firstNode.lNode.exData?.bgColor || "", true);
-        HGroup.setActiveBtn(firstNode.lNode.exData?.h || "", true);
+        btnGroup_color.setActiveBtn(firstNode.exData?.tColor || "", true);
+        btnGroupBG.setActiveBtn(firstNode.exData?.bgColor || "", true);
+        HGroup.setActiveBtn(firstNode.exData?.h || "", true);
       }
     });
 
@@ -250,13 +250,13 @@ class CNodesMenu extends HTMLElement {
       let f = true;
       let urlValue: string = "-";
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!(node instanceof VPage)) {
+        if (!node.vNode) {
           f = false;
         } else {
           if (urlValue === "-") {
-            urlValue = node.lNode.exData?.url || "";
+            urlValue = node.exData?.url || "";
           } else {
-            if (urlValue !== node.lNode.exData?.url) {
+            if (urlValue !== node.exData?.url) {
               urlValue = "--";
             }
           }
@@ -281,11 +281,11 @@ class CNodesMenu extends HTMLElement {
     url.addEventListener("blur", () => {
       core.mode.textEditing = false;
       core.selectManager.selectedNodes.forEach((node) => {
-        if (!node.lNode.exData) {
-          node.lNode.exData = {};
+        if (!node.exData) {
+          node.exData = {};
         }
-        node.lNode.exData.url = url.textContent;
-        node.lNode.save();
+        node.exData.url = url.textContent;
+        node.save();
       });
     });
   }
@@ -299,11 +299,11 @@ class CNodesMenu extends HTMLElement {
       inpEl.textContent = "";
 
       core.selectManager.selectedNodes.forEach((node) => {
-        if (node.lNode.exData) {
-          delete node.lNode.exData.repeatMode;
-          delete node.lNode.exData.repeatDay;
-          node.lNode.save();
-          node.render();
+        if (node.exData) {
+          delete node.exData.repeatMode;
+          delete node.exData.repeatDay;
+          node.save();
+          node.vNode?.render();
         }
       });
     });
@@ -343,18 +343,18 @@ class CNodesMenu extends HTMLElement {
       if (isChanged) {
         core.selectManager.selectedNodes.forEach((node) => {
           if (repeatDay) {
-            if (!node.lNode.exData) {
-              node.lNode.exData = {};
+            if (!node.exData) {
+              node.exData = {};
             }
-            node.lNode.exData.repeatDay = repeatDay;
+            node.exData.repeatDay = repeatDay;
           } else {
-            if (node.lNode.exData) {
-              delete node.lNode.exData.repeatDay;
+            if (node.exData) {
+              delete node.exData.repeatDay;
             }
           }
 
-          node.lNode.save();
-          node.render();
+          node.save();
+          node.vNode?.render();
         });
 
         inpEl.blur();
@@ -400,17 +400,17 @@ class CNodesMenu extends HTMLElement {
 
         let f = true;
         core.selectManager.selectedNodes.forEach((node) => {
-          if (!node.lNode.exData) {
-            node.lNode.exData = {};
+          if (!node.exData) {
+            node.exData = {};
           }
-          if (node.lNode.exData.repeatMode === i.toString()) {
-            delete node.lNode.exData.repeatMode;
+          if (node.exData.repeatMode === i.toString()) {
+            delete node.exData.repeatMode;
             f = false;
           } else {
-            node.lNode.exData.repeatMode = i.toString();
+            node.exData.repeatMode = i.toString();
           }
-          node.lNode.save();
-          node.render();
+          node.save();
+          node.vNode?.render();
         });
         if (f) {
           el.classList.toggle("active");
@@ -419,25 +419,25 @@ class CNodesMenu extends HTMLElement {
     });
 
     this.unsubcripes.push(
-      core.store.on(EVENTS.lNode.selected, (_node) => {
+      core.store.on(EVENTS.node.selected, (_node) => {
         repeatBlock.classList.add("active");
         clearBtns();
         inpEl.textContent = "";
         core.selectManager.selectedNodes.forEach((node) => {
-          if (node.lNode.exData?.repeatMode) {
-            const idx = parseInt(node.lNode.exData.repeatMode) || 0;
+          if (node.exData?.repeatMode) {
+            const idx = parseInt(node.exData.repeatMode) || 0;
             if (dayBtns[idx]) {
               dayBtns[idx].classList.add("active");
             }
           }
-          if (node.lNode.exData?.repeatDay) {
+          if (node.exData?.repeatDay) {
             inpEl.textContent = Tools.formatDate(
-              new Date(node.lNode.exData.repeatDay),
+              new Date(node.exData.repeatDay),
             );
           }
         });
       }),
-      core.store.on(EVENTS.lNode.unselected, (_node) => {
+      core.store.on(EVENTS.node.unselected, (_node) => {
         repeatBlock.classList.remove("active");
       }),
     );

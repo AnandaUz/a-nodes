@@ -12,20 +12,20 @@ export class Clipboard {
         if (vNode instanceof VTextEdit) {
           if (vNode instanceof VTextEditClone) {
             const mainNode = core.nodeManager.getNode(
-              vNode.lNode.exData?.ownerNodesIds?.[0] || "",
+              vNode.node.exData?.ownerNodesIds?.[0] || "",
             );
 
             return mainNode?.title || "";
           }
-          return vNode.lNode.title;
+          return vNode.node.title;
         }
         return "";
       })
       .join("\n");
 
     // структурированные данные — для вставки в своё приложение
-    const lNode = vNodes.map((vNode) => vNode.lNode);
-    const appData = JSON.stringify({ type: "a-nodes", lNode });
+    const node = vNodes.map((vNode) => vNode.node);
+    const appData = JSON.stringify({ type: "a-nodes", node });
 
     const item = new ClipboardItem({
       "text/plain": new Blob([plainText], { type: "text/plain" }),
@@ -57,7 +57,7 @@ export class Clipboard {
           try {
             const data = JSON.parse(this.unescapeHtml(match[1] || ""));
             if (data.type === "a-nodes") {
-              return { nodes: data.lNode };
+              return { nodes: data.node };
             }
           } catch {}
         }

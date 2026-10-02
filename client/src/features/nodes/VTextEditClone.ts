@@ -1,24 +1,10 @@
-// import type { INode } from "@shared/types";
 import VTextEdit from "./VTextEdit";
 import { core, EVENTS } from "../core/core";
 
 export default class VTextEditClone extends VTextEdit {
-  sourceVNode: VTextEdit | undefined;
-
   init(): void {
     super.init();
     this.body.classList.add("is-clone");
-    const sourceNodeId = this.lNode.exData?.ownerNodesIds?.[0];
-    if (!sourceNodeId) return;
-    this.sourceVNode = core.nodeRenderer.getVNode(sourceNodeId) as VTextEdit;
-    this.sourceVNode.subNodes.set(this.lNode._id || "", this);
-    this.unsubscribers.push(
-      core.store.on(EVENTS.lNode.updated, (lNode) => {
-        if (lNode._id === this.sourceVNode?.lNode._id) {
-          this.title = lNode.title;
-        }
-      }),
-    );
   }
   onInput() {
     this.setTitleText(this.titleEl.innerText);
@@ -72,7 +58,7 @@ export default class VTextEditClone extends VTextEdit {
   }
   get title() {
     if (!this.sourceVNode) return "#######";
-    return this.sourceVNode.lNode.title;
+    return this.sourceVNode.node.title;
   }
 
   highlight() {
