@@ -3,7 +3,7 @@ import VTextEdit from "../VTextEdit";
 import { LNode } from "./LNode";
 
 export class LNode_TextEdit extends LNode {
-  protected isEditMode: boolean = false;
+  isEditMode: boolean = false;
   cloneNodes?: Set<LNode>;
   getVNodeType() {
     return VTextEdit;
@@ -44,10 +44,15 @@ export class LNode_TextEdit extends LNode {
     document.removeEventListener("keydown", this.turnOf_edit_byEsc);
   }
 
-  setTitleText(v: string | undefined, putInInnerHTML = false) {
+  setTitleText(
+    v: string | undefined,
+    putInInnerHTML = false,
+    initFromClone: any = null,
+  ) {
     const vNode = this.vNode as VTextEdit;
     if (!vNode) return;
     if (putInInnerHTML) vNode.titleEl.innerText = v || "";
+
     const startH = vNode.height;
     vNode.refreshBodyRect();
     const endH = vNode.height;
@@ -56,6 +61,13 @@ export class LNode_TextEdit extends LNode {
       // this.moveAniTo(null, this.y - (endH - startH));
       // const rect = { ...this.bodyRect, height: endH };
       // core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [this]);
+    }
+
+    if (this.cloneNodes) {
+      this.cloneNodes.forEach((subNode) => {
+        if (subNode === initFromClone) return;
+        (subNode as LNode_TextEdit).setTitleText(v, true);
+      });
     }
   }
   onInput() {
@@ -69,5 +81,8 @@ export class LNode_TextEdit extends LNode {
     //     vNode.subNodes.forEach((subNode) => {
     //       subNode.setTitleText(this.title, true);
     //     });
+  }
+  getSourceNode(): LNode_TextEdit | undefined {
+    return this;
   }
 }

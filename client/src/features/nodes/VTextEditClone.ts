@@ -1,23 +1,12 @@
 import VTextEdit from "./VTextEdit";
-import { core, EVENTS } from "../core/core";
 
 export default class VTextEditClone extends VTextEdit {
   init(): void {
     super.init();
     this.body.classList.add("is-clone");
   }
-  onInput() {
-    this.setTitleText(this.titleEl.innerText);
-    if (this.sourceVNode) {
-      this.sourceVNode.title = this.titleEl.innerText;
-      this.sourceVNode.setTitleText(this.title, true);
-
-      //обновляем детей
-      this.sourceVNode.subNodes.forEach((subNode) => {
-        if (subNode === this) return;
-        subNode.setTitleText(this.title, true);
-      });
-    }
+  render(): void {
+    super.render();
   }
 
   // onInput() {
@@ -37,34 +26,4 @@ export default class VTextEditClone extends VTextEdit {
   //     subNode.title = this.title;
   //   });
   // }
-  turnOff_EditTitleMode() {
-    core.mode.textEditing = false;
-    core.mode.textNode = false;
-    this.isEditMode = false;
-
-    this.titleEl.contentEditable = "false";
-
-    document.removeEventListener("keydown", this.turnOf_edit_byEsc);
-    if (!this.sourceVNode) {
-      return;
-    }
-
-    this.sourceVNode.title = this.title || "";
-    this.sourceVNode.turnOff_EditTitleMode();
-  }
-  set title(v: string | undefined) {
-    if (!this.sourceVNode) return;
-    this.sourceVNode.title = v || "";
-  }
-  get title() {
-    if (!this.sourceVNode) return "#######";
-    return this.sourceVNode.node.title;
-  }
-
-  highlight() {
-    this.sourceVNode?.highlight();
-  }
-  unhighlight() {
-    this.sourceVNode?.unhighlight();
-  }
 }

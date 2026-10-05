@@ -1,7 +1,6 @@
 import "./vNode.scss";
 import { VNode } from "./VNode";
 import { core, EVENTS } from "../core/core";
-import VFrame from "@/features/nodes/VFrame/VFrame";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export class NodeRenderer {
@@ -52,7 +51,7 @@ export class NodeRenderer {
     this.vNodes.delete(id);
   }
   renderAll() {
-    core.nodeManager.getAlnodes().forEach((node) => {
+    core.nodeManager.getAllNodes().forEach((node) => {
       if (!node.visible) return;
       this.createVNode(node);
     });
@@ -72,7 +71,7 @@ export class NodeRenderer {
    */
   pushdown_nodes_out_of_rect(out_of_rect: DOMRect, exNodes: LNode[] = []) {
     if (out_of_rect.height === 0) return;
-
+    /*
     const exSet = new Set<LNode>(exNodes); // Set вместо массива — поиск O(1)
     const mRes: LNode[] = [];
 
@@ -115,5 +114,6 @@ export class NodeRenderer {
         // node.moveAniTo(null, node.node.y + dy);
         node.moveTo({ x: undefined, y: node.node.y + dy });
       });
+      */
   }
 }

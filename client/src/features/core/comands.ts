@@ -5,6 +5,7 @@ import VFrame from "../nodes/VFrame/VFrame";
 import Tools from "./Tools";
 import type VFrame_main from "../nodes/VFrame/VFrame_main";
 import type { LNode } from "../nodes/LNode/LNode";
+import { LNode_TEClone } from "../nodes/LNode/LNode_TEClone";
 
 interface Command {
   label: string;
@@ -143,9 +144,16 @@ const commands: Command[] = [
           Tools.stopEvent(e);
           const nodes = Array.from(core.selectManager.selectedNodes.values());
 
-          const newNodes: LNode[] = [];
+          const newNodes: LNode_TEClone[] = [];
           nodes.forEach((node) => {
-            core.nodeManager.create_TextEditCloneNode(node);
+            const nNode = core.nodeManager.create_TextEditCloneNode(
+              node,
+              node.x,
+              node.y,
+            );
+            if (nNode && nNode instanceof LNode_TEClone) {
+              newNodes.push(nNode);
+            }
           });
 
           // const newNodeEsses = (
@@ -158,7 +166,7 @@ const commands: Command[] = [
 
           core.selectManager.clearSelection();
           newNodes.forEach((newNode) => {
-            core.selectManager.selectNodeById(newNode._id || "", {
+            core.selectManager.selectNode(newNode, {
               ctrlKey: true,
             });
           });

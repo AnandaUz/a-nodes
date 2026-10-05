@@ -25,7 +25,7 @@ export class TransformMove {
       isPrimary: true,
     });
     this.selectManager.selectedNodes.forEach((node) => {
-      node.onPointerDown(pEvent);
+      node.vNode?.onPointerDown(pEvent);
     });
     core.mode.selectMoving = true;
   }
@@ -35,7 +35,7 @@ export class TransformMove {
     core.mode.wasMoving = true;
 
     this.selectManager.selectedNodes.forEach((node) => {
-      node.onPointerMove(e);
+      node.vNode?.onPointerMove(e);
     });
   };
 
@@ -43,7 +43,7 @@ export class TransformMove {
     if (!this.active) return;
 
     this.selectManager.selectedNodes.forEach((node) => {
-      node.onPointerUp(e);
+      node.vNode?.onPointerUp(e);
     });
     Tools.stopEvent(e);
 

@@ -29,20 +29,16 @@ export class LNode_Frame_main extends LNode {
     const frameRect = { ...vNode.bodyRect };
     frameRect.height = hh;
 
-    const vNodes = core.selectManager.getNodeOverRect(frameRect);
+    const nodes = core.selectManager.getNodeOverRect(frameRect);
     const list = this.list;
     if (!list.children) list.children = new Set();
-    vNodes.forEach((vNodeChild) => {
-      if (vNodeChild === vNode) return;
-      if (!vNodeChild.node.list) {
-        vNodeChild.node.list = {};
-      }
-
-      list?.children?.add(vNodeChild.node);
-      vNodeChild.node.list.parentNode = this;
+    nodes.forEach((node) => {
+      if (node === this) return;
+      list.children?.add(node);
+      node.list.parentNode = this;
     });
-    this.checkListTree();
-    this.setPositionForAllLinkedChildNodes();
+    this.list.checkTree();
+    this.list.setPositionForChildren();
 
     this.save();
   }

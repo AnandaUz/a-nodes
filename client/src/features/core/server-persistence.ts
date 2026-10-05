@@ -44,7 +44,7 @@ export class ServerPersistence {
     // Запрос летит параллельно — основной код не блокируется.
     // Когда ответ придёт, ID проставится прямо в объект node (по ссылке).
     api
-      .saveNodes([node])
+      .saveNodes([node.toDB()])
       .then((_ids) => {
         if (!_ids || _ids.length === 0) return;
         node._id = _ids[0] || "";

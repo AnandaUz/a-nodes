@@ -123,7 +123,7 @@ export class VNode {
   onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
     if (core.mode.textEditing) {
-      if (this.isSelected) return;
+      if (this.node.isSelected) return;
       // если режим редактирования, то клик по ноде переходит в редактирование
       // core.selectManager.clearSelection();
       core.selectManager.selectNodeById(this.node._id || "", {
@@ -180,7 +180,7 @@ export class VNode {
     if (!this.isDragging) return;
 
     if (
-      this.isSelected &&
+      this.node.isSelected &&
       core.selectManager.selectedNodes.size > 1 &&
       !core.mode.selectMoving
     ) {
@@ -189,7 +189,7 @@ export class VNode {
       return;
     }
 
-    if (!this.isSelected) {
+    if (!this.node.isSelected) {
       if (!core.mode.inputMode.coarse) {
         core.selectManager.onVNodeClick(e, this);
       }
@@ -214,7 +214,7 @@ export class VNode {
 
     // если у него есть дети
     if (this.node.list?.children?.size) {
-      this.node.setPositionForAllLinkedChildNodes();
+      this.node.list.setPositionForChildren();
     }
   };
 
