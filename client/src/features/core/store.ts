@@ -1,9 +1,9 @@
 import { EventEmitter } from "@base/client/features/event-emitter";
 import type { DeskSnapshot } from "./interfaces";
-import type { VNode } from "../nodes/VNode";
-import type Helper_main from "../nodes/VFrame/Helper/Helper_main";
-import type Helper_sub from "../nodes/VFrame/Helper/Helper_sub";
-import type VM_frame from "../nodes/VFrame/VFrame";
+import type { VNode } from "@features/nodes/VNode/VNode";
+import type Helper_main from "@features/nodes/VFrame/Helper/Helper_main";
+import type Helper_sub from "@features/nodes/VFrame/Helper/Helper_sub";
+import type VM_frame from "@features/nodes/VFrame/VFrame";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export const EVENTS = {

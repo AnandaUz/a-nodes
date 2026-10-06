@@ -1,11 +1,10 @@
 import { core } from "@/features/core/core";
 import VFrame from "../VFrame/VFrame";
-import type { VNode } from "../VNode";
-import { LNode } from "./LNode";
 import { NODE_TYPES } from "../node-registry";
+import { LNode_TextEdit } from "./LNode_TextEdit";
 
-export class LNode_Frame_main extends LNode {
-  getVNodeType(): typeof VNode {
+export class LNode_Frame_main extends LNode_TextEdit {
+  getVNodeType() {
     return VFrame;
   }
   constructor() {

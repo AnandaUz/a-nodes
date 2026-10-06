@@ -1,7 +1,7 @@
 // import { router } from "@/router";
 import { app } from "@/app";
-import Tools from "../core/Tools";
-import VTextEdit from "./VTextEdit";
+import Tools from "@/features/core/Tools";
+import VTextEdit from "@/features/nodes/VNode/VTextEdit";
 
 export class VPage extends VTextEdit {
   init() {

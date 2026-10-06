@@ -2,7 +2,6 @@ import { core, EVENTS } from "@/features/core/core";
 import html from "./c-nodes-menu.html?raw";
 import "./c-nodes-menu.scss";
 import Tools from "@/features/core/Tools";
-import { VPage } from "@/features/nodes/VPage";
 
 class OptionsBlock {
   body: HTMLElement;

@@ -1,6 +1,6 @@
-import { core, EVENTS } from "../core/core";
-import type { Command } from "../core/interfaces";
-import Tools from "../core/Tools";
+import { core, EVENTS } from "../../core/core";
+import type { Command } from "../../core/interfaces";
+import Tools from "../../core/Tools";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 interface Position {
@@ -36,26 +36,12 @@ export class VNode {
 
   constructor(node: LNode, container: HTMLElement) {
     this.node = node;
-
-    // this._id = node._id || "";
-    // this.x = node.x ?? 0;
-    // this.y = node.y ?? 0;
-
     this.container = container;
-
     this.body = document.createElement("div");
     this.body.className = "vNode";
-    // this.body.dataset['_id'] = node._id;
-
     this.applyPosition();
     this.container.appendChild(this.body);
   }
-  // get height() {
-  //   return this.body.offsetHeight;
-  // }
-  // get width() {
-  //   return this.body.offsetWidth;
-  // }
   get bodyRect() {
     return {
       x: this.node.x,
@@ -68,7 +54,6 @@ export class VNode {
     this.width = this.body.offsetWidth;
     this.height = this.body.offsetHeight;
   }
-
   init() {
     this.bodyInit();
     this.initMovingElement();
@@ -77,13 +62,9 @@ export class VNode {
     this.unsubscribers.push(
       core.store.on(EVENTS.node.updated, (node) => {
         if (node._id !== this.node._id) return;
-        // this.node = node;
-        // this.x = node.x ?? 0;
-        // this.y = node.y ?? 0;
         this.applyPosition();
       }),
     );
-
     this.bind();
   }
   initMovingElement() {
@@ -108,6 +89,7 @@ export class VNode {
     this.body.remove();
     this.unsubscribers.forEach((unsub) => unsub());
     this.unbind();
+    this.elSVG?.remove();
   }
   bind() {
     this.movingElement.addEventListener("pointerdown", this.onPointerDown);
@@ -126,9 +108,7 @@ export class VNode {
       if (this.node.isSelected) return;
       // если режим редактирования, то клик по ноде переходит в редактирование
       // core.selectManager.clearSelection();
-      core.selectManager.selectNodeById(this.node._id || "", {
-        ctrlKey: false,
-      });
+      core.selectManager.selectNode(this.node, { ctrlKey: false });
       // this.select();
       this.onDoubleClick(e);
       core.mode.textEditing = true;
@@ -213,7 +193,7 @@ export class VNode {
     core.store.emit(EVENTS.node.moving, this.node);
 
     // если у него есть дети
-    if (this.node.list?.children?.size) {
+    if (this.node.list.children?.size) {
       this.node.list.setPositionForChildren();
     }
   };
@@ -369,33 +349,41 @@ export class VNode {
     }  */
   }
   renderSVG() {
+    // только у топовых родителей
+    if (this.node.list.parentNode) return;
     // если есть дети, то рисуется фон в виде прямоугольника
-    // const children = this.node.list?.children;
-    // if (children && children.size > 0) {
-    //   const lRect = this.node.getNodeRect();
-    //   if (!this.elSVG) {
-    //     this.elSVG = core.desk.svgLayer.drawRect(
-    //       lRect.x,
-    //       lRect.y,
-    //       lRect.width,
-    //       lRect.height,
-    //       "#dce4e920",
-    //     );
-    //   } else {
-    //     this.elSVG.setAttribute("x", lRect.x.toString());
-    //     this.elSVG.setAttribute("y", lRect.y.toString());
-    //     this.elSVG.setAttribute("width", lRect.width.toString());
-    //     this.elSVG.setAttribute("height", lRect.height.toString());
-    //   }
-    // } else {
-    //   if (this.elSVG) {
-    //     this.elSVG.remove();
-    //     this.elSVG = null;
-    //   }
-    // }
+    const children = this.node.list.children;
+    if (children && children.size > 0) {
+      const lRect = this.node.getNodeRect();
+      if (!this.elSVG) {
+        this.elSVG = core.desk.svgLayer.drawRect(
+          lRect.x,
+          lRect.y,
+          lRect.width,
+          lRect.height,
+          "#dce4e920",
+        );
+      } else {
+        this.elSVG.setAttribute("x", lRect.x.toString());
+        this.elSVG.setAttribute("y", lRect.y.toString());
+        this.elSVG.setAttribute("width", lRect.width.toString());
+        this.elSVG.setAttribute("height", lRect.height.toString());
+      }
+    } else {
+      if (this.elSVG) {
+        this.elSVG.remove();
+        this.elSVG = null;
+      }
+    }
     // children?.forEach((c) => {
     //   c.vNode?.renderSVG();
     // });
+  }
+  highlight() {
+    this.body.classList.add("highlight");
+  }
+  unhighlight() {
+    this.body.classList.remove("highlight");
   }
 
   moveAniTo(x: number | null = null, y: number | null = null, delay = 0) {

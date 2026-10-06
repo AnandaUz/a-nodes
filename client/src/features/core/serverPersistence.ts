@@ -75,9 +75,11 @@ export class ServerPersistence {
     if (this.isSaving || this.dirtyNodes.size === 0) return;
     this.isSaving = true;
 
-    const snapshot = Array.from(this.dirtyNodes).map((node) => node.toDB());
-    this.dirtyNodes.clear();
+    const snapshot = Array.from(this.dirtyNodes)
+      .filter((n) => n._id !== "")
+      .map((node) => node.toDB());
 
+    this.dirtyNodes.clear();
     try {
       await api.saveNodes(snapshot);
     } catch (err) {

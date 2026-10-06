@@ -1,6 +1,8 @@
 import { core } from "@/features/core/core";
-import VTextEdit from "../VTextEdit";
+import VTextEdit from "../VNode/VTextEdit";
 import { LNode } from "./LNode";
+
+import type { LNode_TEClone } from "./LNode_TEClone";
 
 export class LNode_TextEdit extends LNode {
   isEditMode: boolean = false;
@@ -13,6 +15,18 @@ export class LNode_TextEdit extends LNode {
       this.turnOff_EditTitleMode();
     }
   };
+  refresh() {
+    // this.vNode?.render();
+    if (this.cloneNodes) {
+      this.cloneNodes.forEach((cl) => {
+        const node = cl as LNode_TEClone;
+        node.setLineOfParentsTitle();
+      });
+    }
+    this.list.children?.forEach((childNode) => {
+      childNode.refresh();
+    });
+  }
   turnOn_EditTitleMode() {
     if (core.mode.selectedVNodeCount > 1) {
       return;
@@ -57,16 +71,46 @@ export class LNode_TextEdit extends LNode {
     vNode.refreshBodyRect();
     const endH = vNode.height;
 
-    if (startH < endH) {
-      // this.moveAniTo(null, this.y - (endH - startH));
-      // const rect = { ...this.bodyRect, height: endH };
-      // core.nodeRenderer.pushdown_nodes_out_of_rect(rect, [this]);
+    if (startH !== endH) {
+      if (this.list.parentNode) {
+        this.list.getMainParent()?.list.setPositionForChildren();
+      }
     }
 
     if (this.cloneNodes) {
       this.cloneNodes.forEach((subNode) => {
-        if (subNode === initFromClone) return;
-        (subNode as LNode_TextEdit).setTitleText(v, true);
+        const f = subNode !== initFromClone;
+
+        (subNode as LNode_TextEdit).setTitleText(v, f, initFromClone);
+      });
+    }
+  }
+  select() {
+    super.select();
+    this.selectPost();
+  }
+  selectPost() {
+    if (this.cloneNodes && this.cloneNodes?.size > 0) {
+      this.highlight();
+    }
+  }
+  unselect() {
+    super.unselect();
+    this.unhighlight();
+  }
+  highlight() {
+    this.vNode?.highlight();
+    if (this.cloneNodes && this.cloneNodes?.size > 0) {
+      (this.cloneNodes as Set<LNode_TEClone>).forEach((node) => {
+        node.highlight();
+      });
+    }
+  }
+  unhighlight() {
+    this.vNode?.unhighlight();
+    if (this.cloneNodes && this.cloneNodes?.size > 0) {
+      (this.cloneNodes as Set<LNode_TEClone>).forEach((node) => {
+        node.unhighlight();
       });
     }
   }
@@ -76,13 +120,8 @@ export class LNode_TextEdit extends LNode {
 
     this.title = vNode.titleEl.innerText;
     this.setTitleText(this.title);
-
-    //обновляем детей
-    //     vNode.subNodes.forEach((subNode) => {
-    //       subNode.setTitleText(this.title, true);
-    //     });
   }
-  getSourceNode(): LNode_TextEdit | undefined {
+  get sourceNode(): LNode_TextEdit | undefined {
     return this;
   }
 }

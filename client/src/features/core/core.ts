@@ -1,10 +1,8 @@
 import { Store, EVENTS } from "./store";
-import { NodeRenderer } from "@features/nodes/node-renderer";
-
+import { NodeRenderer } from "@/features/nodes/nodeRenderer";
 import { Desk } from "@features/desk/desk";
 import { getToken } from "@services/auth.service";
-// import { LocalPersistence } from "./local-persistence";
-import { ServerPersistence } from "./server-persistence";
+import { ServerPersistence } from "./serverPersistence";
 import { NodeManager } from "@features/nodes/NodeManager";
 import { initCommands } from "./comands";
 import { History } from "@features/core/history";
@@ -14,7 +12,6 @@ import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import Tools from "./Tools";
 import { app } from "@/app";
-import VFrame from "../nodes/VFrame/VFrame";
 
 export { EVENTS };
 export class Core {
@@ -93,18 +90,18 @@ export class Core {
         core.desk.disconnectNodesEl(); //>
         core.nodeRenderer.renderAll();
         core.desk.connectNodesEl(); //<
-        core.nodeRenderer.getAlnodes().forEach((node) => {
-          node.refreshBodyRect();
+        core.nodeManager.nodes.forEach((node) => {
+          node.vNode?.refreshBodyRect();
 
-          if (node instanceof VFrame) {
-            // собираем все фреймы в ядко фреймов
-            this.frameCore.addFrame(node);
-          }
+          // if (node instanceof VFrame) {
+          //   // собираем все фреймы в ядко фреймов
+          //   this.frameCore.addFrame(node);
+          // }
         });
 
         this.nodeManager.setPositionForAllLinkedChildNodes();
-        core.nodeRenderer.getAlnodes().forEach((node) => {
-          node.renderSVG();
+        core.nodeManager.nodes.forEach((node) => {
+          node.vNode?.renderSVG();
         });
 
         // core.desk.disconnectNodesEl(); //>

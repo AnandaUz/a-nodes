@@ -1,7 +1,6 @@
-import type { INode } from "@shared/types";
-import type { VNode } from "../nodes/VNode";
-import VTextEdit from "../nodes/VTextEdit";
-import VTextEditClone from "../nodes/VTextEditClone";
+import type { VNode } from "../nodes/VNode/VNode";
+import VTextEdit from "../nodes/VNode/VTextEdit";
+import VTextEditClone from "../nodes/VNode/VTextEditClone";
 import { core } from "./core";
 
 export class Clipboard {

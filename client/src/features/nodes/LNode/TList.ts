@@ -3,22 +3,79 @@ import { LNode } from "./LNode";
 import { GRID } from "@/features/core/CONST";
 import { core } from "@/features/core/core";
 
+// /** класс для полей на изменение которых вызывает обновление */
+// class Observable<T> {
+//   private _val: T;
+//   private _listeners = new Set<(v: T) => void>();
+
+//   constructor(initial: T) {
+//     this._val = initial;
+//   }
+
+//   get value() {
+//     return this._val;
+//   }
+//   set value(v: T) {
+//     if (this._val === v) return;
+//     this._val = v;
+//     this._listeners.forEach((fn) => fn(v));
+//   }
+
+//   onChange(fn: (v: T) => void): () => void {
+//     this._listeners.add(fn);
+//     return () => this._listeners.delete(fn);
+//   }
+// }
+
 export default class TList {
   private owner: LNode;
   parentLID?: number | undefined;
-  parentNode?: LNode | null;
+  _parentNode?: LNode | null;
   index?: number;
-  tab?: number;
+  _tab?: number;
   children?: Set<LNode>;
+  private _onChangeListeners: Set<() => void> = new Set();
   constructor(owner: LNode) {
     this.owner = owner;
+  }
+  get parentNode() {
+    return this._parentNode || null;
+  }
+  set parentNode(node: LNode | null) {
+    if (node === this._parentNode) return;
+    this._parentNode = node;
+    this.parentLID = node?.lID;
+    this._onChangeListeners.forEach((fn) => fn());
+  }
+  get tab() {
+    return this._tab ?? 0;
+  }
+  set tab(tab: number) {
+    if (this._tab === tab) return;
+    this._tab = tab;
+    this._onChangeListeners.forEach((fn) => fn());
+  }
+  onChange(fn: () => void): () => void {
+    this._onChangeListeners.add(fn);
+    return () => this._onChangeListeners.delete(fn); // отписка
+  }
+  forEachChildren(fn: (node: LNode, index: number) => void) {
+    if (this.children?.size) {
+      const m = [...this.children].sort(
+        (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
+      );
+      for (const [index, child] of m.entries()) {
+        fn(child, index);
+        child.list.forEachChildren(fn);
+      }
+    }
   }
   /** проверяем дерево выстроенно верно или случились ошибки */
   checkTree() {
     const owner = this.owner;
     const descendants: LNode[] = [];
     const gather = (node: LNode) => {
-      if (node.list?.children) {
+      if (node.list.children) {
         for (const child of node.list.children) {
           descendants.push(child);
           gather(child);
@@ -57,8 +114,8 @@ export default class TList {
       }
 
       let isChanged = false;
-      if (chNode.list && chNode.list?.parentNode !== mParent?.node) {
-        chNode.list?.parentNode?.list?.children?.delete(chNode);
+      if (chNode.list && chNode.list.parentNode !== mParent?.node) {
+        chNode.list.parentNode?.list.children?.delete(chNode);
         const s = mParent?.node.list;
         if (s && !s.children) s.children = new Set();
         s?.children?.add(chNode);
@@ -68,7 +125,7 @@ export default class TList {
         console.log("тут!!!!");
         isChanged = true;
       }
-      if (mParent && chNode && chNode.list?.index !== mParent.count) {
+      if (mParent && chNode && chNode.list.index !== mParent.count) {
         chNode.list!.index = mParent.count;
         const t =
           (Tools.getDiskPosition(chNode.x) -
@@ -88,7 +145,7 @@ export default class TList {
     const willRefParent: LNode[] = [];
     const parentNode = this.parentNode;
     if (parentNode) {
-      parentNode.list?.children?.delete(this.owner);
+      parentNode.list.children?.delete(this.owner);
       willRefParent.push(parentNode);
     }
     this.parentLID = undefined;
@@ -102,18 +159,18 @@ export default class TList {
     let t = 0;
     // если родитель принадлежит списку
 
-    if (parent.list?.parentNode) {
+    if (parent.list.parentNode) {
       let pnode: LNode | null | undefined = parent;
-      newIndex = (parent.list?.index ?? 0) + 0.1;
+      newIndex = (parent.list.index ?? 0) + 0.1;
 
       t = Math.round((owner.x - parent.x) / GRID.x);
       if (t <= 0) {
         let tt = 10;
         while (t <= 0) {
-          if (!pnode?.list?.parentNode) break;
+          if (!pnode?.list.parentNode) break;
 
-          newIndex = (pnode.list?.index ?? 0) + 0.5;
-          pnode = pnode?.list?.parentNode;
+          newIndex = (pnode.list.index ?? 0) + 0.5;
+          pnode = pnode?.list.parentNode;
 
           t = Math.round((owner.x - pnode.x) / GRID.x);
           if (tt-- < 0) break;
@@ -126,7 +183,6 @@ export default class TList {
     }
     if (!parent.lID) {
       parent.lID = core.nodeManager.getMaxLID() + 1;
-
       parent.save();
     }
 
@@ -134,18 +190,24 @@ export default class TList {
 
     // удаляем из списком прошлого родителя
     if (this.parentNode) {
-      this.parentNode.list?.children?.delete(owner);
+      this.parentNode.list.children?.delete(owner);
       willRefParent.push(this.parentNode);
     }
-    this.parentLID = parent.lID ?? 0;
-    this.parentNode = parent;
+    // this.parentLID = parent.lID ?? 0;
+
     this.index = newIndex - 0.5;
     this.tab = tab;
+    const oldParentNode = this.parentNode;
+    this.parentNode = parent;
+    // если изменился родитель
+    if (oldParentNode != parent) {
+      owner.refresh();
+    }
 
     if (!parent.list.children) parent.list.children = new Set();
     parent.list.children.add(owner);
     const m = [...parent.list.children].sort(
-      (a, b) => (a.list?.index ?? 0) - (b.list?.index ?? 0),
+      (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
     );
     m.forEach((node, index) => {
       if (node.list) {
@@ -161,7 +223,7 @@ export default class TList {
   }
   getMainParent(): LNode | null {
     let parent: LNode = this.owner;
-    while (parent.list?.parentNode) {
+    while (parent.list.parentNode) {
       parent = parent.list.parentNode;
     }
     return parent;
@@ -170,12 +232,12 @@ export default class TList {
     if (this.children?.size) {
       const owner = this.owner;
       const m = [...this.children].sort(
-        (a, b) => (a.list?.index ?? 0) - (b.list?.index ?? 0),
+        (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
       );
       let h = 0;
       const startY = owner.y + (owner.vNode?.height ?? 0);
       for (const child of m) {
-        child.x = owner.x + GRID.x * (child.list?.tab ?? 0);
+        child.x = owner.x + GRID.x * (child.list.tab ?? 0);
         child.y = startY + h;
         child.vNode?.applyPosition();
         const xx = Math.round((child.x - (parentX || owner.x)) / GRID.x);

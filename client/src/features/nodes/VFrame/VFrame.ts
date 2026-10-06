@@ -1,8 +1,8 @@
-import VTextEdit from "../VTextEdit";
+import VTextEdit from "../VNode/VTextEdit";
 import "./VFrame.scss";
 // import { core, EVENTS } from "@/features/core/core";
 import { Helper } from "./Helper/Helper";
-import type { VNode } from "../VNode";
+import type { VNode } from "../VNode/VNode";
 import Helper_main from "./Helper/Helper_main";
 import { GRID } from "@/features/core/CONST";
 import type { LNode } from "@/features/nodes/LNode/LNode";
@@ -50,7 +50,7 @@ export default class VFrame extends VTextEdit {
   }
   renderSVG() {
     // если есть дети, то рисуется фон в виде прямоугольника
-    const children = this.node.list?.children;
+    const children = this.node.list.children;
 
     const lRect = this.node.getNodeRect();
 

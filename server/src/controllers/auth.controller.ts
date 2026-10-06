@@ -7,7 +7,6 @@ import {
   verifyToken,
   verifyRefreshToken,
 } from "../utils/jwt";
-import { INode } from "../../../shared/types/INode";
 import { saveNodes } from "./node.controller";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);

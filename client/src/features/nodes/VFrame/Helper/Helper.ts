@@ -1,5 +1,5 @@
 import { core, EVENTS } from "@/features/core/core";
-import type { VNode } from "../../VNode";
+import type { VNode } from "../../VNode/VNode";
 import type VM_frame_main from "../VFrame_main";
 import type { LNode } from "../../LNode/LNode";
 

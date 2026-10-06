@@ -1,6 +1,6 @@
 import { LNode } from "./LNode";
 import { LNode_TextEdit } from "./LNode_TextEdit";
-import VTextEditClone from "../VTextEditClone";
+import VTextEditClone from "../VNode/VTextEditClone";
 import type { INodeDB } from "@shared/types/INodeDB";
 import { core } from "@/features/core/core";
 
@@ -9,8 +9,6 @@ const SOURCE_LID_BITS = 17; // 0x1ffff
 const SOURCE_LID_MASK = (1 << SOURCE_LID_BITS) - 1; // 0x1ffff
 
 export class LNode_TEClone extends LNode_TextEdit {
-  /** нода оригинал */
-  sourceNode: LNode_TextEdit | undefined;
   /** нода родитель */
   mainNode: LNode_TextEdit | undefined;
   mainNodeLID?: number;
@@ -18,16 +16,24 @@ export class LNode_TEClone extends LNode_TextEdit {
   init(): void {
     super.init();
     this.forCompatibility();
+  }
 
-    //     this.sourceVNode = core.nodeRenderer.getVNode(sourceNodeId) as VTextEdit;
-    //     this.sourceVNode.subNodes.set(this.node._id || "", this);
-    //     this.unsubscribers.push(
-    //       core.store.on(EVENTS.node.updated, (node) => {
-    //         if (node._id === this.sourceVNode?.node._id) {
-    //           this.title = node.title;
-    //         }
-    //       }),
-    //     );
+  setLineOfParentsTitle() {
+    const vNode = this.vNode as VTextEditClone;
+    if (!vNode) return;
+    vNode.elLineOfParentsTitle.innerHTML = "";
+
+    const mainNode = this.mainNode;
+    if (!mainNode) return;
+    const parentsTitles: string[] = [];
+    let sNode: LNode = mainNode;
+    while (sNode.list.parentNode) {
+      sNode = sNode.list.parentNode;
+      parentsTitles.push(sNode.title || "");
+    }
+    vNode.elLineOfParentsTitle.innerHTML = parentsTitles
+      .map((s) => `<span>${s}</span>`)
+      .join("");
   }
   onInput() {
     const vNode = this.vNode as VTextEditClone;
@@ -39,14 +45,12 @@ export class LNode_TEClone extends LNode_TextEdit {
     }
   }
   /** возращает ноду оригинал */
-  getSourceNode(): LNode_TextEdit | undefined {
+  get sourceNode(): LNode_TextEdit | undefined {
     let sNode: LNode = this;
-    while (!(sNode instanceof LNode_TextEdit)) {
-      if (sNode instanceof LNode_TEClone) {
-        sNode = sNode.mainNode as LNode;
-      }
+    while (sNode instanceof LNode_TEClone) {
+      sNode = sNode.mainNode as LNode;
     }
-    return sNode;
+    return sNode as LNode_TextEdit;
   }
   /** для совместимости */
   forCompatibility() {
@@ -96,10 +100,11 @@ export class LNode_TEClone extends LNode_TextEdit {
     return this.sourceNode.title;
   }
 
-  highlight() {
-    (this.sourceNode?.vNode as VTextEditClone)?.highlight();
+  selectPost() {
+    this.sourceNode?.highlight();
   }
-  unhighlight() {
-    (this.sourceNode?.vNode as VTextEditClone)?.unhighlight();
+  unselect() {
+    super.unselect();
+    this.sourceNode?.unhighlight();
   }
 }

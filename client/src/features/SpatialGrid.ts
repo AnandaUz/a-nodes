@@ -1,4 +1,4 @@
-import { VNode } from "@/features/nodes/VNode";
+import { VNode } from "@/features/nodes/VNode/VNode";
 
 /** пространственный индекс (spatial grid), убирает перебор вообще */
 export class SpatialGrid {

@@ -4,7 +4,7 @@ import { GRID } from "./CONST";
 import VFrame from "../nodes/VFrame/VFrame";
 import Tools from "./Tools";
 import type VFrame_main from "../nodes/VFrame/VFrame_main";
-import type { LNode } from "../nodes/LNode/LNode";
+
 import { LNode_TEClone } from "../nodes/LNode/LNode_TEClone";
 
 interface Command {
@@ -72,7 +72,7 @@ const commands: Command[] = [
             if (node.vNode) {
               node.vNode.body.classList.add("cutted");
             }
-            core.nodeManager.putNodeInTrash(node._id || "");
+            core.nodeManager.putNodeInTrash(node);
           });
         },
       },
@@ -108,9 +108,7 @@ const commands: Command[] = [
             const newNodeEss = await core.nodeManager.createNode(node);
 
             if (newNodeEss) {
-              core.selectManager.selectNodeById(newNodeEss._id || "", {
-                ctrlKey: true,
-              });
+              core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
             }
           });
         },
@@ -130,9 +128,7 @@ const commands: Command[] = [
 
           core.selectManager.clearSelection();
           newNodeEsses.forEach((newNodeEss) => {
-            core.selectManager.selectNodeById(newNodeEss._id || "", {
-              ctrlKey: true,
-            });
+            core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
           });
           core.selectManager.transformMove.start();
         },
@@ -155,14 +151,6 @@ const commands: Command[] = [
               newNodes.push(nNode);
             }
           });
-
-          // const newNodeEsses = (
-          //   await Promise.all(
-          //     vNodes.map((vnode) =>
-          //       core.nodeManager.create_TextEditCloneNode(vnode.node),
-          //     ),
-          //   )
-          // ).filter((n): n is INode => !!n);
 
           core.selectManager.clearSelection();
           newNodes.forEach((newNode) => {
@@ -241,7 +229,7 @@ const commands: Command[] = [
         execute: async () => {
           if (core.mode.textEditing) return;
           core.selectManager.selectedNodes.forEach((node) => {
-            core.nodeManager.putNodeInTrash(node._id || "");
+            core.nodeManager.putNodeInTrash(node);
           });
         },
       },

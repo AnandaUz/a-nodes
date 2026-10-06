@@ -1,7 +1,7 @@
 import { Helper } from "./Helper";
 import { core } from "@/features/core/core";
 import type Helper_sub from "./Helper_sub";
-import type { VNode } from "../../VNode";
+import type { VNode } from "../../VNode/VNode";
 import type VM_frame_main from "../VFrame_main";
 
 class Btn {

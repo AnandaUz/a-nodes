@@ -1,7 +1,7 @@
 import { core, EVENTS } from "@/features/core/core";
 import type { INodeDB } from "@shared/types/INodeDB";
-import type { VNode } from "@/features/nodes/VNode";
-import VTextEdit from "../VTextEdit";
+import type { VNode } from "@/features/nodes/VNode/VNode";
+import VTextEdit from "../VNode/VTextEdit";
 import TList from "./TList";
 
 // для упаковки
@@ -21,8 +21,12 @@ export class LNode {
   lastUpdate: Date | undefined;
   type: number = 0;
   private _title: string | undefined;
-  get title(): string | undefined { return this._title; }
-  set title(v: string | undefined) { this._title = v; }
+  get title(): string | undefined {
+    return this._title;
+  }
+  set title(v: string | undefined) {
+    this._title = v;
+  }
   isSelected = false;
   list = new TList(this);
   x: number = 0;
@@ -45,8 +49,31 @@ export class LNode {
   vNode?: VNode;
   visible: boolean = true;
 
-  constructor() {}
+  constructor() {
+    // this.list.onChange(() => {
+    //   console.log("LNode list.onChange()");
+    //   this.list.forEachChildren((child) => {
+    //     const node = child as LNode_TextEdit;
+    //     node.cloneNodes?.forEach((cl) => {
+    //       cl.refresh();
+    //     });
+    //   });
+    // });
+  }
+  /** всё что необходимо чтобы обновить ноду */
+  refresh() {}
   init() {}
+  /** удаляет ноду */
+  remove() {
+    this.vNode?.remove();
+    if (this.list.parentNode) {
+      const mainParent = this.list.getMainParent();
+      if (mainParent) {
+        mainParent.list.setPositionForChildren();
+        mainParent.vNode?.renderSVG();
+      }
+    }
+  }
 
   /** возращает тип для VNode */
   getVNodeType(): typeof VNode {
@@ -60,7 +87,7 @@ export class LNode {
       x1 = this.x + (this.vNode?.width ?? 0),
       y1 = this.y + (this.vNode?.height ?? 0);
 
-    if (this.list?.children?.size) {
+    if (this.list.children?.size) {
       for (const child of this.list.children) {
         const childRect = child.getNodeRect();
         x0 = Math.min(x0, childRect.x);
@@ -75,6 +102,16 @@ export class LNode {
       width: x1 - x0,
       height: y1 - y0,
     } as DOMRect;
+  }
+  /** выделить ноду */
+  select() {
+    this.isSelected = true;
+    this.vNode?.select();
+  }
+  /** снять выделение с ноды */
+  unselect() {
+    this.isSelected = false;
+    this.vNode?.unselect();
   }
   /**
    * Рекурсивно устанавливает позиции для всех дочерних узлов

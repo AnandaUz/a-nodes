@@ -1,5 +1,4 @@
-// import VFrame from "@/features/nodes/VFrame/VFrame";
-import type { LNode_TextEdit } from "./LNode/LNode_TextEdit";
+import type { LNode_TextEdit } from "../LNode/LNode_TextEdit";
 import { VNode } from "./VNode";
 
 export default class VTextEdit extends VNode {
@@ -67,31 +66,5 @@ export default class VTextEdit extends VNode {
         // this.onChange()
       }
     }
-  }
-  // onStop() {
-  //   super.onStop();
-  // }
-  // select(): void {
-  //   super.select();
-  //   this.highlight();
-  // }
-  // unselect(): void {
-  //   super.unselect();
-  //   this.unhighlight();
-  // }
-  highlight() {
-    this.body.classList.add("highlight");
-    // if (this.subNodes.size > 0) {
-
-    //   this.subNodes.forEach((subNode) => {
-    //     subNode.body.classList.add("highlight");
-    //   });
-    // }
-  }
-  unhighlight() {
-    this.body.classList.remove("highlight");
-    // this.subNodes.forEach((subNode) => {
-    //   subNode.body.classList.remove("highlight");
-    // });
   }
 }

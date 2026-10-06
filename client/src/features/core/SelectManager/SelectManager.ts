@@ -2,7 +2,7 @@ import { core, EVENTS } from "@features/core/core";
 import SelectionRect from "./SelectionRect";
 
 import "./SelectManager.scss";
-import type { VNode } from "@/features/nodes/VNode";
+import type { VNode } from "@/features/nodes/VNode/VNode";
 import { TransformMove } from "./TransformMove";
 import VFrame from "@/features/nodes/VFrame/VFrame";
 import type { LNode } from "@/features/nodes/LNode/LNode";
@@ -44,20 +44,12 @@ export class SelectManager {
       }
     } else {
       this.clearSelection();
-      vnode.select();
+      node.select();
       this.selectedNodes.add(node);
     }
     core.mode.selectedVNodeCount = this.selectedNodes.size;
     core.store?.emit(EVENTS.node.selected, vnode.node);
   }
-  // addToSelectedNodes(vnodes: VNode[]) {
-  //   vnodes.forEach((vnode) => {
-  //     this.selectedNodes.set(vnode.node._id || "", vnode);
-  //     vnode.select();
-  //   });
-  //   core.mode.selectedVNodeCount = this.selectedNodes.size;
-  //   // core.store?.emit(EVENTS.node.selected, vnodes[0].node);
-  // }
   selectNode(
     node: LNode,
     options?: {
@@ -77,27 +69,6 @@ export class SelectManager {
     core.store?.emit(EVENTS.node.selected, vnode.node);
     return vnode;
   }
-  selectNodeById(
-    id: string,
-    options?: {
-      ctrlKey?: boolean;
-    },
-  ): VNode | null {
-    const vnode = core.nodeRenderer.getVNode(id);
-    if (!vnode) return null;
-    const node = vnode.node;
-    if (options?.ctrlKey) {
-      this.selectedNodes.add(node);
-    } else {
-      this.clearSelection();
-      this.selectedNodes.add(node);
-    }
-    vnode.select();
-    core.mode.selectedVNodeCount = this.selectedNodes.size;
-    core.store?.emit(EVENTS.node.selected, vnode.node);
-    return vnode;
-  }
-
   constructor() {
     this.body = document.createElement("elSelection");
     this.body.classList.add("selectBox");
@@ -125,12 +96,12 @@ export class SelectManager {
         this.clearSelection();
         core.store?.emit(EVENTS.node.unselected, null);
       }
-      core.nodeRenderer.getAlnodes().forEach((vnode) => {
-        if (vnode instanceof VFrame) return;
-        if (vnode.checkInRect(realRect)) {
-          if (!vnode.node.isSelected) {
-            this.selectedNodes.add(vnode.node);
-            vnode.select();
+      core.nodeManager.nodes.forEach((node) => {
+        if (node instanceof VFrame) return;
+        if (node.vNode?.checkInRect(realRect)) {
+          if (!node.isSelected) {
+            this.selectedNodes.add(node);
+            node.select();
             core.mode.selectedVNodeCount = this.selectedNodes.size;
           }
         }
@@ -148,58 +119,20 @@ export class SelectManager {
   }
 
   getNodeOverRect(rect: DOMRect) {
-    return core.nodeRenderer
-      .getAlnodes()
-      .filter((node) => {
-        const r = node.bodyRect;
-        return (
-          r.x < rect.x + rect.width &&
-          r.x + r.width > rect.x &&
-          r.y < rect.y + rect.height &&
-          r.y + r.height > rect.y
-        );
-      })
-      .map((n) => n.node);
+    return [...core.nodeManager.nodes.values()].filter((node) => {
+      const r = node.vNode?.bodyRect;
+      if (!r) return false;
+      return (
+        r.x < rect.x + rect.width &&
+        r.x + r.width > rect.x &&
+        r.y < rect.y + rect.height &&
+        r.y + r.height > rect.y
+      );
+    });
   }
   clearSelection() {
-    this.selectedNodes.forEach((node) => node?.vNode?.unselect());
+    this.selectedNodes.forEach((node) => node?.unselect());
     this.selectedNodes.clear();
     core.mode.selectedVNodeCount = 0;
   }
-  // getSelectedNodeRect(withChildren = false) {
-  //   let x0 = Infinity,
-  //     y0 = Infinity,
-  //     x1 = -Infinity,
-  //     y1 = -Infinity;
-
-  //   const nodesToMeasure = new Set(this.selectedNodes.values());
-  //   if (withChildren) {
-  //     const visited = new Set();
-  //     const gather = (node: any) => {
-  //       if (!node || visited.has(node)) return;
-  //       visited.add(node);
-
-  //       if (node.list?.children) {
-  //         for (const child of node.list.children) {
-  //           if (child.vNode) {
-  //             nodesToMeasure.add(child.vNode);
-  //           }
-  //           gather(child);
-  //         }
-  //       }
-  //     };
-  //     this.selectedNodes.forEach((vNode) => {
-  //       gather(vNode.node);
-  //     });
-  //   }
-  //   nodesToMeasure.forEach((vNode) => {
-  //     const r = vNode.bodyRect;
-  //     x0 = Math.min(x0, r.x);
-  //     y0 = Math.min(y0, r.y);
-  //     x1 = Math.max(x1, r.x + r.width);
-  //     y1 = Math.max(y1, r.y + r.height);
-  //   });
-
-  //   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } as DOMRect;
-  // }
 }

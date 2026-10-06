@@ -1,11 +1,11 @@
 import { core, EVENTS } from "@/features/core/core";
 import { SpatialGrid } from "@/features/SpatialGrid";
-import VTextEdit from "../VTextEdit";
-import VTextEditClone from "../VTextEditClone";
+import VTextEdit from "../VNode/VTextEdit";
+import VTextEditClone from "../VNode/VTextEditClone";
 import VFrame from "./VFrame";
 import type VFrame_main from "./VFrame_main";
 import type { Helper } from "./Helper/Helper";
-import type { VNode } from "../VNode";
+import type { VNode } from "../VNode/VNode";
 
 export class FrameCore {
   private unsubscribers: (() => void)[] = [];

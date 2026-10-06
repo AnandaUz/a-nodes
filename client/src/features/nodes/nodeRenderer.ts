@@ -1,17 +1,17 @@
-import "./vNode.scss";
-import { VNode } from "./VNode";
+import "./VNode/vNode.scss";
+import { VNode } from "./VNode/VNode";
 import { core, EVENTS } from "../core/core";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export class NodeRenderer {
-  private vNodes = new Map<string, VNode>();
+  // private vNodes = new Map<string, VNode>();
 
   private nodesEl!: HTMLElement;
   unsubscribers: (() => void)[] = [];
   unmount() {
     this.unsubscribers.forEach((fn) => fn());
-    this.vNodes.forEach((vnode) => vnode.remove());
-    this.vNodes.clear();
+    // this.vNodes.forEach((vnode) => vnode.remove());
+    // this.vNodes.clear();
   }
 
   init() {
@@ -20,12 +20,12 @@ export class NodeRenderer {
       core.store.on(EVENTS.node.created, (node: LNode) => {
         this.createVNode(node);
       }),
-      core.store.on(EVENTS.node.inTrash, (node: LNode) => {
-        this.removeVNode(node._id || "");
-      }),
-      core.store.on(EVENTS.node.ok, (node) => {
-        this.removeVNode(node._id || "");
-      }),
+      // core.store.on(EVENTS.node.inTrash, (node: LNode) => {
+      //   this.removeVNode(node._id || "");
+      // }),
+      // core.store.on(EVENTS.node.ok, (node) => {
+      //   this.removeVNode(node._id || "");
+      // }),
     );
   }
 
@@ -37,33 +37,30 @@ export class NodeRenderer {
       vNode.init();
       vNode.render();
       vNode.refreshBodyRect();
-      this.vNodes.set(node._id || "", vNode);
+      // this.vNodes.set(node._id || "", vNode);
       return vNode;
     } catch (e) {
       console.error("Ошибка рендеринга ноды:", node, e);
       return null;
     }
   }
-  removeVNode(id: string) {
-    const el = this.vNodes.get(id);
-    if (!el) return;
-    el.remove();
-    this.vNodes.delete(id);
-  }
+
   renderAll() {
-    core.nodeManager.getAllNodes().forEach((node) => {
+    core.nodeManager.nodes.forEach((node) => {
       if (!node.visible) return;
       this.createVNode(node);
     });
+    console.log("количество нод", core.nodeManager.nodes.size);
+
     core.store.emit(EVENTS.renderer.refreshAllVNodes, undefined);
   }
-  getVNode(id: string | undefined): VNode | undefined {
-    if (!id) return undefined;
-    return this.vNodes.get(id);
-  }
-  getAlnodes() {
-    return Array.from(this.vNodes.values());
-  }
+  // getVNode(id: string | undefined): VNode | undefined {
+  //   if (!id) return undefined;
+  //   return this.vNodes.get(id);
+  // }
+  // getAlnodes() {
+  //   return Array.from(this.vNodes.values());
+  // }
   /**
    * Сдвигает вниз все ноды, которые перекрывают заданную область.
    * @param rect - область, которую нужно освободить от нод

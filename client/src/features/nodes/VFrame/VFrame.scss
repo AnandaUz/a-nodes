@@ -100,27 +100,7 @@
           border-radius: 10px;
      }
 
-     .str-block {
-          position: absolute;
-          top: 0;
-          left: 0;
-          display: flex;
-          gap: 5px;
 
-          span {
-               white-space: nowrap;
-               background: rgb(211 241 255 / 36%);
-               font-size: 11px;
-               padding: 0px 3px;
-               border-radius: 2px;
-               color: #01345370;
-               max-width: 300px;
-               overflow: hidden;
-               text-overflow: ellipsis;
-               white-space: nowrap;
-               font-weight: bold;
-          }
-     }
 
 
 

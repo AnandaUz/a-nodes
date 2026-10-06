@@ -1,8 +1,8 @@
-import { LNode_TEClone } from "./LNode/LNode_TEClone";
-import { LNode_Frame_main } from "./LNode/LNode_Frame_main";
-import { LNode_TextEdit } from "./LNode/LNode_TextEdit";
-import type { LNode } from "@/features/nodes/LNode/LNode";
-import { LNode_Page } from "./LNode/LNode_Page";
+import { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
+import { LNode_Frame_main } from "@features/nodes/LNode/LNode_Frame_main";
+import { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
+import type { LNode } from "@features/nodes/LNode/LNode";
+import { LNode_Page } from "@features/nodes/LNode/LNode_Page";
 export const NODE_TYPES = {
   TEXT_EDIT: {
     id: 1,
