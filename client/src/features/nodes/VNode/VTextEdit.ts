@@ -1,3 +1,4 @@
+import Tools from "@/features/core/Tools";
 import type { LNode_TextEdit } from "../LNode/LNode_TextEdit";
 import { VNode } from "./VNode";
 
@@ -13,6 +14,14 @@ export default class VTextEdit extends VNode {
 
     this.titleEl.addEventListener("blur", () => {
       (this.node as LNode_TextEdit).turnOff_EditTitleMode();
+    });
+
+    const btn_plus = this.body.querySelector(".ico-plus") as HTMLDivElement;
+    btn_plus.addEventListener("pointerdown", (e) => {
+      console.log("aaaaa");
+      Tools.stopEvent(e);
+
+      (this.node as LNode_TextEdit).frame.addFrame();
     });
   }
 
@@ -45,7 +54,11 @@ export default class VTextEdit extends VNode {
   bodyInit() {
     super.bodyInit();
     this.body.innerHTML += `            
-            <div class="title-el"></div>                 
+            <div class="title-el"></div>
+            <div class="el-frame-btn">
+              <div class="btn ico ico-plus" title="Add Frame"></div>
+            </div>
+                           
 `;
   }
 
@@ -65,6 +78,11 @@ export default class VTextEdit extends VNode {
         this.titleEl.innerHTML = str;
         // this.onChange()
       }
+    }
+    if ((this.node as LNode_TextEdit).frame.isFrame) {
+      this.body.classList.add("frame");
+    } else {
+      this.body.classList.remove("frame");
     }
   }
 }
