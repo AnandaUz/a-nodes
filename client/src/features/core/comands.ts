@@ -143,6 +143,8 @@ const commands: Command[] = [
 
           const newNodes: LNode_TEClone[] = [];
           nodes.forEach((node) => {
+            if (!(node instanceof LNode_TextEdit)) return;
+
             const nNode = core.nodeManager.create_TextEditCloneNode(
               node,
               node.x,
@@ -267,7 +269,7 @@ const commands: Command[] = [
           const node = core.selectManager.selectedNodes.values().next().value;
           if (!node) return;
           node.moveTo({ x: node.x + GRID.x, y: node.y });
-          const mainList = node.list.getMainParent()?.list;
+          const mainList = node.list.mainParent?.list;
           if (mainList) {
             mainList.checkTree();
             mainList.setPositionForChildren();
@@ -283,7 +285,7 @@ const commands: Command[] = [
           const node = core.selectManager.selectedNodes.values().next().value;
           if (!node) return;
           node.moveTo({ x: node.x - GRID.x, y: node.y });
-          const mainList = node.list.getMainParent()?.list;
+          const mainList = node.list.mainParent?.list;
           if (mainList) {
             mainList.checkTree();
             mainList.setPositionForChildren();
@@ -298,7 +300,12 @@ const commands: Command[] = [
           e.preventDefault();
           core.selectManager.selectedNodes.forEach((node) => {
             if (!(node instanceof LNode_TextEdit)) return;
-            node.frame.isFrame = !node.frame.isFrame;
+            if (!node.frame.isFrame) {
+              node.frame.turnOn_frameMode();
+            } else {
+              node.frame.turnOff_frameMode();
+            }
+
             node.save();
             node.vNode?.render();
           });

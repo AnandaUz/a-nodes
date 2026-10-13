@@ -15,7 +15,7 @@ export default class VTextEditClone extends VTextEdit {
   render(): void {
     this.node.setLineOfParentsTitle();
 
-    const title = this.node.clones.sourceNode.title;
+    const title = this.node.clones.sourceNode?.title || "$$$$$$";
     if (title) {
       const str = title.replace(/\n/g, "<br/>");
       if (str !== this.titleEl.innerHTML) {

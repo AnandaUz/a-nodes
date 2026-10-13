@@ -63,6 +63,12 @@
         min-height: calc(var(--f-s) * 1.4);
     }
 
+    &.in-frame {
+        .el-title {
+            max-width: calc(var(--f-start-width) - var(--f-widthStep) * (var(--n, 0) + 1));
+        }
+    }
+
     @for $i from 0 through 6 {
         &[data-totaltab="#{$i}"] {
             --n: #{$i};
@@ -81,7 +87,7 @@
             background-color: rgba(0, 195, 255, 0.24);
             border-radius: 2px;
             position: absolute;
-            top: 14px;
+            top: 9px;
             left: -4px;
             z-index: 100;
             --h: 5px;
@@ -325,9 +331,7 @@
 
         display: flex;
         gap: 6px;
-        // position: absolute;
-        // top: -6px;
-        // left: -6px;
+        margin: 0 0 -5px;
 
         span {
             // background: rgba(211, 241, 255, 0.36);

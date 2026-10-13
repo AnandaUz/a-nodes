@@ -1,9 +1,10 @@
 import { core } from "@/features/core/core";
-import type { LNode_TextEdit } from "./LNode_TextEdit";
+import { LNode_TextEdit } from "./LNode_TextEdit";
 import { GRID } from "@/features/core/CONST";
 import Tools from "@/features/core/Tools";
 import { Ge_Path } from "@/features/desk/DeskSVG/Ge_Path";
 import type VTextEdit from "../VNode/VTextEdit";
+import { LNode_TEClone } from "./LNode_TEClone";
 
 interface IParent {
   node: LNode_TextEdit;
@@ -49,6 +50,37 @@ export default class TFrame {
       }
     });
   }
+  get frameNode(): LNode_TextEdit | undefined {
+    return this.owner.list.mainParent as LNode_TextEdit;
+  }
+  /** находится ли нода во фрейме */
+  get isInFrame() {
+    const mainParent = this.owner.list.mainParent;
+    if (!mainParent) return false;
+    if (mainParent instanceof LNode_TextEdit) {
+      return mainParent.frame.isFrame;
+    }
+    return false;
+  }
+  /** добавляем кнопки управления */
+  addPowerBtns() {
+    const vNode = this.owner.vNode;
+    if (!vNode) return;
+    if (this.frameNode && this.frameNode.frame.children.size > 0) {
+      this.frameNode.frame.children.forEach((chFrame) => {
+        vNode.addFramePowerBtn(
+          () => {
+            chFrame.frame.addCloneOfNode(this.owner);
+          },
+          () => {
+            this.owner.clones?.removeAllClones();
+            vNode.setRating(-1, chFrame.lID || 0);
+          },
+          chFrame.lID || 0,
+        );
+      });
+    }
+  }
   /** иницируем кнопки добавления клонов */
   initBtns() {
     this.owner.list.forEachChildren((child) => {
@@ -57,19 +89,8 @@ export default class TFrame {
       if (vNode) {
         vNode.body.classList.add("in-frame");
       }
-      if (this.children.size > 0) {
-        this.children.forEach((chFrame) => {
-          vNode?.addFramePowerBtn(
-            () => {
-              chFrame.frame.addCloneOfNode(child as LNode_TextEdit);
-            },
-            () => {
-              (child as LNode_TextEdit).clones?.removeAllClones();
-              vNode.setRating(-1, chFrame.lID || 0);
-            },
-            chFrame.lID || 0,
-          );
-        });
+      if (child instanceof LNode_TextEdit) {
+        child.frame.addPowerBtns();
       }
     });
   }
@@ -133,16 +154,39 @@ export default class TFrame {
       y: rect.y,
     }) as LNode_TextEdit;
 
-    newNode.frame.isFrame = true;
     newNode.title = this.owner.title;
 
     const path = new Ge_Path();
     newNode.frame.parents.add({ node: this.owner, path });
     this.owner.frame.children.add(newNode);
 
-    newNode.vNode?.render();
+    core.nodeRenderer.createVNode(newNode);
+    newNode.frame.turnOn_frameMode();
+    this.initBtns();
 
     newNode.save();
     newNode.frame.redrawPaths();
+  }
+  turnOn_frameMode() {
+    this.isFrame = true;
+    this.owner.vNode?.turnOn_frameMode();
+  }
+  turnOff_frameMode() {
+    this.isFrame = false;
+    this.owner.vNode?.turnOff_frameMode();
+    // this.deinitBtns();
+  }
+  get frameLID() {
+    return this.owner.list.mainParent?.lID || 0;
+  }
+  turnOff_PowerBtn(subFrameLID: number) {
+    const vNode = this.owner.vNode;
+    if (!vNode) return;
+
+    const btn = vNode.body.querySelector(".btn-" + subFrameLID);
+    if (btn) {
+      btn.classList.remove("active");
+    }
+    vNode.setRating(-1, subFrameLID);
   }
 }

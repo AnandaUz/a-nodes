@@ -16,17 +16,17 @@ export class NodeRenderer {
 
   init() {
     this.nodesEl = core.desk.nodesEl;
-    this.unsubscribers.push(
-      core.store.on(EVENTS.node.created, (node: LNode) => {
-        this.createVNode(node);
-      }),
-      // core.store.on(EVENTS.node.inTrash, (node: LNode) => {
-      //   this.removeVNode(node._id || "");
-      // }),
-      // core.store.on(EVENTS.node.ok, (node) => {
-      //   this.removeVNode(node._id || "");
-      // }),
-    );
+    // this.unsubscribers.push(
+    //   // core.store.on(EVENTS.node.created, (node: LNode) => {
+    //   //   this.createVNode(node);
+    //   // }),
+    //   // core.store.on(EVENTS.node.inTrash, (node: LNode) => {
+    //   //   this.removeVNode(node._id || "");
+    //   // }),
+    //   // core.store.on(EVENTS.node.ok, (node) => {
+    //   //   this.removeVNode(node._id || "");
+    //   // }),
+    // );
   }
 
   createVNode(node: LNode): VNode | null {

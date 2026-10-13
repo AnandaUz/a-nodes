@@ -112,18 +112,18 @@ export default class VTextEdit extends VNode {
       }
 
       ratingLine.style.setProperty("--w", ww + "px");
+
+      // на всякий случай активирую кнопку
+      const btn = this.body.querySelector(
+        ".el-frame-power-btns .sub .btn-" + subFrameLID,
+      ) as HTMLElement;
+      if (btn) btn.classList.add("active");
     } else {
       let ratingLine = this.body.querySelector(
         ".rating-line.line-" + subFrameLID,
       ) as HTMLElement;
       if (ratingLine) ratingLine.remove();
     }
-
-    // на всякий случай активирую кнопку
-    const btn = this.body.querySelector(
-      ".el-frame-power-btns .sub .btn-" + subFrameLID,
-    ) as HTMLElement;
-    if (btn) btn.classList.add("active");
   }
   setBtnToActive(subFrameLID: number) {
     const btn = this.body.querySelector(
@@ -136,6 +136,11 @@ export default class VTextEdit extends VNode {
     callbackOff: () => void,
     childLID: number,
   ) {
+    const bt = this.body.querySelector(
+      ".el-frame-power-btns .sub .btn-" + childLID,
+    ) as HTMLElement;
+    if (bt) return;
+
     let blM = this.body.querySelector(".el-frame-power-btns") as HTMLElement;
     let bl: HTMLElement;
     if (!blM) {

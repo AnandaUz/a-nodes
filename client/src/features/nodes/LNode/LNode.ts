@@ -49,7 +49,7 @@ export class LNode implements ILNode {
   remove() {
     this.vNode?.remove();
     if (this.list.parentNode) {
-      const mainParent = this.list.getMainParent();
+      const mainParent = this.list.mainParent;
       if (mainParent) {
         mainParent.list.setPositionForChildren();
         mainParent.vNode?.renderSVG();

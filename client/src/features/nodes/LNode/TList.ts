@@ -250,7 +250,7 @@ export default class TList {
     willRefParent.push(owner);
     return willRefParent;
   }
-  getMainParent(): LNode | null {
+  get mainParent(): LNode | null {
     let parent: LNode = this.owner;
     while (parent.list.parentNode) {
       parent = parent.list.parentNode;

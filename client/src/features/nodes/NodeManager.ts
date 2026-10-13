@@ -122,7 +122,7 @@ export class NodeManager {
         // if (node instanceof LNode_TEClone) {
         //   const mainNode = node.clones.mainNode;
         //   const subFrameLID =
-        //     byNode.list.getMainParent()?.list.getMainParent()?.lID || 0;
+        //     byNode.list.mainParent?.list.mainParent?.lID || 0;
         //   if (mainNode && mainNode instanceof LNode_TextEdit) {
         //     (mainNode.vNode as VTextEdit)?.setBtnToActive(subFrameLID);
         //   }
@@ -130,7 +130,7 @@ export class NodeManager {
       });
 
       willRefParent.forEach((node) => {
-        const mainParent = node.list.getMainParent();
+        const mainParent = node.list.mainParent;
         if (!mainParent) return;
         if (wasRef.has(mainParent)) return;
         wasRef.add(mainParent);
@@ -147,7 +147,7 @@ export class NodeManager {
         // если клон, то отключить индикаторы
         const mainParent = (node as LNode_TextEdit).clones.mainNode;
         if (mainParent) {
-          const frameLID = node.list.getMainParent()?.lID || 0;
+          const frameLID = node.list.mainParent?.lID || 0;
           node.list.totalIndex = -1;
           (mainParent.vNode as VTextEdit).removePowerIndicators(frameLID);
         }
@@ -158,7 +158,7 @@ export class NodeManager {
         node.vNode?.renderSVG();
       });
       willRefParent.forEach((node) => {
-        const mainParent = node.list.getMainParent();
+        const mainParent = node.list.mainParent;
         if (!mainParent) return;
         if (wasRef.has(mainParent)) return;
         wasRef.add(mainParent);
@@ -211,6 +211,8 @@ export class NodeManager {
       (node) => node.type === NODE_TYPES.TEXT_EDIT_CLONE.id,
     );
 
+    const sourceNodes = new Set<LNode_TextEdit>();
+
     for (const node of clones as LNode_TEClone[]) {
       const mainNode = this.getNodeByLID(
         node.clones.mainNodeLID || 0,
@@ -218,8 +220,19 @@ export class NodeManager {
       if (!mainNode) continue;
       node.clones.mainNode = mainNode;
       mainNode.clones.nodes.add(node);
-      node.init();
+      //собирайем всех ресурсных
+      if (mainNode.constructor === LNode_TextEdit) {
+        sourceNodes.add(mainNode);
+      }
     }
+    //для каждого ресурсного устанавливаем все его клоны
+    sourceNodes.forEach((sourceNode: LNode_TextEdit) => {
+      sourceNode.clones.sourceNode = sourceNode;
+      sourceNode.clones.doForAll((cloneNode: LNode_TextEdit) => {
+        cloneNode.clones.sourceNode = sourceNode;
+        cloneNode.init();
+      });
+    });
   }
   setPositionForAllLinkedChildNodes() {
     for (const node of this.nodes.values()) {
@@ -258,7 +271,7 @@ export class NodeManager {
       type,
     });
     if (newNode) {
-      // const vnode = newNode.vNode;
+      core.nodeRenderer.createVNode(newNode);
       newNode.select();
       core.selectManager.selectNode(newNode);
       if (newNode instanceof LNode_TextEdit) {
@@ -300,30 +313,7 @@ export class NodeManager {
   getAllNodes(): LNode[] {
     return Array.from(this.nodes.values());
   }
-  // moveNodeTo(node: LNode, x: number, y: number): void {
-  //   if (node.x === x && node.y === y) return;
-  //   node.x = x;
-  //   node.y = y;
-  //   this.saveNode(node);
-  // }
 
-  // okNode(id: string): void {
-  //   if (!this.nodes.has(id)) return;
-
-  //   const node = this.nodes.get(id)!;
-  //   node.ok = true;
-
-  //   if (node.exData?.repeatMode) {
-  //     const nextDate = Tools.getNextWeekday(
-  //       parseInt(node.exData.repeatMode),
-  //     );
-  //     nextDate.setHours(0, 0, 0, 0);
-  //     node.exData.repeatDay = nextDate;
-  //   }
-  //   this.saveNode(node);
-  //   core.store.emit(EVENTS.node.deleted, node);
-  //   this.nodes.delete(id);
-  // }
   putNodeInTrash(node: LNode, withClones: boolean = false): void {
     if (!node) return;
     if (withClones) {
@@ -331,6 +321,9 @@ export class NodeManager {
         this.putNodeInTrash(cloneNode, false);
       });
       return;
+    }
+    if (node instanceof LNode_TextEdit && node.clones.mainNode) {
+      node.clones.mainNode.frame.turnOff_PowerBtn(node.frame.frameLID);
     }
 
     node.inTrash = true;
@@ -345,27 +338,27 @@ export class NodeManager {
     node.remove();
   }
 
-  create_TextEditCloneNode(mainNode: LNode, x?: number, y?: number) {
+  create_TextEditCloneNode(mainNode: LNode_TextEdit, x?: number, y?: number) {
     const cloneNode = this.createNode({
       x: x || 0,
       y: y ?? 0,
       type: NODE_TYPES.TEXT_EDIT_CLONE.id,
-    });
+    }) as LNode_TEClone;
 
     if (!mainNode.lID) {
       mainNode.lID = this.getMaxLID() + 1;
       mainNode.save();
     }
 
-    if (
-      cloneNode instanceof LNode_TEClone &&
-      mainNode instanceof LNode_TextEdit
-    ) {
-      cloneNode.clones.mainNode = mainNode;
-      mainNode.clones.nodes.add(cloneNode);
+    cloneNode.clones.mainNode = mainNode;
+    mainNode.clones.nodes.add(cloneNode);
+    if (mainNode instanceof LNode_TEClone) {
+      cloneNode.clones.sourceNode = mainNode.clones.sourceNode;
+    } else {
+      cloneNode.clones.sourceNode = mainNode;
     }
 
-    cloneNode.vNode?.render();
+    core.nodeRenderer.createVNode(cloneNode);
 
     cloneNode.save();
     return cloneNode;
@@ -438,11 +431,17 @@ export class NodeManager {
       options.type = NODE_TYPES.TEXT_EDIT.id;
     }
     // создаём новую ноду с правым текстом
-    const newNode = this.copyNode(node, options);
+    const newNode = this.copyNode(node, options) as LNode_TextEdit;
     if (newNode) {
+      core.nodeRenderer.createVNode(newNode);
+
       newNode.list.setParent(node, 0);
 
-      const mainNode = node.list.getMainParent();
+      if (node.frame.isInFrame) {
+        newNode.frame.addPowerBtns();
+      }
+
+      const mainNode = node.list.mainParent;
       if (mainNode) {
         mainNode.list.setPositionForChildren();
       }

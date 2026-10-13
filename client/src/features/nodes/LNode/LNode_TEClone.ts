@@ -24,7 +24,7 @@ export class LNode_TEClone extends LNode_TextEdit {
 
     (this.clones.mainNode?.vNode as VTextEdit)?.setRating(
       v,
-      this.list.getMainParent()?.lID ?? 0,
+      this.list.mainParent?.lID ?? 0,
     );
   }
 
@@ -50,10 +50,11 @@ export class LNode_TEClone extends LNode_TextEdit {
   onInput() {
     const vNode = this.vNode;
     // this.setTitleText(vNode.titleEl.innerText);
-    if (this.clones.sourceNode && vNode) {
-      this.clones.sourceNode.setTitleText(vNode.titleEl.innerText, true, this);
-      this.title = vNode.titleEl.innerText;
-      this.clones.sourceNode.save();
+    const sourceNode = this.clones.sourceNode;
+    if (sourceNode && vNode) {
+      sourceNode.setTitleText(vNode.titleEl.innerText, true, this);
+      sourceNode.title = vNode.titleEl.innerText;
+      sourceNode.save();
     }
   }
 
@@ -78,17 +79,11 @@ export class LNode_TEClone extends LNode_TextEdit {
     if (!this.clones.sourceNode) {
       return;
     }
-
-    this.clones.sourceNode.title = this.title || "";
     this.clones.sourceNode.turnOff_EditTitleMode();
   }
-  set title(_v: string | undefined) {
-    // if (!this.clones.sourceNode) return;
-    // this.clones.sourceNode.title = v || "";
-  }
+  // перезаписываю родительские title getters/setters
+  set title(_v: string | undefined) {}
   get title() {
-    // if (!this.clones.sourceNode) return "#######";
-    // return this.clones.sourceNode.title;
     return undefined;
   }
 

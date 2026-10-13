@@ -76,7 +76,7 @@ export class LNode_TextEdit extends LNode {
 
     if (startH !== endH) {
       if (this.list.parentNode) {
-        this.list.getMainParent()?.list.setPositionForChildren();
+        this.list.mainParent?.list.setPositionForChildren();
       }
     }
 

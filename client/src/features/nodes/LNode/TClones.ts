@@ -6,9 +6,9 @@ export default class TClones {
   owner: LNode_TextEdit;
 
   /** нода родитель */
-  _mainNode!: LNode_TextEdit;
-  mainNodeLID!: number;
-  _sourceNode!: LNode_TextEdit;
+  protected _mainNode!: LNode_TextEdit;
+  mainNodeLID = 0;
+  sourceNode: LNode_TextEdit | undefined;
 
   nodes = new Set<LNode_TEClone>();
 
@@ -48,19 +48,19 @@ export default class TClones {
     this._mainNode = mainNode;
     this.mainNodeLID = mainNode.lID || 0;
   }
-  get sourceNode(): LNode_TextEdit {
-    if (this._sourceNode) return this._sourceNode;
-    // if (!this.mainNode) {
-    //   if (this.owner instanceof LNode_TEClone) return undefined;
-    //   else return this.owner;
-    // }
+  // get sourceNode(): LNode_TextEdit {
+  //   if (this._sourceNode) return this._sourceNode;
+  //   // if (!this.mainNode) {
+  //   //   if (this.owner instanceof LNode_TEClone) return undefined;
+  //   //   else return this.owner;
+  //   // }
 
-    let sNode: LNode_TextEdit = this.owner;
-    while (sNode instanceof LNode_TEClone) {
-      if (!sNode.clones.mainNode) break;
-      sNode = sNode.clones.mainNode;
-    }
-    this._sourceNode = sNode;
-    return sNode;
-  }
+  //   let sNode: LNode_TextEdit = this.owner;
+  //   while (sNode instanceof LNode_TEClone) {
+  //     if (!sNode.clones.mainNode) break;
+  //     sNode = sNode.clones.mainNode;
+  //   }
+  //   this._sourceNode = sNode;
+  //   return sNode;
+  // }
 }
