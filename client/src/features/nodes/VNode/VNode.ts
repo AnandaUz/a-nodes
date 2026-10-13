@@ -77,9 +77,9 @@ export class VNode {
     this.renderSVG();
   }
   bodyInit() {
-    this.body.innerHTML += `
-               <div class="el-tools"></div>
-    `;
+    // this.body.innerHTML += `
+    //            <div class="el-debugging"></div>
+    // `;
   }
 
   updatePosition() {
@@ -189,6 +189,7 @@ export class VNode {
     this.node.x = x;
     this.node.y = Math.round(worldPos.y - this.pointerOffset.y);
 
+    this.node.onPointerMove();
     this.applyPosition();
     core.store.emit(EVENTS.node.moving, this.node);
 
@@ -197,13 +198,6 @@ export class VNode {
       this.node.list.setPositionForChildren();
     }
   };
-
-  moveTo(position: { x: number | undefined; y: number | undefined }) {
-    if (position.x !== undefined) this.node.x = Math.round(position.x);
-    if (position.y !== undefined) this.node.y = Math.round(position.y);
-    this.applyPosition();
-    this.node.save();
-  }
 
   select() {
     this.node.isSelected = true;
@@ -230,11 +224,11 @@ export class VNode {
       core.selectManager.onVNodeClick(e, this);
       return;
     }
-    this.moveTo({ x: this.node.x, y: this.node.y });
+    this.node.moveTo({ x: this.node.x, y: this.node.y });
 
     const moveCommand = (from: Position, to: Position): Command => ({
-      execute: () => this.moveTo(to),
-      undo: () => this.moveTo(from),
+      execute: () => this.node.moveTo(to),
+      undo: () => this.node.moveTo(from),
     });
 
     core.history.execute(
@@ -423,7 +417,7 @@ export class VNode {
         if (t < 1) {
           this.animationId = requestAnimationFrame(step);
         } else {
-          this.moveTo({ x: targetX, y: targetY });
+          this.node.moveTo({ x: targetX, y: targetY });
           this.animationId = null;
         }
       };

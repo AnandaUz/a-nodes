@@ -6,7 +6,7 @@ import "@components/c-mobi-submenu/c-mobi-submenu";
 import html from "./desk.html?raw";
 import { EVENTS } from "../core/store";
 import { core } from "../core/core";
-import { DeskSVG } from "./DeskSVG";
+import { DeskSVG } from "./DeskSVG/DeskSVG";
 
 export class Desk {
   nodesEl!: HTMLElement;

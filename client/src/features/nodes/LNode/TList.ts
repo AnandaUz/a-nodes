@@ -35,9 +35,25 @@ export default class TList {
   _tab?: number;
   children?: Set<LNode>;
   private _onChangeListeners: Set<() => void> = new Set();
+  private _totalIndexCallBacks: Set<(v: number) => void> = new Set();
+  private _totalIndex: number = 0;
+
   constructor(owner: LNode) {
     this.owner = owner;
   }
+  get totalIndex() {
+    return this._totalIndex;
+  }
+  set totalIndex(v: number) {
+    if (this._totalIndex === v) return;
+    this._totalIndex = v;
+    this._totalIndexCallBacks.forEach((fn) => fn(v));
+  }
+  onTotalIndexChanged(fn: (v: number) => void): () => void {
+    this._totalIndexCallBacks.add(fn);
+    return () => this._totalIndexCallBacks.delete(fn);
+  }
+
   get parentNode() {
     return this._parentNode || null;
   }
@@ -67,6 +83,19 @@ export default class TList {
       for (const [index, child] of m.entries()) {
         fn(child, index);
         child.list.forEachChildren(fn);
+      }
+    }
+  }
+  initParent() {
+    if (this.parentLID && this.parentLID !== this.owner.lID) {
+      const parentNode = core.nodeManager.getNodeByLID(this.parentLID);
+      if (parentNode) {
+        if (!parentNode.list.children) {
+          parentNode.list.children = new Set<LNode>();
+        }
+        parentNode.list.children.add(this.owner);
+
+        this.owner.list.parentNode = parentNode;
       }
     }
   }
@@ -228,7 +257,11 @@ export default class TList {
     }
     return parent;
   }
-  setPositionForChildren(parentX: number | undefined = undefined) {
+  setPositionForChildren(
+    parentX: number | undefined = undefined,
+    totalTab = 0,
+    totalIndex = 0,
+  ) {
     if (this.children?.size) {
       const owner = this.owner;
       const m = [...this.children].sort(
@@ -239,6 +272,8 @@ export default class TList {
       for (const child of m) {
         child.x = owner.x + GRID.x * (child.list.tab ?? 0);
         child.y = startY + h;
+        if (totalTab == 0) totalIndex++;
+        child.list.totalIndex = totalIndex;
         child.vNode?.applyPosition();
         const xx = Math.round((child.x - (parentX || owner.x)) / GRID.x);
 
@@ -249,8 +284,13 @@ export default class TList {
         }
 
         h += chVNode?.height ?? 0;
-        h += child.list.setPositionForChildren(parentX || owner.x);
+        h += child.list.setPositionForChildren(
+          parentX || owner.x,
+          totalTab + xx,
+          totalIndex,
+        );
       }
+      owner.vNode?.renderSVG();
       return h;
     }
     return 0;

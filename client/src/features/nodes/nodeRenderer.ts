@@ -47,20 +47,14 @@ export class NodeRenderer {
 
   renderAll() {
     core.nodeManager.nodes.forEach((node) => {
-      if (!node.visible) return;
+      if (node.hidden) return;
       this.createVNode(node);
     });
     console.log("количество нод", core.nodeManager.nodes.size);
 
     core.store.emit(EVENTS.renderer.refreshAllVNodes, undefined);
   }
-  // getVNode(id: string | undefined): VNode | undefined {
-  //   if (!id) return undefined;
-  //   return this.vNodes.get(id);
-  // }
-  // getAlnodes() {
-  //   return Array.from(this.vNodes.values());
-  // }
+
   /**
    * Сдвигает вниз все ноды, которые перекрывают заданную область.
    * @param rect - область, которую нужно освободить от нод

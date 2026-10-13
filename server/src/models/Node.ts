@@ -50,6 +50,7 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
     default: undefined, // не записывать если пустой
   },
   A: { type: Number }, //переменные для клонов LNode_TEClone,
+  f: { type: [Number], default: undefined }, //родители фреймов
 });
 
 // Ключевой индекс — запрос "все ноды юзера на этом уровне" будет мгновенным

@@ -3,6 +3,7 @@ import VTextEdit from "./VTextEdit";
 
 export default class VTextEditClone extends VTextEdit {
   elLineOfParentsTitle!: HTMLDivElement;
+  declare node: LNode_TEClone;
 
   init(): void {
     super.init();
@@ -12,13 +13,20 @@ export default class VTextEditClone extends VTextEdit {
     ) as HTMLDivElement;
   }
   render(): void {
-    super.render();
-    (this.node as LNode_TEClone).setLineOfParentsTitle();
+    this.node.setLineOfParentsTitle();
+
+    const title = this.node.clones.sourceNode.title;
+    if (title) {
+      const str = title.replace(/\n/g, "<br/>");
+      if (str !== this.titleEl.innerHTML) {
+        this.titleEl.innerHTML = str;
+      }
+    }
   }
   bodyInit() {
-    this.body.innerHTML = `
+    super.bodyInit();
+    this.body.innerHTML += `
     <div class="el-lineOfParentsTitle"></div>     
-    <div class="title-el"></div>                 
 `;
   }
 }

@@ -82,7 +82,7 @@ export default class VFrame extends VTextEdit {
   bodyInit() {
     this.body.innerHTML += `
       <div class="top-block">
-        <div class="title-el"></div>               
+        <div class="el-title"></div>               
       </div>
       <div class="menu-block">
         <div class="sub-title"></div>

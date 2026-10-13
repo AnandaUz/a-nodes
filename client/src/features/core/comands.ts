@@ -6,6 +6,7 @@ import Tools from "./Tools";
 import type VFrame_main from "../nodes/VFrame/VFrame_main";
 
 import { LNode_TEClone } from "../nodes/LNode/LNode_TEClone";
+import { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
 
 interface Command {
   label: string;
@@ -234,6 +235,16 @@ const commands: Command[] = [
         },
       },
       {
+        label: "удалить c клонами",
+        shortcuts: ["shift+x", "shift+delete"],
+        execute: async () => {
+          if (core.mode.textEditing) return;
+          core.selectManager.selectedNodes.forEach((node) => {
+            core.nodeManager.putNodeInTrash(node, true);
+          });
+        },
+      },
+      {
         label: "Двигать ноду(ы)",
         shortcuts: ["g"],
         execute: () => {
@@ -255,7 +266,12 @@ const commands: Command[] = [
           e.preventDefault();
           const node = core.selectManager.selectedNodes.values().next().value;
           if (!node) return;
-          core.nodeManager.moveToNode(node, node.x + GRID.x, node.y);
+          node.moveTo({ x: node.x + GRID.x, y: node.y });
+          const mainList = node.list.getMainParent()?.list;
+          if (mainList) {
+            mainList.checkTree();
+            mainList.setPositionForChildren();
+          }
         },
       },
       {
@@ -266,7 +282,26 @@ const commands: Command[] = [
           e.preventDefault();
           const node = core.selectManager.selectedNodes.values().next().value;
           if (!node) return;
-          core.nodeManager.moveToNode(node, node.x - GRID.x, node.y);
+          node.moveTo({ x: node.x - GRID.x, y: node.y });
+          const mainList = node.list.getMainParent()?.list;
+          if (mainList) {
+            mainList.checkTree();
+            mainList.setPositionForChildren();
+          }
+        },
+      },
+      {
+        label: "Включить выключить режим фрейма",
+        shortcuts: ["f"],
+        execute: (e: KeyboardEvent) => {
+          if (core.mode.textEditing) return;
+          e.preventDefault();
+          core.selectManager.selectedNodes.forEach((node) => {
+            if (!(node instanceof LNode_TextEdit)) return;
+            node.frame.isFrame = !node.frame.isFrame;
+            node.save();
+            node.vNode?.render();
+          });
         },
       },
       {
@@ -290,7 +325,7 @@ const commands: Command[] = [
             } else {
               const xx = Math.round((node.x - x) / paddingLeft);
 
-              core.nodeManager.moveToNode(node, x + xx * paddingLeft, y);
+              ///core.nodeManager.moveToNode(node, x + xx * paddingLeft, y);
             }
 
             y += node.vNode?.height || 0;
@@ -315,7 +350,7 @@ const commands: Command[] = [
               y = node.y;
               x = node.x;
             } else {
-              core.nodeManager.moveToNode(node, x, y);
+              ///core.nodeManager.moveToNode(node, x, y);
             }
 
             y += node.vNode?.height || 0;
@@ -339,7 +374,7 @@ const commands: Command[] = [
             if (x === -1000000) {
               x = node.x;
             } else {
-              core.nodeManager.moveToNode(node, x, node.y);
+              ///core.nodeManager.moveToNode(node, x, node.y);
             }
           }
         },

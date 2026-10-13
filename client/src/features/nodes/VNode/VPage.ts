@@ -35,7 +35,7 @@ export class VPage extends VTextEdit {
     });
   }
   initMovingElement(): void {
-    this.titleEl = this.body.querySelector(".title-el") as HTMLInputElement;
+    this.titleEl = this.body.querySelector(".el-title") as HTMLInputElement;
     this.movingElement = this.titleEl;
   }
   onSelectedDrop() {

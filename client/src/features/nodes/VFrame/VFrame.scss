@@ -30,7 +30,7 @@
           padding: 0 5px;
           // margin: 0 0 5px;
 
-          .title-el {
+          .el-title {
                background: none;
                color: #164b6bc2;
           }
@@ -111,46 +111,7 @@
           right: 4px;
           top: 8px;
 
-          .bt {
-               --color: hsl(0, 88%, 66%);
-               --w1: 12px;
-               --w2: 4px;
-               --w3: 7px;
-               width: var(--w1);
-               height: var(--w1);
-               opacity: 0.2;
-               display: flex;
-               justify-content: center;
-               align-items: center;
-               transition: opacity 0.3s ease;
 
-               cursor: pointer;
-
-               margin-top: -2px;
-
-               &:before {
-                    content: "";
-                    display: block;
-                    width: var(--w2);
-                    height: var(--w2);
-                    border: 2px solid var(--color);
-                    border-radius: 50%;
-               }
-
-               &.active,
-               &:hover {
-                    opacity: 1;
-
-                    &:before {
-                         width: var(--w3);
-                         height: var(--w3);
-                         background: var(--color);
-                         border: none;
-                    }
-               }
-
-
-          }
      }
 
      &.helper-sub {

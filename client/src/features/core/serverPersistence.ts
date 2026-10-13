@@ -1,13 +1,14 @@
 import api from "@/features/core/api";
 import { core, EVENTS } from "./core";
 import type { LNode } from "@/features/nodes/LNode/LNode";
+import { toDB } from "@shared/types/INodeDB";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
   deskId: string;
   token?: string | undefined; // JWT из твоей auth-системы
 }
-
+const DEBOUNCE_MS = 1000; // серверу даём чуть больше времени
 export class ServerPersistence {
   private opts: ServerPersistenceOptions;
 
@@ -17,8 +18,6 @@ export class ServerPersistence {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribers: Array<() => void> = [];
   private isSaving = false;
-
-  private readonly DEBOUNCE_MS = 1000; // серверу даём чуть больше времени
 
   constructor(opts: ServerPersistenceOptions) {
     this.opts = opts;
@@ -44,7 +43,7 @@ export class ServerPersistence {
     // Запрос летит параллельно — основной код не блокируется.
     // Когда ответ придёт, ID проставится прямо в объект node (по ссылке).
     api
-      .saveNodes([node.toDB()])
+      .saveNodes([toDB(node)])
       .then((_ids) => {
         if (!_ids || _ids.length === 0) return;
         node._id = _ids[0] || "";
@@ -56,17 +55,6 @@ export class ServerPersistence {
       });
   }
   async updateNode(node: LNode): Promise<void> {
-    // const now = ;
-    // let node = this.data.find((n) => n._id === node._id);
-
-    // if (node !== undefined) {
-    //   let index = this.data.indexOf(node);
-    //   node = { ...this.data[index], ...node, lastUpdate: now };
-    //   this.data[index] = node;
-    // } else {
-    //   node = { ...node, lastUpdate: now };
-    //   this.data.push(node);
-    // }
     node.lastUpdate = new Date();
     if (!this.dirtyNodes.has(node)) this.dirtyNodes.add(node);
     this.scheduleSave();
@@ -77,7 +65,7 @@ export class ServerPersistence {
 
     const snapshot = Array.from(this.dirtyNodes)
       .filter((n) => n._id !== "")
-      .map((node) => node.toDB());
+      .map((node) => toDB(node));
 
     this.dirtyNodes.clear();
     try {
@@ -96,7 +84,7 @@ export class ServerPersistence {
     this.debounceTimer = setTimeout(() => {
       void this.save();
       this.debounceTimer = null;
-    }, this.DEBOUNCE_MS);
+    }, DEBOUNCE_MS);
   }
   unmount() {
     this.unsubscribers.forEach((fn) => fn());

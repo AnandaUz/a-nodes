@@ -1,27 +1,26 @@
 import Tools from "@/features/core/Tools";
 import type { LNode_TextEdit } from "../LNode/LNode_TextEdit";
 import { VNode } from "./VNode";
+import type { LNode } from "../LNode/LNode";
 
 export default class VTextEdit extends VNode {
   titleEl!: HTMLInputElement;
+  isFrameMode: boolean = false;
+
+  constructor(node: LNode, container: HTMLElement) {
+    super(node, container);
+    this.body.classList.add("text-edit");
+  }
 
   init(): void {
     super.init();
-    this.titleEl = this.body.querySelector(".title-el") as HTMLInputElement;
+    this.titleEl = this.body.querySelector(".el-title") as HTMLInputElement;
     this.titleEl.addEventListener("input", () => {
       (this.node as LNode_TextEdit).onInput();
     });
 
     this.titleEl.addEventListener("blur", () => {
       (this.node as LNode_TextEdit).turnOff_EditTitleMode();
-    });
-
-    const btn_plus = this.body.querySelector(".ico-plus") as HTMLDivElement;
-    btn_plus.addEventListener("pointerdown", (e) => {
-      console.log("aaaaa");
-      Tools.stopEvent(e);
-
-      (this.node as LNode_TextEdit).frame.addFrame();
     });
   }
 
@@ -54,12 +53,146 @@ export default class VTextEdit extends VNode {
   bodyInit() {
     super.bodyInit();
     this.body.innerHTML += `            
-            <div class="title-el"></div>
-            <div class="el-frame-btn">
-              <div class="btn ico ico-plus" title="Add Frame"></div>
+            <div class="el-title"></div>
+            <!--
+
+            <div class="el-frame-power-btns">
+              <div class="btn"></div>
             </div>
-                           
+            
+            <div class="el-list-btns">            
+              <div class="bt btn-open"></div>
+              <div class="bt btn-repeats"></div>
+              <div class="bt btn-hidden"></div>             
+            </div>
+            
+            <div class="el-indicators">
+              <div class="ind-hidden"></div>
+              <div class="ind-repeats"></div>
+            </div>  
+             -->                                   
 `;
+  }
+  removePowerIndicators(subFrameLID: number) {
+    const bl = this.body.querySelector(
+      ".el-frame-power-btns .sub .line-" + subFrameLID,
+    ) as HTMLElement;
+    if (bl) bl.remove();
+
+    const btn = this.body.querySelector(
+      ".el-frame-power-btns .sub .btn-" + subFrameLID,
+    ) as HTMLElement;
+    if (btn) btn.classList.remove("active");
+  }
+  setRating(rating: number, subFrameLID: number) {
+    const maxWidth = 80;
+    const max = 10;
+    const w = (max - rating) / max;
+    const ww = Math.round(Math.pow(w, 2) * maxWidth);
+
+    if (ww > 0 && rating > 0) {
+      const bl = this.body.querySelector(
+        ".el-frame-power-btns .sub",
+      ) as HTMLElement;
+      if (!bl) return;
+
+      let blRating = bl.querySelector(".rating") as HTMLElement;
+      if (!blRating) {
+        blRating = document.createElement("div");
+        blRating.classList.add("rating");
+        bl.appendChild(blRating);
+      }
+      let ratingLine = blRating.querySelector(
+        ".rating-line.line-" + subFrameLID,
+      ) as HTMLElement;
+      if (!ratingLine) {
+        ratingLine = document.createElement("div");
+        ratingLine.classList.add("rating-line", "line-" + subFrameLID);
+        blRating.appendChild(ratingLine);
+      }
+
+      ratingLine.style.setProperty("--w", ww + "px");
+    } else {
+      let ratingLine = this.body.querySelector(
+        ".rating-line.line-" + subFrameLID,
+      ) as HTMLElement;
+      if (ratingLine) ratingLine.remove();
+    }
+
+    // на всякий случай активирую кнопку
+    const btn = this.body.querySelector(
+      ".el-frame-power-btns .sub .btn-" + subFrameLID,
+    ) as HTMLElement;
+    if (btn) btn.classList.add("active");
+  }
+  setBtnToActive(subFrameLID: number) {
+    const btn = this.body.querySelector(
+      ".el-frame-power-btns .sub .btn-" + subFrameLID,
+    ) as HTMLElement;
+    if (btn) btn.classList.add("active");
+  }
+  addFramePowerBtn(
+    callbackOn: () => void,
+    callbackOff: () => void,
+    childLID: number,
+  ) {
+    let blM = this.body.querySelector(".el-frame-power-btns") as HTMLElement;
+    let bl: HTMLElement;
+    if (!blM) {
+      blM = document.createElement("div");
+      blM.classList.add("el-frame-power-btns");
+      this.body.appendChild(blM);
+
+      const blSub = document.createElement("div");
+      blSub.classList.add("sub");
+      blM.appendChild(blSub);
+      bl = document.createElement("div");
+      bl.classList.add("btns");
+      blSub.appendChild(bl);
+    } else {
+      bl = blM.querySelector(".sub .btns") as HTMLElement;
+    }
+    const btn = document.createElement("div");
+    btn.classList.add("btn", "btn-" + childLID);
+    bl.appendChild(btn);
+
+    btn.addEventListener("pointerdown", (e) => {
+      Tools.stopEvent(e);
+      if (btn.classList.contains("active")) {
+        callbackOff();
+        btn.classList.remove("active");
+      } else {
+        callbackOn();
+        btn.classList.add("active");
+      }
+    });
+  }
+  removeFramePowerBtn() {
+    this.body.querySelector(".el-frame-power-btns")?.remove();
+  }
+  turnOn_frameMode() {
+    if (this.isFrameMode) return;
+    this.isFrameMode = true;
+    this.body.classList.add("frame");
+    const frameBlock = document.createElement("div");
+    frameBlock.classList.add("el-frame-btn");
+    this.body.appendChild(frameBlock);
+
+    const btnAdd = document.createElement("div");
+    btnAdd.classList.add("btn", "ico", "ico-plus");
+    btnAdd.title = "Add Frame";
+    frameBlock.appendChild(btnAdd);
+
+    btnAdd.addEventListener("pointerdown", (e) => {
+      Tools.stopEvent(e);
+      (this.node as LNode_TextEdit).frame.addFrame();
+    });
+  }
+  turnOff_frameMode() {
+    if (!this.isFrameMode) return;
+    this.isFrameMode = false;
+    this.body.classList.remove("frame");
+    this.body.querySelector(".el-frame-btn")?.remove();
   }
 
   set title(v: string | undefined) {
@@ -78,11 +211,6 @@ export default class VTextEdit extends VNode {
         this.titleEl.innerHTML = str;
         // this.onChange()
       }
-    }
-    if ((this.node as LNode_TextEdit).frame.isFrame) {
-      this.body.classList.add("frame");
-    } else {
-      this.body.classList.remove("frame");
     }
   }
 }

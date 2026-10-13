@@ -12,6 +12,7 @@ import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import Tools from "./Tools";
 import { app } from "@/app";
+import { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
 
 export { EVENTS };
 export class Core {
@@ -90,6 +91,20 @@ export class Core {
         core.desk.disconnectNodesEl(); //>
         core.nodeRenderer.renderAll();
         core.desk.connectNodesEl(); //<
+
+        /** проеверка на дублировани lID */
+        const checkLID = new Set<number>();
+        core.nodeManager.nodes.forEach((node) => {
+          if (!node.lID) return;
+          if (!checkLID.has(node.lID)) {
+            checkLID.add(node.lID);
+          } else {
+            console.log("дубль LID", node.title);
+            node.lID = this.nodeManager.getMaxLID() + 1;
+            node.save();
+          }
+        });
+
         core.nodeManager.nodes.forEach((node) => {
           node.vNode?.refreshBodyRect();
 
@@ -99,9 +114,26 @@ export class Core {
           // }
         });
 
+        const frames = [...core.nodeManager.nodes.values()].filter(
+          (node) => node instanceof LNode_TextEdit && node.frame.isFrame,
+        ) as LNode_TextEdit[];
+
+        /** подключаем детей к родителям */
+        frames.forEach((node) => {
+          node.frame.init();
+        });
+        frames.forEach((node) => {
+          node.frame.initBtns();
+        });
+        frames.forEach((node) => {
+          node.frame.setBtnsState();
+        });
+
         this.nodeManager.setPositionForAllLinkedChildNodes();
         core.nodeManager.nodes.forEach((node) => {
           node.vNode?.renderSVG();
+          if (node instanceof LNode_TextEdit) {
+          }
         });
 
         // core.desk.disconnectNodesEl(); //>

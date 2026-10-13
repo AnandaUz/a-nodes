@@ -1,57 +1,62 @@
 import { LNode } from "./LNode";
 import { LNode_TextEdit } from "./LNode_TextEdit";
 import VTextEditClone from "../VNode/VTextEditClone";
-import type { INodeDB } from "@shared/types/INodeDB";
 import { core } from "@/features/core/core";
-
-// для упаковки
-const SOURCE_LID_BITS = 17; // 0x1ffff
-const SOURCE_LID_MASK = (1 << SOURCE_LID_BITS) - 1; // 0x1ffff
+import type VTextEdit from "../VNode/VTextEdit";
 
 export class LNode_TEClone extends LNode_TextEdit {
-  /** нода родитель */
-  mainNode: LNode_TextEdit | undefined;
-  mainNodeLID?: number;
+  declare vNode?: VTextEditClone;
 
+  constructor() {
+    super();
+
+    this.list.onTotalIndexChanged((v: number) => {
+      this.setRating(v);
+    });
+  }
   init(): void {
     super.init();
     this.forCompatibility();
   }
+  setRating(v: number) {
+    const vNode = this.vNode;
+    if (!vNode) return;
+
+    (this.clones.mainNode?.vNode as VTextEdit)?.setRating(
+      v,
+      this.list.getMainParent()?.lID ?? 0,
+    );
+  }
 
   setLineOfParentsTitle() {
-    const vNode = this.vNode as VTextEditClone;
+    const vNode = this.vNode;
     if (!vNode) return;
     vNode.elLineOfParentsTitle.innerHTML = "";
 
-    const mainNode = this.mainNode;
+    const mainNode = this.clones.mainNode;
     if (!mainNode) return;
     const parentsTitles: string[] = [];
     let sNode: LNode = mainNode;
+    let t = 10;
     while (sNode.list.parentNode) {
       sNode = sNode.list.parentNode;
       parentsTitles.push(sNode.title || "");
+      if (t-- < 0) break;
     }
     vNode.elLineOfParentsTitle.innerHTML = parentsTitles
       .map((s) => `<span>${s}</span>`)
       .join("");
   }
   onInput() {
-    const vNode = this.vNode as VTextEditClone;
+    const vNode = this.vNode;
     // this.setTitleText(vNode.titleEl.innerText);
-    if (this.sourceNode) {
-      this.sourceNode.setTitleText(vNode.titleEl.innerText, true, this);
+    if (this.clones.sourceNode && vNode) {
+      this.clones.sourceNode.setTitleText(vNode.titleEl.innerText, true, this);
       this.title = vNode.titleEl.innerText;
-      this.sourceNode.save();
+      this.clones.sourceNode.save();
     }
   }
-  /** возращает ноду оригинал */
-  get sourceNode(): LNode_TextEdit | undefined {
-    let sNode: LNode = this;
-    while (sNode instanceof LNode_TEClone) {
-      sNode = sNode.mainNode as LNode;
-    }
-    return sNode as LNode_TextEdit;
-  }
+
   /** для совместимости */
   forCompatibility() {
     const sourceNodeId = this.exData?.ownerNodesIds?.[0];
@@ -60,51 +65,38 @@ export class LNode_TEClone extends LNode_TextEdit {
   getVNodeType() {
     return VTextEditClone;
   }
-  toDB(): INodeDB {
-    const res: INodeDB = super.toDB();
-    res.title = undefined;
-    if (this.mainNodeLID) {
-      res.A = this.mainNodeLID & SOURCE_LID_MASK;
-    }
-    return res;
-  }
-  fromDB(db: INodeDB) {
-    super.fromDB(db);
-    if (db.A) {
-      this.mainNodeLID = db.A & SOURCE_LID_MASK;
-    }
-  }
   turnOff_EditTitleMode() {
     core.mode.textEditing = false;
     core.mode.textNode = false;
     this.isEditMode = false;
 
-    const vNode = this.vNode as VTextEditClone;
+    const vNode = this.vNode;
     if (!vNode) return;
     vNode.titleEl.contentEditable = "false";
 
     document.removeEventListener("keydown", this.turnOf_edit_byEsc);
-    if (!this.sourceNode) {
+    if (!this.clones.sourceNode) {
       return;
     }
 
-    this.sourceNode.title = this.title || "";
-    this.sourceNode.turnOff_EditTitleMode();
+    this.clones.sourceNode.title = this.title || "";
+    this.clones.sourceNode.turnOff_EditTitleMode();
   }
-  set title(v: string | undefined) {
-    if (!this.sourceNode) return;
-    this.sourceNode.title = v || "";
+  set title(_v: string | undefined) {
+    // if (!this.clones.sourceNode) return;
+    // this.clones.sourceNode.title = v || "";
   }
   get title() {
-    if (!this.sourceNode) return "#######";
-    return this.sourceNode.title;
+    // if (!this.clones.sourceNode) return "#######";
+    // return this.clones.sourceNode.title;
+    return undefined;
   }
 
   selectPost() {
-    this.sourceNode?.highlight();
+    this.clones.sourceNode?.clones.doForAll((node) => node.highlight());
   }
   unselect() {
     super.unselect();
-    this.sourceNode?.unhighlight();
+    this.clones.sourceNode?.clones.doForAll((node) => node.unhighlight());
   }
 }

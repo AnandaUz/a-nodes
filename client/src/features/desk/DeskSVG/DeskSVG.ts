@@ -1,5 +1,5 @@
 export class DeskSVG {
-  private svg: SVGElement;
+  svg: SVGElement;
   private bgLayer: SVGGElement;
   private arrowLayer: SVGGElement;
 
