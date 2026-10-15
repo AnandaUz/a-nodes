@@ -21,6 +21,7 @@ export class VNode {
   // public y: number;
   width: number = 0;
   height: number = 0;
+  hidden: boolean = false;
 
   // private isSelectAble = true;
   protected isMoved = false;
@@ -66,6 +67,49 @@ export class VNode {
       }),
     );
     this.bind();
+  }
+  repeatMode = {
+    // <div class="el-indicators">
+    //           <div class="ind-hidden"></div>
+    //           <div class="ind-repeats"></div>
+    //         </div>
+    showIndicator: () => {
+      if (this.hidden) return;
+      let elIndBlock = this.body.querySelector(".el-indicators");
+      if (!elIndBlock) {
+        elIndBlock = document.createElement("div");
+        elIndBlock.className = "el-indicators";
+        this.body.appendChild(elIndBlock);
+      }
+      let elRepeat = elIndBlock.querySelector(".ind-repeat");
+
+      if (!elRepeat) {
+        elRepeat = document.createElement("div");
+        elRepeat.className = "ind-repeat";
+        elIndBlock.appendChild(elRepeat);
+      }
+
+      // if (this.node.hidden) {
+      //   elRepeat.classList.add("active");
+      // } else {
+      //   elRepeat.classList.remove("active");
+      // }
+    },
+    hideIndicator: () => {
+      const elRepeat = this.body.querySelector(".ind-repeat");
+      if (elRepeat) {
+        elRepeat.remove();
+      }
+    },
+  };
+  hide() {
+    this.hidden = true;
+    this.body.style.display = "none";
+  }
+  show() {
+    this.hidden = false;
+    this.body.style.display = "";
+    this.render();
   }
   initMovingElement() {
     this.movingElement = this.body;
@@ -288,6 +332,7 @@ export class VNode {
     return f_x && f_y;
   }
   render() {
+    if (this.hidden) return;
     const idx = parseInt(this.node.exData?.repeatMode || "");
     const iconBlock = this.body.querySelector(".repeat-icon");
     if (!isNaN(idx) || this.node.exData?.repeatDay) {
@@ -329,6 +374,11 @@ export class VNode {
     const h = this.node.exData?.h;
     if (h) {
       this.body.classList.add(h);
+    }
+    if (this.node.repeatMode.mode > 0 || this.node.repeatMode.date) {
+      this.repeatMode.showIndicator();
+    } else {
+      this.repeatMode.hideIndicator();
     }
 
     // для атладки

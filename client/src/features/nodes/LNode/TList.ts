@@ -270,6 +270,7 @@ export default class TList {
       let h = 0;
       const startY = owner.y + (owner.vNode?.height ?? 0);
       for (const child of m) {
+        if (child.hidden) continue;
         child.x = owner.x + GRID.x * (child.list.tab ?? 0);
         child.y = startY + h;
         if (totalTab == 0) totalIndex++;

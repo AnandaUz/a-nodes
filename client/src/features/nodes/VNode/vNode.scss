@@ -382,7 +382,7 @@
     }
 
     .btn-el {
-        grid-column: p-end/end;
+        grid-column: end/s-end;
         grid-row: title;
 
     }
@@ -405,7 +405,7 @@
                 background-color: rgba(155, 197, 214, 0.925);
             }
 
-            &.ind-repeats {
+            &.ind-repeat {
                 background-color: hsl(32, 95%, 56%);
             }
         }

@@ -5,6 +5,9 @@ import TList from "./TList";
 import type { ILNode } from "@shared/types/ILNode";
 import type { IExData } from "@shared/types/IExData";
 
+import TRepeatMode from "./TRepeatMode";
+import TClones from "./TClones";
+
 export class LNode implements ILNode {
   _id: string | undefined = "";
   userId: string | undefined;
@@ -12,6 +15,8 @@ export class LNode implements ILNode {
   inTrash: boolean | undefined;
   lastUpdate: Date | undefined;
   type: number = 0;
+  repeatMode = new TRepeatMode(this);
+  clones = new TClones(this);
   private _title: string | undefined;
   get title(): string | undefined {
     return this._title;
@@ -29,6 +34,9 @@ export class LNode implements ILNode {
 
   lID?: number | undefined;
   vNode?: VNode;
+  /** поле которое я сохраняю в базе */
+  hiddenBD: boolean = false;
+  /** поле которое показывает видна нода или нет */
   hidden: boolean = false;
 
   constructor() {
@@ -41,6 +49,43 @@ export class LNode implements ILNode {
     //     });
     //   });
     // });
+  }
+  forCompatibility() {
+    // конвертация старой версии repeatMode
+    if (this.exData) {
+      if (this.exData.repeatMode || this.exData.repeatDay) {
+        if (this.exData.repeatDay) {
+          this.repeatMode.date = new Date(this.exData.repeatDay);
+          this.exData.repeatDay = undefined;
+          if (this.inTrash) this.inTrash = false;
+          this.save();
+        }
+        if (this.exData.repeatMode) {
+          this.repeatMode.mode = Number(this.exData.repeatMode);
+          this.exData.repeatMode = undefined;
+          if (this.inTrash) this.inTrash = false;
+          this.save();
+        }
+      }
+      // конвертация старой версии clones
+      if (this.exData.ownerNodesIds) {
+        const sourceNodeId = this.exData.ownerNodesIds[0];
+        if (sourceNodeId) {
+          const mainNode = [...core.nodeManager.nodes.values()].find(
+            (n) => n._id === sourceNodeId,
+          );
+          if (mainNode) {
+            if (!mainNode.lID) {
+              mainNode.lID = core.nodeManager.getMaxLID() + 1;
+              mainNode.save();
+            }
+            this.clones.mainNode = mainNode;
+            this.exData.ownerNodesIds = undefined;
+            this.save();
+          }
+        }
+      }
+    }
   }
   /** всё что необходимо чтобы обновить ноду */
   refresh() {}
@@ -56,7 +101,14 @@ export class LNode implements ILNode {
       }
     }
   }
-
+  hide() {
+    this.hiddenBD = true;
+    this.vNode?.hide();
+  }
+  show() {
+    this.hiddenBD = false;
+    this.vNode?.show();
+  }
   /** возращает тип для VNode */
   getVNodeType(): typeof VNode {
     return VTextEdit;

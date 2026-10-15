@@ -81,16 +81,32 @@ c-nodes-menu {
             font-size: 15px;
             padding: 4px 0;
         }
-    }
 
-    .text-style-block {
-        .text-color {
+        .hot-btns {
             display: flex;
-            gap: 2px;
-            padding: 4px 0;
+            gap: 4px;
+
+            div {
+                background-color: #ffeede;
+                color: #7d3501;
+                padding: 3px 0;
+            }
+        }
+
+        .btn-clear {
+            margin: 4px 0 0;
         }
     }
 }
+
+.text-style-block {
+    .text-color {
+        display: flex;
+        gap: 2px;
+        padding: 4px 0;
+    }
+}
+
 
 .btn-group {
     display: flex;

@@ -1,14 +1,14 @@
 import { core } from "@/features/core/core";
 import VTextEdit from "../VNode/VTextEdit";
 import { LNode } from "./LNode";
-import TClones from "./TClones";
+
 import TFrame from "./TFrame";
+import type { LNode_TEClone } from "./LNode_TEClone";
 
 export class LNode_TextEdit extends LNode {
   isEditMode: boolean = false;
   declare vNode?: VTextEdit;
 
-  clones = new TClones(this);
   frame = new TFrame(this);
   getVNodeType() {
     return VTextEdit;
@@ -23,7 +23,7 @@ export class LNode_TextEdit extends LNode {
     // this.vNode?.render();
     if (this.clones.nodes.size > 0) {
       this.clones.nodes.forEach((cl) => {
-        cl.setLineOfParentsTitle();
+        (cl as LNode_TEClone).setLineOfParentsTitle();
       });
     }
     this.list.children?.forEach((childNode) => {
@@ -94,13 +94,13 @@ export class LNode_TextEdit extends LNode {
   }
   selectPost() {
     if (this.clones.nodes.size > 0) {
-      this.clones.doForAll((node) => node.highlight());
+      this.clones.doForAll((node) => (node as LNode_TEClone).highlight());
     }
   }
   unselect() {
     super.unselect();
     if (this.clones.nodes.size > 0)
-      this.clones.doForAll((node) => node.unhighlight());
+      this.clones.doForAll((node) => (node as LNode_TEClone).unhighlight());
   }
   highlight() {
     this.vNode?.highlight();

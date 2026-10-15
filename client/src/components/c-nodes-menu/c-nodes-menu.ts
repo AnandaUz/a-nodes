@@ -292,29 +292,34 @@ class CNodesMenu extends HTMLElement {
     const repeatBlock = this.querySelector(".repeat-block") as HTMLElement;
     const daysBlock = this.querySelector(".days-block") as HTMLElement;
     const inpEl = this.querySelector(".time-block") as HTMLDivElement;
+    const hotBtnsBlock = this.querySelector(".hot-btns") as HTMLDivElement;
 
     const btnClear = this.querySelector(".btn-clear") as HTMLElement;
     btnClear.addEventListener("click", () => {
       inpEl.textContent = "";
 
       core.selectManager.selectedNodes.forEach((node) => {
-        if (node.exData) {
-          delete node.exData.repeatMode;
-          delete node.exData.repeatDay;
-          node.save();
-          node.vNode?.render();
-        }
+        clearBtns();
+        node.clones.doForAll((clone) => {
+          clone.repeatMode.mode = 0;
+          clone.repeatMode.date = null;
+          clone.save();
+        });
+        node.repeatMode.mode = 0;
+        node.repeatMode.date = null;
+        node.save();
+        node.vNode?.render();
       });
     });
 
     const onInput = () => {
-      const value = inpEl.textContent;
+      const value = inpEl.textContent?.replaceAll(",", ".") || "";
       const regex = /\+(\d+)/;
       const m = value.match(regex);
 
       let isChanged = false;
 
-      let repeatDay: Date | undefined = undefined;
+      let repeatDay: Date | null = null;
 
       if (m) {
         const n = Number(m[1]);
@@ -335,22 +340,21 @@ class CNodesMenu extends HTMLElement {
         } else {
           inpEl.innerHTML = "";
           isChanged = true;
-          repeatDay = undefined;
+          repeatDay = null;
         }
       }
 
       if (isChanged) {
         core.selectManager.selectedNodes.forEach((node) => {
-          if (repeatDay) {
-            if (!node.exData) {
-              node.exData = {};
-            }
-            node.exData.repeatDay = repeatDay;
-          } else {
-            if (node.exData) {
-              delete node.exData.repeatDay;
-            }
-          }
+          // если есть клоны то назначаем и им
+
+          node.clones.doForAll((clone) => {
+            if (clone === node) return;
+            clone.repeatMode.date = repeatDay;
+            clone.save();
+          });
+
+          node.repeatMode.date = repeatDay;
 
           node.save();
           node.vNode?.render();
@@ -399,21 +403,71 @@ class CNodesMenu extends HTMLElement {
 
         let f = true;
         core.selectManager.selectedNodes.forEach((node) => {
-          if (!node.exData) {
-            node.exData = {};
-          }
-          if (node.exData.repeatMode === i.toString()) {
-            delete node.exData.repeatMode;
+          let v = 0;
+          if (node.repeatMode.mode === i + 1) {
             f = false;
           } else {
-            node.exData.repeatMode = i.toString();
+            v = i + 1;
           }
+          node.repeatMode.mode = v;
+          node.clones.doForAll((clone) => {
+            clone.repeatMode.mode = v;
+            clone.save();
+          });
           node.save();
-          node.vNode?.render();
         });
         if (f) {
           el.classList.toggle("active");
         }
+      });
+    });
+    const hotBtnsData = [
+      {
+        title: "+1",
+        delay: 1,
+      },
+      {
+        title: "+3",
+        delay: 3,
+      },
+      {
+        title: "+7",
+        delay: 7,
+      },
+      {
+        title: "+14",
+        delay: 14,
+      },
+      {
+        title: "+30",
+        delay: 30,
+      },
+    ];
+    hotBtnsData.forEach((item) => {
+      const el = document.createElement("div");
+      el.textContent = item.title;
+      el.classList.add("btn");
+      hotBtnsBlock.appendChild(el);
+      el.addEventListener("pointerdown", (e) => {
+        Tools.stopEvent(e);
+      });
+      el.addEventListener("pointerup", (e) => {
+        Tools.stopEvent(e);
+
+        core.selectManager.selectedNodes.forEach((node) => {
+          // если есть клоны то назначаем и им
+
+          node.clones.doForAll((clone) => {
+            if (clone === node) return;
+            clone.repeatMode.setDelay(item.delay);
+            clone.save();
+          });
+
+          node.repeatMode.setDelay(item.delay);
+
+          node.save();
+          node.vNode?.render();
+        });
       });
     });
 
@@ -423,16 +477,14 @@ class CNodesMenu extends HTMLElement {
         clearBtns();
         inpEl.textContent = "";
         core.selectManager.selectedNodes.forEach((node) => {
-          if (node.exData?.repeatMode) {
-            const idx = parseInt(node.exData.repeatMode) || 0;
-            if (dayBtns[idx]) {
-              dayBtns[idx].classList.add("active");
+          if (node.repeatMode.mode) {
+            const idx = node.repeatMode.mode || 0;
+            if (dayBtns[idx - 1]) {
+              dayBtns[idx - 1]?.classList.add("active");
             }
           }
-          if (node.exData?.repeatDay) {
-            inpEl.textContent = Tools.formatDate(
-              new Date(node.exData.repeatDay),
-            );
+          if (node.repeatMode.date) {
+            inpEl.textContent = Tools.formatDate(node.repeatMode.date);
           }
         });
       }),

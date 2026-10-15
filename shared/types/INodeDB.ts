@@ -17,8 +17,27 @@ export interface INodeDB {
   A?: number | undefined; //переменные для клонов LNode_TEClone,
   exData?: IExData | undefined;
   f?: number[] | undefined;
+  D?: number | undefined; //переменные для repeatMode и разных дат
 }
+const START_DATE = new Date("2026-10-13T00:00:00.000Z");
 
+const daysFromStartDay = {
+  getDate(days: number | undefined): Date | null {
+    if (days === undefined) return null;
+    return new Date(START_DATE.getTime() + days * 24 * 60 * 60 * 1000);
+  },
+  getDays(date: Date | undefined | null): number | undefined {
+    if (date === null || date === undefined) return undefined;
+    return Math.ceil(
+      (date.getTime() - START_DATE.getTime()) / (24 * 60 * 60 * 1000),
+    );
+  },
+};
+
+// function daysDiff(d1: Date, d2: Date): number {
+//   const msDiff = Math.abs(d1.getTime() - d2.getTime());
+//   return Math.round(msDiff / MS_PER_DAY);
+// }
 class TPackedData<T> {
   private fields: Array<{
     get: (obj: T) => any;
@@ -28,7 +47,7 @@ class TPackedData<T> {
   // private offsets: number[] = [];
   // private _currentOffset = 0;
 
-  add<OpsT extends boolean | number>(
+  add<OpsT extends boolean | number | Date>(
     accessor: {
       get: (o: T) => OpsT | undefined;
       set: (o: T, v: OpsT) => void;
@@ -68,6 +87,26 @@ class TPackedData<T> {
     });
   }
 }
+// переменные для repeatMode и разных дат
+const blockD = new TPackedData<ILNode>()
+  .add<number>(
+    {
+      get: (node) => node.repeatMode.mode,
+      set: (node, v) => {
+        node.repeatMode.mode = v;
+      },
+    },
+    3,
+  )
+  .add<number>(
+    {
+      get: (node) => daysFromStartDay.getDays(node.repeatMode.date),
+      set: (node, v) => {
+        node.repeatMode.date = daysFromStartDay.getDate(v);
+      },
+    },
+    13,
+  );
 // переменные для клонов LNode_TEClone
 const blockA = new TPackedData<ILNode>().add<number>(
   {
@@ -92,6 +131,15 @@ const blockS = new TPackedData<ILNode>()
       get: (node) => node.frame?.isFrame,
       set: (node, v) => {
         if (node.frame) node.frame.isFrame = v;
+      },
+    },
+    1,
+  )
+  .add<boolean>(
+    {
+      get: (node) => node.hiddenBD,
+      set: (node, v) => {
+        node.hiddenBD = v;
       },
     },
     1,
@@ -156,6 +204,8 @@ export function toDB(node: ILNode): INodeDB {
   res.s = blockS.pack(node);
   // упаковка - TClones
   res.A = blockA.pack(node);
+  // переменные для repeatMode и разных дат
+  res.D = blockD.pack(node);
 
   if (node.exData) {
     res.exData = {
@@ -203,6 +253,9 @@ export function fromDB(db: INodeDB, node: ILNode) {
 
   // распаковываем TClones
   blockA.unpack(node, db.A);
+
+  // распаковываем repeatMode и разные дат
+  blockD.unpack(node, db.D);
   // родители фреймов
   if (db.f && node.frame) {
     node.frame.parentsLID = db.f;

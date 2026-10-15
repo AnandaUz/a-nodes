@@ -14,6 +14,10 @@ export interface IFrame {
 export interface IClones {
   mainNodeLID?: number | undefined;
 }
+export interface IRepeatMode {
+  mode?: number;
+  date?: Date | null;
+}
 
 /** интерфейс для LNode */
 export interface ILNode {
@@ -29,7 +33,8 @@ export interface ILNode {
   list?: ITList;
   frame?: TFrame;
   lID?: number | undefined;
-  hidden?: boolean;
+  hiddenBD?: boolean;
   exData?: IExData | undefined;
   clones?: IClones;
+  repeatMode: IRepeatMode;
 }

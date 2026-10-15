@@ -51,18 +51,13 @@ export class LNode_TEClone extends LNode_TextEdit {
     const vNode = this.vNode;
     // this.setTitleText(vNode.titleEl.innerText);
     const sourceNode = this.clones.sourceNode;
-    if (sourceNode && vNode) {
+    if (sourceNode && vNode && sourceNode instanceof LNode_TextEdit) {
       sourceNode.setTitleText(vNode.titleEl.innerText, true, this);
       sourceNode.title = vNode.titleEl.innerText;
       sourceNode.save();
     }
   }
 
-  /** для совместимости */
-  forCompatibility() {
-    const sourceNodeId = this.exData?.ownerNodesIds?.[0];
-    if (!sourceNodeId) return;
-  }
   getVNodeType() {
     return VTextEditClone;
   }
@@ -79,7 +74,8 @@ export class LNode_TEClone extends LNode_TextEdit {
     if (!this.clones.sourceNode) {
       return;
     }
-    this.clones.sourceNode.turnOff_EditTitleMode();
+    const sourceNode = this.clones.sourceNode as LNode_TextEdit;
+    sourceNode.turnOff_EditTitleMode();
   }
   // перезаписываю родительские title getters/setters
   set title(_v: string | undefined) {}
@@ -88,10 +84,14 @@ export class LNode_TEClone extends LNode_TextEdit {
   }
 
   selectPost() {
-    this.clones.sourceNode?.clones.doForAll((node) => node.highlight());
+    this.clones.sourceNode?.clones.doForAll((node) =>
+      (node as LNode_TextEdit).highlight(),
+    );
   }
   unselect() {
     super.unselect();
-    this.clones.sourceNode?.clones.doForAll((node) => node.unhighlight());
+    this.clones.sourceNode?.clones.doForAll((node) =>
+      (node as LNode_TextEdit).unhighlight(),
+    );
   }
 }

@@ -92,9 +92,9 @@ export class Core {
         core.nodeRenderer.renderAll();
         core.desk.connectNodesEl(); //<
 
-        /** проеверка на дублировани lID */
         const checkLID = new Set<number>();
         core.nodeManager.nodes.forEach((node) => {
+          /** проеверка на дублировани lID */
           if (!node.lID) return;
           if (!checkLID.has(node.lID)) {
             checkLID.add(node.lID);
@@ -103,6 +103,10 @@ export class Core {
             node.lID = this.nodeManager.getMaxLID() + 1;
             node.save();
           }
+        });
+        // включаем индикаторы репитов
+        core.nodeManager.nodes.forEach((node) => {
+          node.repeatMode.refreshIndicator();
         });
 
         core.nodeManager.nodes.forEach((node) => {

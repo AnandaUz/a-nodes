@@ -54,22 +54,12 @@ export default class VTextEdit extends VNode {
     super.bodyInit();
     this.body.innerHTML += `            
             <div class="el-title"></div>
-            <!--
-
-            <div class="el-frame-power-btns">
-              <div class="btn"></div>
-            </div>
-            
+            <!--            
             <div class="el-list-btns">            
               <div class="bt btn-open"></div>
               <div class="bt btn-repeats"></div>
               <div class="bt btn-hidden"></div>             
-            </div>
-            
-            <div class="el-indicators">
-              <div class="ind-hidden"></div>
-              <div class="ind-repeats"></div>
-            </div>  
+            </div>      
              -->                                   
 `;
   }

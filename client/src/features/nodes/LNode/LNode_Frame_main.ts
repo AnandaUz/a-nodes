@@ -7,10 +7,9 @@ export class LNode_Frame_main extends LNode_TextEdit {
   getVNodeType() {
     return VFrame;
   }
-  constructor() {
-    super();
-    this.forCompatibility();
-  }
+  // constructor() {
+  //   super();
+  // }
   /**для совместимости с теми фреймамаи когда ещё не было списков
    * иследую область означенную высотой и все ноды добавляю во фрейм */
   forCompatibility() {

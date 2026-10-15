@@ -178,10 +178,21 @@ export class NodeManager {
     for (const nodeData of snapshot.nodes) {
       const { _id } = nodeData;
       if (!_id) continue;
+      // адаптация - переделываю тип фреймов, в ноду фрейм
+      let isFrameAdaptation = false;
+      if (nodeData.type === NODE_TYPES.FRAME.main || nodeData.type === 21) {
+        nodeData.type = NODE_TYPES.TEXT_EDIT.id;
+        isFrameAdaptation = true;
+      }
       const node = this.addNode(nodeData.type || 0);
       if (!node) continue;
       fromDB(nodeData, node);
       this.nodes.add(node);
+      // адаптация - переделываю тип фреймов, в ноду фрейм
+      if (isFrameAdaptation) {
+        (node as LNode_TextEdit).frame.isFrame = true;
+        node.save();
+      }
     }
 
     if (snapshot.pageNode) {
@@ -189,11 +200,23 @@ export class NodeManager {
       fromDB(snapshot.pageNode, this.pageNode);
     }
 
-    this.initCloneLinks();
-
     this.nodes.forEach((node) => {
+      node.forCompatibility();
+
+      // если дата repeatMode вышла, то показывает
+      if (node.repeatMode.date) {
+        const now = new Date();
+        if (node.repeatMode.date < now && node.hiddenBD) {
+          node.hiddenBD = false;
+          node.save();
+        }
+      }
+      // показываем кому быть видимым кому нет
+      node.hidden = node.hiddenBD;
       node.list.initParent();
     });
+
+    this.initCloneLinks();
 
     core.store.emit(EVENTS.NodeManager.reInitAlnodes, undefined);
   }
@@ -226,9 +249,9 @@ export class NodeManager {
       }
     }
     //для каждого ресурсного устанавливаем все его клоны
-    sourceNodes.forEach((sourceNode: LNode_TextEdit) => {
+    sourceNodes.forEach((sourceNode: LNode) => {
       sourceNode.clones.sourceNode = sourceNode;
-      sourceNode.clones.doForAll((cloneNode: LNode_TextEdit) => {
+      sourceNode.clones.doForAll((cloneNode: LNode) => {
         cloneNode.clones.sourceNode = sourceNode;
         cloneNode.init();
       });
@@ -315,27 +338,34 @@ export class NodeManager {
   }
 
   putNodeInTrash(node: LNode, withClones: boolean = false): void {
-    if (!node) return;
+    if (node.repeatMode.mode > 0 || node.repeatMode.date) {
+      if (node.repeatMode.mode > 0) {
+        const nextDate = Tools.getNextWeekday(node.repeatMode.mode);
+        nextDate.setHours(0, 0, 0, 0);
+        node.repeatMode.date = nextDate;
+      }
+      node.hide();
+      node.save();
+      node.remove();
+    } else {
+      node.inTrash = true;
+      node.save();
+      core.store.emit(EVENTS.node.inTrash, node);
+      this.nodes.delete(node);
+      node.remove();
+    }
+
     if (withClones) {
       (node as LNode_TextEdit).clones.doForAll((cloneNode) => {
         this.putNodeInTrash(cloneNode, false);
       });
       return;
     }
+    // отключаем паур кнопку
     if (node instanceof LNode_TextEdit && node.clones.mainNode) {
-      node.clones.mainNode.frame.turnOff_PowerBtn(node.frame.frameLID);
+      if (node.clones.mainNode instanceof LNode_TextEdit)
+        node.clones.mainNode.frame.turnOff_PowerBtn(node.frame.frameLID);
     }
-
-    node.inTrash = true;
-    if (node.exData?.repeatMode) {
-      const nextDate = Tools.getNextWeekday(parseInt(node.exData.repeatMode));
-      nextDate.setHours(0, 0, 0, 0);
-      node.exData.repeatDay = nextDate;
-    }
-    node.save();
-    core.store.emit(EVENTS.node.inTrash, node);
-    this.nodes.delete(node);
-    node.remove();
   }
 
   create_TextEditCloneNode(mainNode: LNode_TextEdit, x?: number, y?: number) {
