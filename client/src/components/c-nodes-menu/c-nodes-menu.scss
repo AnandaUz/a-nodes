@@ -82,14 +82,28 @@ c-nodes-menu {
             padding: 4px 0;
         }
 
-        .hot-btns {
+        .hot-btns,
+        .el-hot-days-btns-block {
             display: flex;
-            gap: 4px;
+            gap: 3px;
+            margin: 3px 0 0;
 
             div {
                 background-color: #ffeede;
                 color: #7d3501;
                 padding: 3px 0;
+                transition: background-color 0.3s ease-in-out;
+
+                &:hover {
+                    background-color: #fca350;
+
+                }
+            }
+        }
+
+        .el-hot-days-btns-block {
+            div {
+                background-color: #ffe1c4;
             }
         }
 

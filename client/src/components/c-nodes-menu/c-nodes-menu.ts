@@ -470,6 +470,44 @@ class CNodesMenu extends HTMLElement {
         });
       });
     });
+    //
+    const elHotDaysBlock = this.querySelector(
+      ".el-hot-days-btns-block",
+    ) as HTMLElement;
+    days.forEach((item, i) => {
+      const ii = i + 1;
+      const el = document.createElement("div");
+      el.textContent = item;
+      el.classList.add("btn");
+      elHotDaysBlock.appendChild(el);
+      el.addEventListener("pointerdown", (e) => {
+        Tools.stopEvent(e);
+      });
+      el.addEventListener("pointerup", (e) => {
+        Tools.stopEvent(e);
+
+        core.selectManager.selectedNodes.forEach((node) => {
+          // если есть клоны то назначаем и им
+
+          const d = new Date();
+          // d.setDate(11);
+          const nowDay = d.getDay();
+
+          const delay = nowDay < ii ? ii - nowDay : 7 - (nowDay - ii);
+
+          node.clones.doForAll((clone) => {
+            if (clone === node) return;
+            clone.repeatMode.setDelay(delay);
+            clone.save();
+          });
+
+          node.repeatMode.setDelay(delay);
+
+          node.save();
+          node.vNode?.render();
+        });
+      });
+    });
 
     this.unsubcripes.push(
       core.store.on(EVENTS.node.selected, (_node) => {
