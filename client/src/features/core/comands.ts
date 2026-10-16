@@ -1,10 +1,7 @@
 import { core } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
 import { GRID } from "./CONST";
-import VFrame from "../nodes/VFrame/VFrame";
 import Tools from "./Tools";
-import type VFrame_main from "../nodes/VFrame/VFrame_main";
-
 import { LNode_TEClone } from "../nodes/LNode/LNode_TEClone";
 import { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
 
@@ -106,32 +103,36 @@ const commands: Command[] = [
             node.x = (node.x ?? 0) - x + pointerPos.x;
             node.y = (node.y ?? 0) - y + pointerPos.y;
 
-            const newNodeEss = await core.nodeManager.createNode(node);
+            // if (!node) return;
+            // const newNodeEss = core.nodeManager.createNode({
+            //   x: node.x,
+            //   y: node.y,
+            //   type: node.type,
+            //   exData: node.exData,
+            // });
 
-            if (newNodeEss) {
-              core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
-            }
+            // if (newNodeEss) {
+            //   core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
+            // }
           });
         },
       },
       {
         label: "создать копию",
         shortcuts: ["ctrl+d", "cmd+d"],
-        execute: async (e) => {
-          Tools.stopEvent(e);
-          const vNodes = Array.from(core.selectManager.selectedNodes.values());
-
-          const newNodeEsses: INode[] = [];
-          for (const vnode of vNodes) {
-            const newNodeEss = await core.nodeManager.copyNode(vnode.node);
-            if (newNodeEss) newNodeEsses.push(newNodeEss);
-          }
-
-          core.selectManager.clearSelection();
-          newNodeEsses.forEach((newNodeEss) => {
-            core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
-          });
-          core.selectManager.transformMove.start();
+        execute: async (_e) => {
+          // Tools.stopEvent(e);
+          // const vNodes = Array.from(core.selectManager.selectedNodes.values());
+          // const newNodeEsses: INode[] = [];
+          // for (const vnode of vNodes) {
+          //   const newNodeEss = await core.nodeManager.copyNode(vnode.node);
+          //   if (newNodeEss) newNodeEsses.push(newNodeEss);
+          // }
+          // core.selectManager.clearSelection();
+          // newNodeEsses.forEach((newNodeEss) => {
+          //   core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
+          // });
+          // core.selectManager.transformMove.start();
         },
       },
       {
@@ -204,24 +205,14 @@ const commands: Command[] = [
               //создание ноды менеджер
               if (core.mode.textEditing) return;
               Tools.stopEvent(e);
-              const { x, y } = core.desk.viewport.screenToWorld(
-                core.desk.pointer.x,
-                core.desk.pointer.y,
-              );
-
-              const node = core.nodeManager.createNode({
-                x: Tools.getDiskPosition(x),
-                y: Math.round(y),
-                type: NODE_TYPES.FRAME.main,
-                exData: {
-                  bgColor: Math.round(Math.random() * 360).toString(),
-                },
-              });
-              const vNode = node?.vNode as VFrame_main;
-              if (vNode) {
-                core.frameCore.addFrame(vNode);
-                core.frameCore.refreshSpatialGrid();
+              const node =
+                core.nodeManager.createNodeWithTypeAndPositionFromCursor(
+                  NODE_TYPES.TEXT_EDIT.id,
+                );
+              if (node instanceof LNode_TextEdit) {
+                node.frame.isFrame = true;
               }
+              node.save();
             },
           },
         ],
@@ -315,75 +306,68 @@ const commands: Command[] = [
         label: "Порядок ступеньками",
         shortcuts: ["alt+q"],
         execute: () => {
-          if (core.mode.textEditing) return;
-          if (core.mode.selectedVNodeCount < 1) return;
-          const paddingLeft = GRID.x;
-          const m = [...core.selectManager.selectedNodes.values()].filter(
-            (node) => !(node instanceof VFrame),
-          );
-          m.sort((a, b) => a.y - b.y);
-
-          let x = 0,
-            y = -1000000;
-          for (const node of m) {
-            if (y === -1000000) {
-              y = node.y;
-              x = node.x;
-            } else {
-              const xx = Math.round((node.x - x) / paddingLeft);
-
-              ///core.nodeManager.moveToNode(node, x + xx * paddingLeft, y);
-            }
-
-            y += node.vNode?.height || 0;
-          }
+          // if (core.mode.textEditing) return;
+          // if (core.mode.selectedVNodeCount < 1) return;
+          // const paddingLeft = GRID.x;
+          // const m = [...core.selectManager.selectedNodes.values()].filter(
+          //   (node) => !(node instanceof VFrame),
+          // );
+          // m.sort((a, b) => a.y - b.y);
+          // let x = 0,
+          //   y = -1000000;
+          // for (const node of m) {
+          //   if (y === -1000000) {
+          //     y = node.y;
+          //     x = node.x;
+          //   } else {
+          //     const xx = Math.round((node.x - x) / paddingLeft);
+          //     ///core.nodeManager.moveToNode(node, x + xx * paddingLeft, y);
+          //   }
+          //   y += node.vNode?.height || 0;
+          // }
         },
       },
       {
         label: "Порядок в линию друг за другом",
         shortcuts: ["alt+w"],
         execute: () => {
-          if (core.mode.textEditing) return;
-          if (core.mode.selectedVNodeCount < 1) return;
-          const m = [...core.selectManager.selectedNodes.values()].filter(
-            (node) => !(node instanceof VFrame),
-          );
-          m.sort((a, b) => a.y - b.y);
-
-          let x = 0,
-            y = -1000000;
-          for (const node of m) {
-            if (y === -1000000) {
-              y = node.y;
-              x = node.x;
-            } else {
-              ///core.nodeManager.moveToNode(node, x, y);
-            }
-
-            y += node.vNode?.height || 0;
-          }
+          // if (core.mode.textEditing) return;
+          // if (core.mode.selectedVNodeCount < 1) return;
+          // const m = [...core.selectManager.selectedNodes.values()].filter(
+          //   (node) => !(node instanceof VFrame),
+          // );
+          // m.sort((a, b) => a.y - b.y);
+          // let x = 0,
+          //   y = -1000000;
+          // for (const node of m) {
+          //   if (y === -1000000) {
+          //     y = node.y;
+          //     x = node.x;
+          //   } else {
+          //     ///core.nodeManager.moveToNode(node, x, y);
+          //   }
+          //   y += node.vNode?.height || 0;
+          // }
         },
       },
       {
         label: "Порядок в линию",
         shortcuts: ["alt+e"],
         execute: () => {
-          if (core.mode.textEditing) return;
-          if (core.mode.selectedVNodeCount < 1) return;
-          const m = [...core.selectManager.selectedNodes.values()].filter(
-            (node) => !(node instanceof VFrame),
-          );
-          m.sort((a, b) => a.y - b.y);
-
-          let x = -1000000;
-
-          for (const node of m) {
-            if (x === -1000000) {
-              x = node.x;
-            } else {
-              ///core.nodeManager.moveToNode(node, x, node.y);
-            }
-          }
+          //     if (core.mode.textEditing) return;
+          //     if (core.mode.selectedVNodeCount < 1) return;
+          //     const m = [...core.selectManager.selectedNodes.values()].filter(
+          //       (node) => !(node instanceof VFrame),
+          //     );
+          //     m.sort((a, b) => a.y - b.y);
+          //     let x = -1000000;
+          //     for (const node of m) {
+          //       if (x === -1000000) {
+          //         x = node.x;
+          //       } else {
+          //         ///core.nodeManager.moveToNode(node, x, node.y);
+          //       }
+          //     }
         },
       },
       {

@@ -302,6 +302,7 @@ export class NodeManager {
       }
     }
     this.onSelectedNodesMoved();
+    return newNode;
   }
   addNode(type: number): LNode {
     const NodeClass = NODE_REGISTRY[type] || LNode;

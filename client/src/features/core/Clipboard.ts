@@ -1,30 +1,26 @@
-import type { VNode } from "../nodes/VNode/VNode";
+import type { LNode } from "../nodes/LNode/LNode";
 import VTextEdit from "../nodes/VNode/VTextEdit";
 import VTextEditClone from "../nodes/VNode/VTextEditClone";
-import { core } from "./core";
 
 export class Clipboard {
-  async copyVNode(vNodes: VNode[]) {
+  async copyVNode(nodes: LNode[]) {
     // человеко-читаемый вид — для вставки в блокнот/Word
-    const plainText = vNodes
-      .map((vNode) => {
-        if (vNode instanceof VTextEdit) {
-          if (vNode instanceof VTextEditClone) {
-            const mainNode = core.nodeManager.getNode(
-              vNode.node.exData?.ownerNodesIds?.[0] || "",
-            );
+    const plainText = nodes
+      .map((node) => {
+        if (node instanceof VTextEdit) {
+          if (node instanceof VTextEditClone) {
+            const mainNode = node.clones.sourceNode;
 
             return mainNode?.title || "";
           }
-          return vNode.node.title;
+          return node.title;
         }
         return "";
       })
       .join("\n");
 
     // структурированные данные — для вставки в своё приложение
-    const node = vNodes.map((vNode) => vNode.node);
-    const appData = JSON.stringify({ type: "a-nodes", node });
+    const appData = JSON.stringify({ type: "a-nodes", nodes });
 
     const item = new ClipboardItem({
       "text/plain": new Blob([plainText], { type: "text/plain" }),
@@ -43,7 +39,7 @@ export class Clipboard {
     return str.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
   }
 
-  async paste(): Promise<{ nodes?: INode[]; text?: string }> {
+  async paste(): Promise<{ nodes?: LNode[]; text?: string }> {
     const items = await navigator.clipboard.read();
 
     for (const item of items) {

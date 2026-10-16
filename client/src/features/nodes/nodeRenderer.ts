@@ -60,9 +60,10 @@ export class NodeRenderer {
    * @param rect - область, которую нужно освободить от нод
    * @param exNodes - ноды, которые не нужно сдвигать (исключения)
    */
+  /*
   pushdown_nodes_out_of_rect(out_of_rect: DOMRect, exNodes: LNode[] = []) {
     if (out_of_rect.height === 0) return;
-    /*
+   
     const exSet = new Set<LNode>(exNodes); // Set вместо массива — поиск O(1)
     const mRes: LNode[] = [];
 
@@ -105,6 +106,6 @@ export class NodeRenderer {
         // node.moveAniTo(null, node.node.y + dy);
         node.moveTo({ x: undefined, y: node.node.y + dy });
       });
-      */
-  }
+      
+  }*/
 }

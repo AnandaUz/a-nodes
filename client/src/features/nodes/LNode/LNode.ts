@@ -33,7 +33,7 @@ export class LNode implements ILNode {
   exData?: IExData | undefined;
 
   lID?: number | undefined;
-  vNode?: VNode;
+  vNode?: VNode | undefined;
   /** поле которое я сохраняю в базе */
   hiddenBD: boolean = false;
   /** поле которое показывает видна нода или нет */

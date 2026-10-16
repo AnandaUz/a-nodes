@@ -7,7 +7,6 @@ import { NodeManager } from "@features/nodes/NodeManager";
 import { initCommands } from "./comands";
 import { History } from "@features/core/history";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
-import { FrameCore } from "../nodes/VFrame/FrameCore";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import Tools from "./Tools";
@@ -24,7 +23,6 @@ export class Core {
   // localPersistence: LocalPersistence;
   serverPersistence!: ServerPersistence;
   history!: History;
-  frameCore!: FrameCore;
   clipboard!: Clipboard;
   popupSort: CPopupSort = new CPopupSort();
   private unsubscribers: (() => void)[] = [];
@@ -155,7 +153,7 @@ export class Core {
     this.desk = new Desk();
     this.nodeManager = new NodeManager();
     this.nodeRenderer = new NodeRenderer();
-    this.frameCore = new FrameCore();
+ 
 
     app.showLoader();
 
@@ -166,7 +164,7 @@ export class Core {
     this.desk.mount(container);
     this.nodeManager.init();
     this.nodeRenderer.init();
-    this.frameCore.init();
+
 
     this.selectManager = new SelectManager();
 
@@ -184,7 +182,6 @@ export class Core {
     this.store.clear();
     this.nodeManager.unmount();
     this.nodeRenderer.unmount();
-    this.frameCore.unmount();
     this.serverPersistence.unmount();
     this.desk.unmount();
     if (this.selectManager) {

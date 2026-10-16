@@ -4,7 +4,6 @@ import SelectionRect from "./SelectionRect";
 import "./SelectManager.scss";
 import type { VNode } from "@/features/nodes/VNode/VNode";
 import { TransformMove } from "./TransformMove";
-import VFrame from "@/features/nodes/VFrame/VFrame";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export class SelectManager {
@@ -97,7 +96,6 @@ export class SelectManager {
         core.store?.emit(EVENTS.node.unselected, null);
       }
       core.nodeManager.nodes.forEach((node) => {
-        if (node instanceof VFrame) return;
         if (node.vNode?.checkInRect(realRect)) {
           if (!node.isSelected) {
             this.selectedNodes.add(node);

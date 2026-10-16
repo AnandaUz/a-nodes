@@ -4,7 +4,6 @@ import { GRID } from "@/features/core/CONST";
 import Tools from "@/features/core/Tools";
 import { Ge_Path } from "@/features/desk/DeskSVG/Ge_Path";
 import type VTextEdit from "../VNode/VTextEdit";
-import { LNode_TEClone } from "./LNode_TEClone";
 
 interface IParent {
   node: LNode_TextEdit;

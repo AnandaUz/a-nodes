@@ -1,9 +1,6 @@
 import { EventEmitter } from "@base/client/features/event-emitter";
 import type { DeskSnapshot } from "./interfaces";
 import type { VNode } from "@features/nodes/VNode/VNode";
-import type Helper_main from "@features/nodes/VFrame/Helper/Helper_main";
-import type Helper_sub from "@features/nodes/VFrame/Helper/Helper_sub";
-import type VM_frame from "@features/nodes/VFrame/VFrame";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export const EVENTS = {
@@ -80,25 +77,6 @@ export type DeskEvents = {
   [EVENTS.vNode.pointer.down]: VNode;
   [EVENTS.vNode.pointer.move]: VNode;
   [EVENTS.vNode.pointer.up]: VNode;
-  [EVENTS.frame.sub.created]: VM_frame;
-  [EVENTS.frame.sub.deleted]: VM_frame;
-  [EVENTS.frame.sub.connected]: {
-    subFrame: VM_frame;
-    mainFrame: VM_frame;
-  };
-  [EVENTS.frame.sub.disconnected]: {
-    subFrame: VM_frame;
-    mainFrame: VM_frame;
-  };
-  [EVENTS.frame.sub.addNodeClone]: { node: LNode; subFrame: VM_frame };
-  [EVENTS.helper.main.btnConnection]: {
-    mainHelper: Helper_main;
-    subFrame: VM_frame;
-  };
-  [EVENTS.helper.sub.btnOk]: {
-    helperSub: Helper_sub;
-    // subFrame: VM_frame;
-  };
 };
 
 export class Store extends EventEmitter<DeskEvents> {}

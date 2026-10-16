@@ -1,5 +1,4 @@
 import { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
-import { LNode_Frame_main } from "@features/nodes/LNode/LNode_Frame_main";
 import { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import type { LNode } from "@features/nodes/LNode/LNode";
 import { LNode_Page } from "@features/nodes/LNode/LNode_Page";
@@ -8,7 +7,7 @@ export const NODE_TYPES = {
     id: 1,
   },
   FRAME: {
-    main: 201,
+    main: 201, // оставляяю для совместимости
   },
   TEXT_EDIT_CLONE: {
     id: 3,
@@ -21,9 +20,6 @@ export type NodeType = (typeof NODE_TYPES)[keyof typeof NODE_TYPES];
 
 export const NODE_REGISTRY: Record<number, new () => LNode> = {
   [NODE_TYPES.TEXT_EDIT.id]: LNode_TextEdit,
-
-  [21]: LNode_Frame_main, // для совместимости - прежний тип для фреймов 21
-  [NODE_TYPES.FRAME.main]: LNode_Frame_main,
   [NODE_TYPES.TEXT_EDIT_CLONE.id]: LNode_TEClone,
   [NODE_TYPES.PAGE.id]: LNode_Page,
 };
