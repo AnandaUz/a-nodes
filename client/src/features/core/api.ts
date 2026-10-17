@@ -64,6 +64,13 @@ class API {
     const result = (await response.json()) as { ids: string[] };
     return result.ids;
   }
+  async deleteNode(id: string) {
+    if (!id) return;
+    const response = await this.fetchWithAuth(`/nodes/${id}`, {
+      method: "DELETE",
+    });
+    return response.ok;
+  }
 }
 
 const api = new API();

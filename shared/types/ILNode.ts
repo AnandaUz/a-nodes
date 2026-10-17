@@ -1,13 +1,14 @@
-import type TFrame from "@/features/nodes/LNode/TFrame";
 import type { IExData } from "./IExData";
 
 export interface ITList {
   parentLID?: number | undefined;
-  index?: number;
-  tab?: number;
+  index?: number | undefined;
+  tab?: number | undefined;
 }
 export interface IFrame {
   isFrame: boolean;
+  parents: { size: number };
+  pack(): number[];
   parentsLID?: number[];
 }
 
@@ -31,7 +32,7 @@ export interface ILNode {
   y: number;
   title?: string | undefined;
   list?: ITList;
-  frame?: TFrame;
+  frame?: IFrame;
   lID?: number | undefined;
   hiddenBD?: boolean;
   exData?: IExData | undefined;

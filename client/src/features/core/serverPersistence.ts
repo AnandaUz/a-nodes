@@ -27,6 +27,8 @@ export class ServerPersistence {
         this.updateNode(node);
       }),
     ];
+
+    window.addEventListener("beforeunload", this.onBeforeUnload);
   }
   async init(): Promise<void> {
     await this.load();
@@ -59,6 +61,14 @@ export class ServerPersistence {
     if (!this.dirtyNodes.has(node)) this.dirtyNodes.add(node);
     this.scheduleSave();
   }
+  deleteNode(node: LNode): void {
+    this.dirtyNodes.delete(node);
+    if (node._id) {
+      api.deleteNode(node._id).catch((err) => {
+        console.warn("[ServerPersistence] Ошибка удаления ноды:", err);
+      });
+    }
+  }
   private async save(): Promise<void> {
     if (this.isSaving || this.dirtyNodes.size === 0) return;
     this.isSaving = true;
@@ -86,8 +96,62 @@ export class ServerPersistence {
       this.debounceTimer = null;
     }, DEBOUNCE_MS);
   }
+
+  /** Синхронный сброс грязных нод через sendBeacon (при закрытии/перезагрузке вкладки) */
+  private flushSync(): void {
+    if (this.dirtyNodes.size === 0) return;
+
+    const snapshot = Array.from(this.dirtyNodes)
+      .filter((n) => n._id !== "")
+      .map((node) => toDB(node));
+
+    if (snapshot.length === 0) return;
+
+    const prepared = snapshot.map((node) =>
+      Object.fromEntries(
+        Object.entries(node).map(([k, v]) => [k, v === undefined ? null : v]),
+      ),
+    );
+
+    const token = (
+      document.cookie.match(/token=([^;]+)/) ||
+      [null, localStorage.getItem("token")]
+    )[1];
+
+    const blob = new Blob([JSON.stringify({ nodes: prepared })], {
+      type: "application/json",
+    });
+
+    const API_URL = import.meta.env.VITE_API_URL;
+    if (token) {
+      // sendBeacon не поддерживает заголовки, используем keepalive fetch
+      fetch(`${API_URL}/nodes/saveNodes`, {
+        method: "PUT",
+        keepalive: true,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ nodes: prepared }),
+      });
+    } else {
+      navigator.sendBeacon(`${API_URL}/nodes/saveNodes`, blob);
+    }
+
+    this.dirtyNodes.clear();
+  }
+
+  private onBeforeUnload = () => {
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    this.flushSync();
+  };
+
   unmount() {
     this.unsubscribers.forEach((fn) => fn());
     this.unsubscribers = [];
+    window.removeEventListener("beforeunload", this.onBeforeUnload);
   }
 }

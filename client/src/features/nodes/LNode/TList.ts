@@ -31,7 +31,7 @@ export default class TList {
   private owner: LNode;
   parentLID?: number | undefined;
   _parentNode?: LNode | null;
-  index?: number;
+  index?: number | undefined;
   _tab?: number;
   children?: Set<LNode>;
   private _onChangeListeners: Set<() => void> = new Set();
@@ -60,7 +60,15 @@ export default class TList {
   set parentNode(node: LNode | null) {
     if (node === this._parentNode) return;
     this._parentNode = node;
-    this.parentLID = node?.lID;
+    if (node) {
+      if (!node.lID) {
+        node.lID = core.nodeManager.getMaxLID() + 1;
+        node.save();
+      }
+      this.parentLID = node.lID;
+    } else {
+      this.parentLID = undefined;
+    }
     this._onChangeListeners.forEach((fn) => fn());
   }
   get tab() {
@@ -143,26 +151,40 @@ export default class TList {
       }
 
       let isChanged = false;
+      if (mParent?.node && !mParent.node.lID) {
+        mParent.node.lID = core.nodeManager.getMaxLID() + 1;
+        mParent.node.save();
+      }
+
       if (chNode.list && chNode.list.parentNode !== mParent?.node) {
         chNode.list.parentNode?.list.children?.delete(chNode);
         const s = mParent?.node.list;
         if (s && !s.children) s.children = new Set();
         s?.children?.add(chNode);
         chNode.list.parentNode = mParent?.node || null;
-        chNode.list.parentLID = mParent?.node?.lID || 0;
-
-        console.log("тут!!!!");
         isChanged = true;
       }
-      if (mParent && chNode && chNode.list.index !== mParent.count) {
-        chNode.list!.index = mParent.count;
-        const t =
-          (Tools.getDiskPosition(chNode.x) -
-            Tools.getDiskPosition(mParent.node.x)) /
-          GRID.x;
-        chNode.list!.tab = t;
-        console.log("тут!!!!");
+      if (mParent?.node && chNode.list.parentLID !== mParent.node.lID) {
+        chNode.list.parentLID = mParent.node.lID;
         isChanged = true;
+      }
+      if (mParent && chNode) {
+        const t = Math.max(
+          0,
+          Math.round(
+            (Tools.getDiskPosition(chNode.x) -
+              Tools.getDiskPosition(mParent.node.x)) /
+              GRID.x,
+          ),
+        );
+        if (chNode.list.tab !== t) {
+          chNode.list.tab = t;
+          isChanged = true;
+        }
+        if (chNode.list.index !== mParent.count) {
+          chNode.list.index = mParent.count;
+          isChanged = true;
+        }
       }
       if (mParent) mParent.count++;
 
@@ -179,6 +201,13 @@ export default class TList {
     }
     this.parentLID = undefined;
     this.parentNode = null;
+    this.index = undefined;
+    this.tab = 0;
+    if (this.owner.vNode?.body) {
+      delete this.owner.vNode.body.dataset.totaltab;
+      this.owner.vNode.refreshBodyRect();
+    }
+    this.owner.save();
 
     return willRefParent;
   }

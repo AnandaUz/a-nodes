@@ -102,21 +102,23 @@ export class NodeManager {
     };
     selectedNodes.forEach((node: LNode) => refFunc(node));
 
-    selectedParentsNodes.sort((a, b) => b.y - a.y); // в обратном порядке
+    // сортируем по Y по возрастанию, чтобы сохранить визуальный порядок
+    selectedParentsNodes.sort((a, b) => a.y - b.y);
 
     const wasRef = new Set<LNode>();
     if (byNode) {
       // установим его новым родителем
       const willRefParent: LNode[] = [];
-      selectedNodes.forEach((node) => {
+      selectedParentsNodes.forEach((node, i) => {
         if (overRect.y < byNode.y) {
           const parentNode = byNode.list.parentNode;
           if (parentNode) {
             const index = byNode.list.index || 0;
-            willRefParent.push(...node.list.setParent(parentNode, index - 0.6));
+            // i * 0.01 — небольшое смещение, чтобы сохранить порядок
+            willRefParent.push(...node.list.setParent(parentNode, index - 0.6 + i * 0.01));
           }
         } else {
-          willRefParent.push(...node.list.setParent(byNode, 0));
+          willRefParent.push(...node.list.setParent(byNode, i));
         }
         // если клон, активировать кнопку
         // if (node instanceof LNode_TEClone) {
@@ -143,7 +145,7 @@ export class NodeManager {
       });
     } else {
       const willRefParent: LNode[] = [];
-      selectedNodes.forEach((node) => {
+      selectedParentsNodes.forEach((node) => {
         // если клон, то отключить индикаторы
         const mainParent = (node as LNode_TextEdit).clones.mainNode;
         if (mainParent) {
@@ -214,6 +216,20 @@ export class NodeManager {
       // показываем кому быть видимым кому нет
       node.hidden = node.hiddenBD;
       node.list.initParent();
+    });
+
+    const applyParentHidden = (node: LNode) => {
+      if (node.hidden && node.list.children?.size) {
+        node.list.children.forEach((child) => {
+          child.hidden = true;
+          applyParentHidden(child);
+        });
+      }
+    };
+    this.nodes.forEach((node) => {
+      if (!node.list.parentNode) {
+        applyParentHidden(node);
+      }
     });
 
     this.initCloneLinks();
@@ -369,6 +385,26 @@ export class NodeManager {
     }
   }
 
+  hardDeleteNode(node: LNode): void {
+    const parent = node.list?.parentNode;
+    const mainParent = node.list?.mainParent;
+
+    if (node.list) {
+      node.list.clearParent();
+    }
+
+    core.serverPersistence.deleteNode(node);
+    core.selectManager.unselectNode(node);
+    this.nodes.delete(node);
+    node.remove();
+
+    if (mainParent) {
+      mainParent.list?.setPositionForChildren();
+    } else if (parent) {
+      parent.list?.setPositionForChildren();
+    }
+  }
+
   create_TextEditCloneNode(mainNode: LNode_TextEdit, x?: number, y?: number) {
     const cloneNode = this.createNode({
       x: x || 0,
@@ -479,6 +515,7 @@ export class NodeManager {
 
       core.selectManager.selectNode(newNode);
       // newVnode?.onStop();
+      (newNode as LNode_TextEdit).isCreatedByEnter = true;
       (newNode as LNode_TextEdit).turnOn_EditTitleMode();
     }
   }

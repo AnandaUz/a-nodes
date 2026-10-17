@@ -1,26 +1,46 @@
 import type { LNode } from "../nodes/LNode/LNode";
 import VTextEdit from "../nodes/VNode/VTextEdit";
 import VTextEditClone from "../nodes/VNode/VTextEditClone";
+import { toDB, type INodeDB } from "@shared/types/INodeDB";
 
 export class Clipboard {
   async copyVNode(nodes: LNode[]) {
-    // человеко-читаемый вид — для вставки в блокнот/Word
-    const plainText = nodes
+    // Копируем только непосредственно переданные (выделенные) ноды
+    const selectedNodes = nodes;
+    const selectedLIDs = new Set<number>();
+    selectedNodes.forEach((n) => {
+      if (n.lID !== undefined) selectedLIDs.add(n.lID);
+    });
+
+    // Человеко-читаемый вид — для вставки в блокнот/Word
+    const plainText = selectedNodes
       .map((node) => {
         if (node instanceof VTextEdit) {
           if (node instanceof VTextEditClone) {
             const mainNode = node.clones.sourceNode;
-
             return mainNode?.title || "";
           }
           return node.title;
         }
         return "";
       })
+      .filter(Boolean)
       .join("\n");
 
-    // структурированные данные — для вставки в своё приложение
-    const appData = JSON.stringify({ type: "a-nodes", nodes });
+    // Сериализуем ноды в формат INodeDB. Связи с родителем сохраняем ТОЛЬКО если родитель тоже скопирован.
+    const nodesData: INodeDB[] = selectedNodes.map((n) => {
+      const db = toDB(n);
+      // Если родитель не среди скопированных нод, сбрасываем привязку к родителю
+      if (n.list?.parentLID && !selectedLIDs.has(n.list.parentLID)) {
+        db.L = undefined;
+        db.x = n.x;
+        db.y = n.y;
+      }
+      return db;
+    });
+
+    // Структурированные данные — для вставки в своё приложение
+    const appData = JSON.stringify({ type: "a-nodes", nodes: nodesData });
 
     const item = new ClipboardItem({
       "text/plain": new Blob([plainText], { type: "text/plain" }),
@@ -39,7 +59,7 @@ export class Clipboard {
     return str.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
   }
 
-  async paste(): Promise<{ nodes?: LNode[]; text?: string }> {
+  async paste(): Promise<{ nodes?: INodeDB[]; text?: string }> {
     const items = await navigator.clipboard.read();
 
     for (const item of items) {
@@ -52,7 +72,7 @@ export class Clipboard {
           try {
             const data = JSON.parse(this.unescapeHtml(match[1] || ""));
             if (data.type === "a-nodes") {
-              return { nodes: data.node };
+              return { nodes: data.nodes };
             }
           } catch {}
         }

@@ -177,6 +177,8 @@ class CNodesMenu extends HTMLElement {
         node.exData.h = value || "";
         node.save();
         node.vNode?.render();
+        const mainP = node.list.mainParent || node;
+        mainP.list.setPositionForChildren();
       });
     });
 
@@ -298,16 +300,20 @@ class CNodesMenu extends HTMLElement {
     btnClear.addEventListener("click", () => {
       inpEl.textContent = "";
 
-      core.selectManager.selectedNodes.forEach((node) => {
+      const selectedList = [...core.selectManager.selectedNodes];
+      selectedList.forEach((node) => {
         clearBtns();
         node.clones.doForAll((clone) => {
           clone.repeatMode.mode = 0;
           clone.repeatMode.date = null;
           clone.save();
+          clone.show();
+          clone.vNode?.render();
         });
         node.repeatMode.mode = 0;
         node.repeatMode.date = null;
         node.save();
+        node.show();
         node.vNode?.render();
       });
     });
@@ -454,7 +460,8 @@ class CNodesMenu extends HTMLElement {
       el.addEventListener("pointerup", (e) => {
         Tools.stopEvent(e);
 
-        core.selectManager.selectedNodes.forEach((node) => {
+        const selectedList = [...core.selectManager.selectedNodes];
+        selectedList.forEach((node) => {
           // если есть клоны то назначаем и им
 
           node.clones.doForAll((clone) => {
@@ -486,7 +493,8 @@ class CNodesMenu extends HTMLElement {
       el.addEventListener("pointerup", (e) => {
         Tools.stopEvent(e);
 
-        core.selectManager.selectedNodes.forEach((node) => {
+        const selectedList = [...core.selectManager.selectedNodes];
+        selectedList.forEach((node) => {
           // если есть клоны то назначаем и им
 
           const d = new Date();

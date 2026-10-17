@@ -101,13 +101,52 @@ export class LNode implements ILNode {
       }
     }
   }
-  hide() {
+  hide(withChildren: boolean = true) {
+    this.hidden = true;
     this.hiddenBD = true;
     this.vNode?.hide();
+    core.selectManager?.unselectNode(this);
+
+    if (withChildren && this.list.children?.size) {
+      this.list.children.forEach((child) => {
+        child.hide(true);
+      });
+    }
+
+    if (this.list.parentNode) {
+      const mainParent = this.list.mainParent;
+      if (mainParent) {
+        mainParent.list.setPositionForChildren();
+        mainParent.vNode?.renderSVG();
+      }
+    } else {
+      this.vNode?.renderSVG();
+    }
   }
-  show() {
+  show(withChildren: boolean = true) {
+    this.hidden = false;
     this.hiddenBD = false;
-    this.vNode?.show();
+    if (!this.vNode && core.nodeRenderer) {
+      core.nodeRenderer.createVNode(this);
+    } else {
+      this.vNode?.show();
+    }
+
+    if (withChildren && this.list.children?.size) {
+      this.list.children.forEach((child) => {
+        child.show(true);
+      });
+    }
+
+    if (this.list.parentNode) {
+      const mainParent = this.list.mainParent;
+      if (mainParent) {
+        mainParent.list.setPositionForChildren();
+        mainParent.vNode?.renderSVG();
+      }
+    } else {
+      this.vNode?.renderSVG();
+    }
   }
   /** возращает тип для VNode */
   getVNodeType(): typeof VNode {
@@ -123,7 +162,8 @@ export class LNode implements ILNode {
 
     if (withChildren && this.list.children?.size) {
       for (const child of this.list.children) {
-        const childRect = child.getNodeRect(false);
+        if (child.hidden) continue;
+        const childRect = child.getNodeRect(true);
         x0 = Math.min(x0, childRect.x);
         y0 = Math.min(y0, childRect.y);
         x1 = Math.max(x1, childRect.x + childRect.width);

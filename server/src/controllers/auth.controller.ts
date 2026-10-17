@@ -7,7 +7,7 @@ import {
   verifyToken,
   verifyRefreshToken,
 } from "../utils/jwt";
-import { saveNodes } from "./node.controller";
+// import { saveNodes } from "./node.controller";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -45,37 +45,37 @@ export const googleAuth = async (req: Request, res: Response) => {
       await user.save();
 
       //- создание главной страницы для пользователя
-      const newNodeEss: INode = {
-        title: "♥️ Главная",
-        type: 2,
-        userId: user._id?.toString(),
-      };
-      const homeNodeIds = await saveNodes([newNodeEss]);
-      if (!homeNodeIds)
-        return res.status(500).json({ error: "Ошибка сервера" });
-      user.settings = { homeId: homeNodeIds[0] };
+      // const newNodeEss: INode = {
+      //   title: "♥️ Главная",
+      //   type: 2,
+      //   userId: user._id?.toString(),
+      // };
+      // const homeNodeIds = await saveNodes([newNodeEss]);
+      // if (!homeNodeIds)
+      //   return res.status(500).json({ error: "Ошибка сервера" });
+      // user.settings = { homeId: homeNodeIds[0] };
       //-
-      const newNodeEssMess: INode = {
-        title:
-          "Это ваша главная страница, вы можете создавать сколько угодна записей/узлов/нод",
-        type: 1,
-        x: 100,
-        y: 100,
-        pageId: homeNodeIds[0],
-      };
-      await saveNodes([newNodeEssMess]);
+      // const newNodeEssMess: INode = {
+      //   title:
+      //     "Это ваша главная страница, вы можете создавать сколько угодна записей/узлов/нод",
+      //   type: 1,
+      //   x: 100,
+      //   y: 100,
+      //   pageId: homeNodeIds[0],
+      // };
+      // await saveNodes([newNodeEssMess]);
 
-      const newNodeEssMess2: INode = {
-        title: "🎨Инструкция по использованию (нажмите значок цепи)",
-        type: 4,
-        x: 100,
-        y: 200,
-        exData: {
-          url: "6a38c536ddc2e09f58fe390f",
-        },
-        pageId: homeNodeIds[0],
-      };
-      await saveNodes([newNodeEssMess2]);
+      // const newNodeEssMess2: INode = {
+      //   title: "🎨Инструкция по использованию (нажмите значок цепи)",
+      //   type: 4,
+      //   x: 100,
+      //   y: 200,
+      //   exData: {
+      //     url: "6a38c536ddc2e09f58fe390f",
+      //   },
+      //   pageId: homeNodeIds[0],
+      // };
+      // await saveNodes([newNodeEssMess2]);
     } else {
       if (payload.name) {
         user.name = payload.name;

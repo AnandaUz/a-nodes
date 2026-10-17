@@ -8,7 +8,7 @@ const SERVER_PORT = "4010";
 const CLIENT_PORT = "4000";
 
 const DEPLOY = `D:/_sites/worked/${projectName}`;
-const SOURCE = `D:/_sites/${projectName}`;
+const SOURCE = __dirname.replace(/\\/g, "/");
 
 console.log("Starting build client");
 

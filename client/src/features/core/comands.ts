@@ -1,4 +1,4 @@
-import { core } from "@features/core/core";
+import { core, EVENTS } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
 import { GRID } from "./CONST";
 import Tools from "./Tools";
@@ -49,10 +49,6 @@ const commands: Command[] = [
             core.selectManager.selectedNodes.values(),
           ).sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
 
-          nodes.forEach((node) => {
-            node._id = undefined;
-          });
-
           core.clipboard.copyVNode(nodes);
         },
       },
@@ -64,14 +60,12 @@ const commands: Command[] = [
           const nodes = Array.from(
             core.selectManager.selectedNodes.values(),
           ).sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+
           core.clipboard.copyVNode(nodes);
           nodes.forEach((node) => {
-            // const vNode = core.nodeRenderer.getVNode(node._id || "");
-            if (node.vNode) {
-              node.vNode.body.classList.add("cutted");
-            }
             core.nodeManager.putNodeInTrash(node);
           });
+          core.selectManager.clearSelection();
         },
       },
       {
@@ -79,41 +73,159 @@ const commands: Command[] = [
         shortcuts: ["ctrl+v", "cmd+v"],
         execute: async () => {
           if (core.mode.textEditing) return;
-          const nodes = await core.clipboard.paste();
-          if (!nodes?.nodes) return;
+          const clipboardData = await core.clipboard.paste();
+          if (!clipboardData?.nodes || clipboardData.nodes.length === 0) return;
 
-          let x = Infinity,
-            y = Infinity;
-          nodes.nodes.forEach((node) => {
-            if (node.x !== undefined) {
-              x = Math.min(x, node.x);
-            }
-            if (node.y !== undefined) {
-              y = Math.min(y, node.y);
-            }
+          const rawNodes = clipboardData.nodes;
+
+          // Находим минимальные x, y среди корневых нод (у которых нет родителя в буфере)
+          const oldLIDsInBuffer = new Set<number>();
+          rawNodes.forEach((n) => {
+            if (n.s !== undefined) oldLIDsInBuffer.add(n.s);
           });
+
+          let minX = Infinity;
+          let minY = Infinity;
+          rawNodes.forEach((n) => {
+            if (n.x !== undefined && n.x < minX) minX = n.x;
+            if (n.y !== undefined && n.y < minY) minY = n.y;
+          });
+
+          if (minX === Infinity) minX = 0;
+          if (minY === Infinity) minY = 0;
+
           const pointerPos = core.desk.viewport.screenToWorld(
             core.desk.pointer.x,
             core.desk.pointer.y,
           );
+          const offsetX = pointerPos.x - minX;
+          const offsetY = pointerPos.y - minY;
+
+          // Выделяем новые уникальные lID для каждой ноды с lID
+          let maxLID = core.nodeManager.getMaxLID();
+          const lidMap = new Map<number, number>();
+          rawNodes.forEach((n) => {
+            if (n.s !== undefined) {
+              maxLID++;
+              lidMap.set(n.s, maxLID);
+            }
+          });
+
           core.selectManager.clearSelection();
-          nodes.nodes.forEach(async (node) => {
+
+          const createdNodes: any[] = [];
+          const topLevelNodes: any[] = [];
+
+          // Создаем и гидрируем ноды
+          rawNodes.forEach((nodeData) => {
+            const node = core.nodeManager.addNode(nodeData.type || 0);
+
+            // Распаковываем базовые данные
+            node.title = nodeData.title;
+            node.type = nodeData.type ?? 0;
             node.pageId = core.mode.deskId;
             node.inTrash = false;
-            node.x = (node.x ?? 0) - x + pointerPos.x;
-            node.y = (node.y ?? 0) - y + pointerPos.y;
+            node.hiddenBD = false;
+            node.hidden = false;
 
-            // if (!node) return;
-            // const newNodeEss = core.nodeManager.createNode({
-            //   x: node.x,
-            //   y: node.y,
-            //   type: node.type,
-            //   exData: node.exData,
-            // });
+            // Смещаем позицию
+            const originalX = nodeData.x ?? 0;
+            const originalY = nodeData.y ?? 0;
+            node.x = Tools.getDiskPosition(originalX + offsetX);
+            node.y = Math.round(originalY + offsetY);
 
-            // if (newNodeEss) {
-            //   core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
-            // }
+            // Переназначаем собственный lID
+            if (nodeData.s !== undefined && lidMap.has(nodeData.s)) {
+              node.lID = lidMap.get(nodeData.s);
+            }
+
+            // Распаковываем list / parentLID
+            if (nodeData.L !== undefined) {
+              const tab = nodeData.L & 0b111;
+              const index = (nodeData.L >> 3) & 0b111111111111;
+              const oldParentLID = (nodeData.L >> 15) & 0b11111111111111111;
+
+              node.list.tab = tab;
+              node.list.index = index;
+
+              if (oldParentLID && lidMap.has(oldParentLID)) {
+                node.list.parentLID = lidMap.get(oldParentLID);
+              } else {
+                node.list.parentLID = undefined;
+              }
+            }
+
+            // Распаковываем клоны (mainNodeLID)
+            if (nodeData.A !== undefined) {
+              const oldMainLID = nodeData.A & 0b11111111111111111;
+              if (oldMainLID && lidMap.has(oldMainLID)) {
+                node.clones.mainNodeLID = lidMap.get(oldMainLID)!;
+              } else if (oldMainLID) {
+                // Если исходная нода осталась на доске снаружи буфера
+                node.clones.mainNodeLID = oldMainLID;
+              }
+            }
+
+            // exData
+            if (nodeData.exData) {
+              node.exData = structuredClone(nodeData.exData);
+            }
+
+            // Добавляем в NodeManager синхронно сразу, чтобы getNodeByLID находил ноды
+            core.nodeManager.nodes.add(node);
+
+            // Сохраняем на сервере
+            core.serverPersistence.createNode(node, (id: string) => {
+              node._id = id;
+            });
+            core.store.emit(EVENTS.node.created, node);
+
+            createdNodes.push(node);
+
+            // Считаем ноду верхнеуровневой, если у нее нет родителя в созданной группе
+            if (!node.list.parentLID) {
+              topLevelNodes.push(node);
+            }
+          });
+
+          // Инициализируем родительские связи внутри дерева
+          createdNodes.forEach((node) => {
+            if (node.list.parentLID) {
+              const parentNode = core.nodeManager.getNodeByLID(node.list.parentLID);
+              if (parentNode) {
+                if (!parentNode.list.children) {
+                  parentNode.list.children = new Set();
+                }
+                parentNode.list.children.add(node);
+                node.list.parentNode = parentNode;
+              }
+            }
+          });
+
+          // Инициализируем связи клонов
+          core.nodeManager.initCloneLinks();
+
+          // Рендерим VNode для всех созданных нод
+          createdNodes.forEach((node) => {
+            core.nodeRenderer.createVNode(node);
+          });
+
+          // Выстраиваем правильные координаты и SVG-линии для всех корневых деревьев
+          const updatedRoots = new Set<any>();
+          createdNodes.forEach((node) => {
+            const root = node.list.mainParent || node;
+            if (!updatedRoots.has(root)) {
+              updatedRoots.add(root);
+              root.list.setPositionForChildren();
+              root.list.checkTree();
+              root.vNode?.renderSVG();
+              root.save();
+            }
+          });
+
+          // Выделяем все вставленные ноды
+          createdNodes.forEach((node) => {
+            core.selectManager.selectNode(node, { ctrlKey: true });
           });
         },
       },
@@ -199,10 +311,9 @@ const commands: Command[] = [
             },
           },
           {
-            label: "Менеджер",
+            label: "Фрейм",
             shortcuts: ["3"],
             execute: (e) => {
-              //создание ноды менеджер
               if (core.mode.textEditing) return;
               Tools.stopEvent(e);
               const node =
@@ -210,9 +321,9 @@ const commands: Command[] = [
                   NODE_TYPES.TEXT_EDIT.id,
                 );
               if (node instanceof LNode_TextEdit) {
-                node.frame.isFrame = true;
+                node.frame.turnOn_frameMode();
+                node.save();
               }
-              node.save();
             },
           },
         ],

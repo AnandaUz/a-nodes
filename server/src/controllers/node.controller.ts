@@ -118,3 +118,17 @@ export const saveNodes = async (nodes: any[]) => {
     return null;
   }
 };
+
+export const deleteNodeController = async (req: Request, res: Response) => {
+  try {
+    const id = req.params["id"] as string;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Невалидный id" });
+    }
+    await Node.findByIdAndDelete(id);
+    res.json({ success: true, id });
+  } catch (err: any) {
+    console.error("[deleteNode Error]:", err);
+    res.status(500).json({ message: "Ошибка удаления ноды", error: err?.message });
+  }
+};

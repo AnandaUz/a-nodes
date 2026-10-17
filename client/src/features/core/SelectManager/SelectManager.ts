@@ -68,6 +68,14 @@ export class SelectManager {
     core.store?.emit(EVENTS.node.selected, vnode.node);
     return vnode;
   }
+  unselectNode(node: LNode) {
+    if (this.selectedNodes.has(node)) {
+      node.unselect();
+      this.selectedNodes.delete(node);
+      core.mode.selectedVNodeCount = this.selectedNodes.size;
+      core.store?.emit(EVENTS.node.unselected, node);
+    }
+  }
   constructor() {
     this.body = document.createElement("elSelection");
     this.body.classList.add("selectBox");

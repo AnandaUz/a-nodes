@@ -8,10 +8,15 @@
 
 @mixin setFontSizeH($s) {
     font-size: $s * 1px;
-    line-height: 0.8;
+    line-height: 1.1;
     padding: ($s * 0.1 * 1px) 0 ($s * 0.15 * 1px);
-    // padding: ($s * 0.1 * 1px) 0 ($s * 0.15 * 1px) ($s * 2 * 1px);
-    // text-indent: $s * -2 * 1px;
+
+    .el-title {
+        --f-s: #{$s * 1px};
+        font-size: var(--f-s);
+        min-height: calc(var(--f-s) * 1.4);
+        line-height: 1.1;
+    }
 }
 
 .vNode {

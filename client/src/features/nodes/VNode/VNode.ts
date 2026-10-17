@@ -105,6 +105,10 @@ export class VNode {
   hide() {
     this.hidden = true;
     this.body.style.display = "none";
+    if (this.elSVG) {
+      this.elSVG.remove();
+      this.elSVG = null;
+    }
   }
   show() {
     this.hidden = false;
@@ -380,6 +384,7 @@ export class VNode {
     } else {
       this.repeatMode.hideIndicator();
     }
+    this.refreshBodyRect();
 
     // для атладки
     /*if (this.node.list) {
@@ -394,10 +399,17 @@ export class VNode {
   }
   renderSVG() {
     // только у топовых родителей
-    if (this.node.list.parentNode) return;
+    if (this.node.list.parentNode || this.hidden || this.node.hidden) {
+      if (this.elSVG) {
+        this.elSVG.remove();
+        this.elSVG = null;
+      }
+      return;
+    }
     // если есть дети, то рисуется фон в виде прямоугольника
     const children = this.node.list.children;
-    if (children && children.size > 0) {
+    const hasVisibleChildren = children && [...children].some((c) => !c.hidden);
+    if (hasVisibleChildren) {
       const lRect = this.node.getNodeRect();
       if (!this.elSVG) {
         this.elSVG = core.desk.svgLayer.drawRect(
@@ -405,7 +417,7 @@ export class VNode {
           lRect.y,
           lRect.width,
           lRect.height,
-          "#dce4e920",
+          "#dce4e946",
         );
       } else {
         this.elSVG.setAttribute("x", lRect.x.toString());

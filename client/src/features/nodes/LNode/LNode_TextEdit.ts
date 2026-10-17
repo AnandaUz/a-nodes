@@ -7,6 +7,7 @@ import type { LNode_TEClone } from "./LNode_TEClone";
 
 export class LNode_TextEdit extends LNode {
   isEditMode: boolean = false;
+  isCreatedByEnter: boolean = false;
   declare vNode?: VTextEdit;
 
   frame = new TFrame(this);
@@ -52,13 +53,22 @@ export class LNode_TextEdit extends LNode {
     core.mode.textEditing = false;
     core.mode.textNode = false;
     this.isEditMode = false;
+    document.removeEventListener("keydown", this.turnOf_edit_byEsc);
+
+    const text = (this.title || "").trim();
+    if (!text) {
+      this.isCreatedByEnter = false;
+      core.nodeManager.hardDeleteNode(this);
+      return;
+    }
+    this.isCreatedByEnter = false;
+
     const vNode = this.vNode as VTextEdit;
     if (vNode) {
       vNode.titleEl.contentEditable = "false";
       vNode.refreshBodyRect();
     }
     this.save();
-    document.removeEventListener("keydown", this.turnOf_edit_byEsc);
   }
 
   setTitleText(
