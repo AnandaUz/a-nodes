@@ -3,6 +3,8 @@ import dns from 'dns';
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
+export const isDbReady = () => mongoose.connection.readyState === 1;
+
 export const connectDB = async () => {
     const MONGO_URI = process.env.MONGODB_URI;
 
@@ -12,11 +14,15 @@ export const connectDB = async () => {
     }
     try {
         await mongoose.connect(MONGO_URI, {
-            dbName: process.env.MONGODB_BASE_NAME as string
+            dbName: process.env.MONGODB_BASE_NAME as string,
+            serverSelectionTimeoutMS: 8000,
         });
         console.log('MongoDB connected successfully');
     } catch (error) {
-        console.error('MongoDB connection error:', error);
-        process.exit(1);
+        console.error(
+            'MongoDB connection error (проверьте IP whitelist в Atlas / VPN / интернет). Повтор через 10с:',
+            (error as Error).message,
+        );
+        setTimeout(connectDB, 10000);
     }
 };

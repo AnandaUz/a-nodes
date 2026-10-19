@@ -34,11 +34,25 @@ export function removeTokens(): void {
 // --- авторизация ---
 
 export async function googleAuth(credential: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/api/auth/google`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ credential }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential }),
+    });
+  } catch {
+    const msg = "Сервер недоступен. Убедитесь, что бэкенд запущен.";
+    alert(msg);
+    throw new Error(msg);
+  }
+
+  if (response.status === 503) {
+    const data = await response.json().catch(() => null);
+    const msg = data?.message ?? "База данных недоступна.";
+    alert(msg);
+    throw new Error(msg);
+  }
 
   if (!response.ok) throw new Error(`Ошибка авторизации: ${response.status}`);
 

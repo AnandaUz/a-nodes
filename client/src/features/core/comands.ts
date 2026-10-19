@@ -105,9 +105,10 @@ const commands: Command[] = [
           let maxLID = core.nodeManager.getMaxLID();
           const lidMap = new Map<number, number>();
           rawNodes.forEach((n) => {
-            if (n.s !== undefined) {
+            const oldLID = (n.s ?? 0) & 0x1ffff;
+            if (oldLID) {
               maxLID++;
-              lidMap.set(n.s, maxLID);
+              lidMap.set(oldLID, maxLID);
             }
           });
 
@@ -135,8 +136,14 @@ const commands: Command[] = [
             node.y = Math.round(originalY + offsetY);
 
             // Переназначаем собственный lID
-            if (nodeData.s !== undefined && lidMap.has(nodeData.s)) {
-              node.lID = lidMap.get(nodeData.s);
+            const ownOldLID = (nodeData.s ?? 0) & 0x1ffff;
+            if (ownOldLID && lidMap.has(ownOldLID)) {
+              node.lID = lidMap.get(ownOldLID);
+            }
+
+            // isFrame (бит 17 в s)
+            if (nodeData.s !== undefined && (nodeData.s >> 17) & 1) {
+              (node as LNode_TextEdit | LNode_TEClone).frame.isFrame = true;
             }
 
             // Распаковываем list / parentLID
@@ -191,7 +198,9 @@ const commands: Command[] = [
           // Инициализируем родительские связи внутри дерева
           createdNodes.forEach((node) => {
             if (node.list.parentLID) {
-              const parentNode = core.nodeManager.getNodeByLID(node.list.parentLID);
+              const parentNode = core.nodeManager.getNodeByLID(
+                node.list.parentLID,
+              );
               if (parentNode) {
                 if (!parentNode.list.children) {
                   parentNode.list.children = new Set();
@@ -209,6 +218,37 @@ const commands: Command[] = [
           createdNodes.forEach((node) => {
             core.nodeRenderer.createVNode(node);
           });
+
+          // Восстанавливаем режим фрейма (бит isFrame в упакованном s)
+          createdNodes.forEach((node, i) => {
+            const s = rawNodes[i]?.s;
+            if (s !== undefined && (s >> 17) & 1 && node.frame) {
+              node.frame.turnOn_frameMode();
+              node.save();
+            }
+          });
+
+          // Связываем подфреймы с вставленными родительскими фреймами
+          createdNodes.forEach((node, i) => {
+            const oldParents = rawNodes[i]?.f;
+            if (!oldParents?.length || !node.frame) return;
+            const newParents = oldParents
+              .map((id) => lidMap.get(id))
+              .filter((id): id is number => id !== undefined);
+            if (!newParents.length) return;
+            node.frame.parentsLID = newParents;
+            node.frame.init();
+            node.save();
+          });
+
+          // как при загрузке: кнопки фрейма, размеры, затем позиционирование
+          const pastedFrames = createdNodes.filter(
+            (n) => n.frame?.isFrame,
+          ) as LNode_TextEdit[];
+          pastedFrames.forEach((n) => n.frame.initBtns());
+          pastedFrames.forEach((n) => n.frame.setBtnsState());
+          createdNodes.forEach((n) => n.vNode?.refreshBodyRect());
+          pastedFrames.forEach((n) => n.frame.redrawPaths());
 
           // Выстраиваем правильные координаты и SVG-линии для всех корневых деревьев
           const updatedRoots = new Set<any>();

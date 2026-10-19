@@ -6,7 +6,10 @@
     "dev:server": "npm run dev -w server",
     "build:client": "npm run build -w client",
     "build:server": "npm run build -w server",
-    "deploy": "tsx ./deploy_project.ts"
+    "deploy": "tsx ./deploy_project.ts",
+    "backup:db": "tsx ./backup_db.ts",
+    "restore:db": "tsx ./restore_db.ts",
+    "restore:db:drop": "tsx ./restore_db.ts --drop"
   },
   "workspaces": [
     "client",
