@@ -219,7 +219,6 @@ export default class TList {
 
     if (parent.list.parentNode) {
       let pnode: LNode | null | undefined = parent;
-      newIndex = (parent.list.index ?? 0) + 0.1;
 
       t = Math.round((owner.x - parent.x) / GRID.x);
       if (t <= 0) {
@@ -302,7 +301,8 @@ export default class TList {
         if (child.hidden) continue;
         child.x = owner.x + GRID.x * (child.list.tab ?? 0);
         child.y = startY + h;
-        if (totalTab == 0) totalIndex++;
+        // if (totalTab == 0) totalIndex++;
+        totalIndex++;
         child.list.totalIndex = totalIndex;
         child.vNode?.applyPosition();
         const xx = Math.round((child.x - (parentX || owner.x)) / GRID.x);

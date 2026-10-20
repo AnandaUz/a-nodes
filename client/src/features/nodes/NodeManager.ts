@@ -141,6 +141,12 @@ export class NodeManager {
 
         mainParent.vNode?.renderSVG();
 
+        // нода добавлена во фрейм — рисуем кнопки включения
+        if (mainParent instanceof LNode_TextEdit && mainParent.frame.isFrame) {
+          mainParent.frame.initBtns();
+          mainParent.frame.setBtnsState();
+        }
+
         mainParent.save();
       });
     } else {

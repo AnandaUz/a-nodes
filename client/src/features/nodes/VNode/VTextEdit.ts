@@ -1,4 +1,5 @@
 import Tools from "@/features/core/Tools";
+import { core } from "@/features/core/core";
 import type { LNode_TextEdit } from "../LNode/LNode_TextEdit";
 import { VNode } from "./VNode";
 import type { LNode } from "../LNode/LNode";
@@ -75,10 +76,10 @@ export default class VTextEdit extends VNode {
     if (btn) btn.classList.remove("active");
   }
   setRating(rating: number, subFrameLID: number) {
-    const maxWidth = 80;
-    const max = 10;
+    const maxWidth = 100;
+    const max = 20;
     const w = (max - rating) / max;
-    const ww = Math.round(Math.pow(w, 2) * maxWidth);
+    const ww = w > 0 ? Math.round(Math.pow(w, 3) * maxWidth) : 0;
 
     if (ww > 0 && rating > 0) {
       const bl = this.body.querySelector(
@@ -165,6 +166,15 @@ export default class VTextEdit extends VNode {
   removeFramePowerBtn() {
     this.body.querySelector(".el-frame-power-btns")?.remove();
   }
+  /** удаляет кнопку включения и линию рейтинга для одного подфрейма */
+  removeFramePowerBtnFor(subFrameLID: number) {
+    this.body
+      .querySelector(".el-frame-power-btns .sub .btn-" + subFrameLID)
+      ?.remove();
+    this.body
+      .querySelector(".el-frame-power-btns .sub .rating-line.line-" + subFrameLID)
+      ?.remove();
+  }
   turnOn_frameMode() {
     if (this.isFrameMode) return;
     this.isFrameMode = true;
@@ -182,12 +192,25 @@ export default class VTextEdit extends VNode {
       Tools.stopEvent(e);
       (this.node as LNode_TextEdit).frame.addFrame();
     });
+
+    const btnLink = document.createElement("div");
+    btnLink.classList.add("el-frame-link");
+    btnLink.title = "Связать с родителем";
+    this.body.appendChild(btnLink);
+    btnLink.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      Tools.stopEvent(e);
+      core.desk.linkDrag.start(this.node as LNode_TextEdit, e);
+    });
+    this.renderSVG();
   }
   turnOff_frameMode() {
     if (!this.isFrameMode) return;
     this.isFrameMode = false;
     this.body.classList.remove("frame");
     this.body.querySelector(".el-frame-btn")?.remove();
+    this.body.querySelector(".el-frame-link")?.remove();
+    this.renderSVG();
   }
 
   set title(v: string | undefined) {

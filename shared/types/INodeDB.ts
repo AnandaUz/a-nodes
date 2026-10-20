@@ -16,7 +16,7 @@ export interface INodeDB {
   s?: number | undefined; //lID - разные переменные
   A?: number | undefined; //переменные для клонов LNode_TEClone,
   exData?: IExData | undefined;
-  f?: number[] | undefined;
+  f?: number[] | null | undefined;
   D?: number | undefined; //переменные для repeatMode и разных дат
 }
 const START_DATE = new Date("2026-10-13T00:00:00.000Z");
@@ -187,8 +187,8 @@ export function toDB(node: ILNode): INodeDB {
     // ok: this.ok,
   };
   // родители фреймов
-  if (node.frame && node.frame.parents.size > 0) {
-    res.f = node.frame.pack();
+  if (node.frame) {
+    res.f = node.frame.parents.size > 0 ? node.frame.pack() : null;
   }
   // упаковываем данные в одну переменную listData
   if (node.list && node.list.parentLID !== undefined) {

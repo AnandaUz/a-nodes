@@ -52,6 +52,7 @@ export class VNode {
     } as DOMRect;
   }
   refreshBodyRect() {
+    this.body.style.width = ""; // естественная ширина по тексту (заголовок фрейма растягивается в renderBgSVG)
     this.width = this.body.offsetWidth;
     this.height = this.body.offsetHeight;
   }
@@ -106,7 +107,7 @@ export class VNode {
     this.hidden = true;
     this.body.style.display = "none";
     if (this.elSVG) {
-      this.elSVG.remove();
+      core.desk.svgLayer.removeRect(this.elSVG);
       this.elSVG = null;
     }
   }
@@ -137,7 +138,7 @@ export class VNode {
     this.body.remove();
     this.unsubscribers.forEach((unsub) => unsub());
     this.unbind();
-    this.elSVG?.remove();
+    if (this.elSVG) core.desk.svgLayer.removeRect(this.elSVG);
   }
   bind() {
     this.movingElement.addEventListener("pointerdown", this.onPointerDown);
@@ -398,42 +399,62 @@ export class VNode {
     }  */
   }
   renderSVG() {
+    this.renderBgSVG();
+    // фон мог измениться — перерисовываем связи фрейма
+    (
+      this.node as unknown as { frame?: { redrawPaths(): void } }
+    ).frame?.redrawPaths();
+  }
+  private renderBgSVG() {
     // только у топовых родителей
     if (this.node.list.parentNode || this.hidden || this.node.hidden) {
       if (this.elSVG) {
-        this.elSVG.remove();
+        core.desk.svgLayer.removeRect(this.elSVG);
         this.elSVG = null;
       }
       return;
+    }
+    const isFrame = !!(this.node as unknown as { frame?: { isFrame: boolean } })
+      .frame?.isFrame;
+    // сменился тип фона (фрейм <-> группа) — пересоздаём
+    if (this.elSVG && (this.elSVG.dataset.frame === "1") !== isFrame) {
+      core.desk.svgLayer.removeRect(this.elSVG);
+      this.elSVG = null;
     }
     // если есть дети, то рисуется фон в виде прямоугольника
     const children = this.node.list.children;
     const hasVisibleChildren = children && [...children].some((c) => !c.hidden);
     if (hasVisibleChildren) {
       const lRect = this.node.getNodeRect();
+      // заголовок фрейма: минимум — по тексту, максимум — на всю ширину блока
+      this.body.style.width = isFrame ? `${Math.max(lRect.width, this.width)}px` : "";
       if (!this.elSVG) {
-        this.elSVG = core.desk.svgLayer.drawRect(
+        const svg = core.desk.svgLayer;
+        this.elSVG = isFrame
+          ? svg.drawFrameRect(lRect.x, lRect.y, lRect.width, lRect.height)
+          : svg.drawRect(
+              lRect.x,
+              lRect.y,
+              lRect.width,
+              lRect.height,
+              "#dce4e946",
+            );
+      } else {
+        core.desk.svgLayer.moveRect(
+          this.elSVG,
           lRect.x,
           lRect.y,
           lRect.width,
           lRect.height,
-          "#dce4e946",
         );
-      } else {
-        this.elSVG.setAttribute("x", lRect.x.toString());
-        this.elSVG.setAttribute("y", lRect.y.toString());
-        this.elSVG.setAttribute("width", lRect.width.toString());
-        this.elSVG.setAttribute("height", lRect.height.toString());
       }
     } else {
+      this.body.style.width = "";
       if (this.elSVG) {
-        this.elSVG.remove();
+        core.desk.svgLayer.removeRect(this.elSVG);
         this.elSVG = null;
       }
     }
-    // children?.forEach((c) => {
-    //   c.vNode?.renderSVG();
-    // });
   }
   highlight() {
     this.body.classList.add("highlight");

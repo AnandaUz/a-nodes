@@ -81,12 +81,15 @@ export class LNode_TextEdit extends LNode {
     if (putInInnerHTML) vNode.titleEl.innerText = v || "";
 
     const startH = vNode.height;
+    const startW = vNode.width;
     vNode.refreshBodyRect();
     const endH = vNode.height;
 
-    if (startH !== endH) {
-      if (this.list.parentNode) {
-        this.list.mainParent?.list.setPositionForChildren();
+    if (startH !== endH || startW !== vNode.width) {
+      const main = this.list.mainParent;
+      if (main && (this.list.parentNode || this.list.children?.size)) {
+        if (startH !== endH) main.list.setPositionForChildren();
+        main.vNode?.renderSVG();
       }
     }
 

@@ -349,6 +349,27 @@
         }
     }
 
+    .el-frame-link {
+        --w: 8px;
+        position: absolute;
+        left: calc(-1 * var(--w));
+        top: 7px;
+        width: var(--w);
+        height: var(--w);
+        border-radius: 50%;
+        background: #ff8a3d;
+        border: 2px solid #fff;
+        box-sizing: content-box;
+        cursor: crosshair;
+        opacity: 0.8;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+
+        &:hover {
+            opacity: 1;
+            transform: scale(1.35);
+        }
+    }
+
     .el-frame-btn {
         grid-column: end/s-end;
         grid-row: title;
@@ -356,7 +377,7 @@
 
     .el-title {
         // background-color: #4ba68f27;
-        grid-column: title/end;
+        grid-column: 1/end;
         grid-row: title;
 
     }

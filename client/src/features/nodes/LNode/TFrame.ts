@@ -30,7 +30,7 @@ export default class TFrame {
     );
 
     newNode.list.setParent(this.owner, 0);
-    this.owner.list.setPositionForChildren(rect.y + 5);
+    this.owner.list.setPositionForChildren();
   }
   setBtnsState() {
     this.owner.list.forEachChildren((child) => {
@@ -101,7 +101,7 @@ export default class TFrame {
     this.parentsLID.forEach((id) => {
       const parentNode = core.nodeManager.getNodeByLID(id) as LNode_TextEdit;
       if (parentNode) {
-        const path = new Ge_Path();
+        const path = this.makePath(parentNode);
         this.parents.add({ node: parentNode, path });
         parentNode.frame.children.add(this.owner);
       }
@@ -113,8 +113,8 @@ export default class TFrame {
     if (this.parents) {
       this.parents.forEach((parent) => {
         const path = parent.path;
-        const parentRect = parent.node.getNodeRect(false);
-        const newRect = this.owner.getNodeRect(false);
+        const parentRect = parent.node.getNodeRect(true);
+        const newRect = this.owner.getNodeRect(true);
         path.draw(
           { x: parentRect.x + parentRect.width, y: parentRect.y + 10 },
           { x: newRect.x, y: newRect.y + 10 },
@@ -127,6 +127,67 @@ export default class TFrame {
         child.frame.redrawPaths();
       });
     }
+  }
+  /** создаёт путь связи parent → child и делает его выделяемым */
+  private makePath(parent: LNode_TextEdit, child: LNode_TextEdit = this.owner) {
+    const path = new Ge_Path();
+    path.link = { child, parent };
+    path.enableSelect((p) => core.desk.selectPath(p));
+    return path;
+  }
+  /** является ли node потомком this.owner (по цепочке children) */
+  private hasDescendant(node: LNode_TextEdit): boolean {
+    const seen = new Set<LNode_TextEdit>();
+    const walk = (n: LNode_TextEdit): boolean => {
+      for (const ch of n.frame.children) {
+        if (ch === node) return true;
+        if (seen.has(ch)) continue;
+        seen.add(ch);
+        if (walk(ch)) return true;
+      }
+      return false;
+    };
+    return walk(this.owner);
+  }
+  /** можно ли сделать parent родителем этого фрейма (дубли, self, циклы — нельзя) */
+  canLinkTo(parent: LNode_TextEdit): boolean {
+    if (parent === this.owner || !parent.frame.isFrame) return false;
+    for (const p of this.parents) if (p.node === parent) return false;
+    return !this.hasDescendant(parent);
+  }
+  /** связать: parent становится родителем этого фрейма */
+  linkToParent(parent: LNode_TextEdit) {
+    if (!this.canLinkTo(parent)) return;
+    if (!parent.lID) {
+      parent.lID = core.nodeManager.getMaxLID() + 1;
+      parent.save();
+    }
+    if (!this.owner.lID) {
+      this.owner.lID = core.nodeManager.getMaxLID() + 1;
+    }
+    this.parents.add({ node: parent, path: this.makePath(parent) });
+    parent.frame.children.add(this.owner);
+    parent.frame.initBtns();
+    parent.frame.setBtnsState();
+    this.parentsLID = this.pack();
+    this.owner.save();
+    this.redrawPaths();
+  }
+  /** разорвать связь с родителем (клоны не трогаем) */
+  unlinkFromParent(parent: LNode_TextEdit) {
+    for (const p of Array.from(this.parents)) {
+      if (p.node !== parent) continue;
+      p.path.remove();
+      this.parents.delete(p);
+    }
+    parent.frame.children.delete(this.owner);
+    this.parentsLID = this.pack();
+    const lid = this.owner.lID || 0;
+    parent.list.forEachChildren((child) => {
+      if (child === parent) return;
+      (child.vNode as VTextEdit | undefined)?.removeFramePowerBtnFor(lid);
+    });
+    this.owner.save();
   }
   pack(): number[] {
     return Array.from(this.parents).map((i) => i.node.lID || 0);
@@ -155,7 +216,7 @@ export default class TFrame {
 
     newNode.title = this.owner.title;
 
-    const path = new Ge_Path();
+    const path = this.makePath(this.owner, newNode);
     newNode.frame.parents.add({ node: this.owner, path });
     this.owner.frame.children.add(newNode);
 
