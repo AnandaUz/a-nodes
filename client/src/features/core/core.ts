@@ -138,6 +138,10 @@ export class Core {
           }
         });
 
+        frames.forEach((node) => {
+          node.frame.bringToFront();
+        });
+
         // core.desk.disconnectNodesEl(); //>
         // core.frameCore.refresh(); //пересчитывает все
 

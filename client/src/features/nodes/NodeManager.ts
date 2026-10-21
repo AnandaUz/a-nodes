@@ -105,11 +105,27 @@ export class NodeManager {
     // сортируем по Y по возрастанию, чтобы сохранить визуальный порядок
     selectedParentsNodes.sort((a, b) => a.y - b.y);
 
+    const frameNodes: LNode_TextEdit[] = [];
+    const regularNodes: LNode[] = [];
+    selectedParentsNodes.forEach((node) => {
+      if (node instanceof LNode_TextEdit && node.frame?.isFrame) {
+        frameNodes.push(node);
+      } else {
+        regularNodes.push(node);
+      }
+    });
+
+    frameNodes.forEach((fn) => {
+      fn.save();
+      fn.frame.bringToFront();
+      fn.frame.redrawPaths();
+    });
+
     const wasRef = new Set<LNode>();
     if (byNode) {
       // установим его новым родителем
       const willRefParent: LNode[] = [];
-      selectedParentsNodes.forEach((node, i) => {
+      regularNodes.forEach((node, i) => {
         if (overRect.y < byNode.y) {
           const parentNode = byNode.list.parentNode;
           if (parentNode) {
@@ -151,7 +167,7 @@ export class NodeManager {
       });
     } else {
       const willRefParent: LNode[] = [];
-      selectedParentsNodes.forEach((node) => {
+      regularNodes.forEach((node) => {
         // если клон, то отключить индикаторы
         const mainParent = (node as LNode_TextEdit).clones.mainNode;
         if (mainParent) {

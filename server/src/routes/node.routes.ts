@@ -2,13 +2,17 @@ import { Router } from "express";
 import {
   deleteNodeController,
   getNodesByParentNodeId,
+  quickAddNodeController,
   saveNodesController,
 } from "../controllers/node.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// Все роуты требуют авторизации
+// Быстрое добавление ноды (авторизация по API-ключу в заголовке x-api-key или Bearer)
+router.post("/quick-add", quickAddNodeController);
+
+// Все остальные роуты требуют авторизации
 router.use(authenticate);
 
 router.get("/:nodeId", getNodesByParentNodeId); // вложенный desk

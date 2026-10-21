@@ -46,15 +46,21 @@ class App {
   }
   gotoPage_welcome() {
     history.pushState({}, "", "/welcome");
-    this.router.render();
+    if ((this.router as any).routes) {
+      this.router.render();
+    }
   }
   gotoPage_register() {
     history.pushState({}, "", "/register");
-    this.router.render();
+    if ((this.router as any).routes) {
+      this.router.render();
+    }
   }
   gotoPage_home() {
     history.pushState({}, "", "/");
-    this.router.render();
+    if ((this.router as any).routes) {
+      this.router.render();
+    }
   }
   async initGoogleAuth() {
     await loadGsi();

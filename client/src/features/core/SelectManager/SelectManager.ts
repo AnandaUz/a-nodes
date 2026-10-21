@@ -35,6 +35,20 @@ export class SelectManager {
 
   onVNodeClick(e: PointerEvent, vnode: VNode) {
     const node = vnode.node;
+    const textEdit = node as unknown as {
+      frame?: {
+        isFrame: boolean;
+        frameNode?: { frame?: { bringToFront(): void } };
+        bringToFront(): void;
+      };
+    };
+    if (textEdit.frame) {
+      if (textEdit.frame.isFrame) {
+        textEdit.frame.bringToFront();
+      } else if (textEdit.frame.frameNode?.frame) {
+        textEdit.frame.frameNode.frame.bringToFront();
+      }
+    }
     if (e.ctrlKey) {
       if (node.isSelected) {
         this.selectedNodes.add(node);

@@ -7,6 +7,10 @@ import type { LNode } from "../LNode/LNode";
 export default class VTextEdit extends VNode {
   titleEl!: HTMLInputElement;
   isFrameMode: boolean = false;
+  elListBtns?: HTMLElement | null;
+  btnOpen?: HTMLElement | null;
+  btnRepeats?: HTMLElement | null;
+  btnHidden?: HTMLElement | null;
 
   constructor(node: LNode, container: HTMLElement) {
     super(node, container);
@@ -22,6 +26,24 @@ export default class VTextEdit extends VNode {
 
     this.titleEl.addEventListener("blur", () => {
       (this.node as LNode_TextEdit).turnOff_EditTitleMode();
+    });
+
+    this.elListBtns = this.body.querySelector(".el-list-btns");
+    this.btnOpen = this.body.querySelector(".btn-open");
+    this.btnRepeats = this.body.querySelector(".btn-repeats");
+    this.btnHidden = this.body.querySelector(".btn-hidden");
+
+    this.btnOpen?.addEventListener("pointerdown", (e) => {
+      Tools.stopEvent(e);
+      this.toggleListOpen();
+    });
+    this.btnRepeats?.addEventListener("pointerdown", (e) => {
+      Tools.stopEvent(e);
+      this.toggleRepeatsOpen();
+    });
+    this.btnHidden?.addEventListener("pointerdown", (e) => {
+      Tools.stopEvent(e);
+      this.toggleHiddenOpen();
     });
   }
 
@@ -55,13 +77,11 @@ export default class VTextEdit extends VNode {
     super.bodyInit();
     this.body.innerHTML += `            
             <div class="el-title"></div>
-            <!--            
             <div class="el-list-btns">            
-              <div class="bt btn-open"></div>
-              <div class="bt btn-repeats"></div>
-              <div class="bt btn-hidden"></div>             
-            </div>      
-             -->                                   
+              <div class="bt btn-open" title="Показать/скрыть список"></div>
+              <div class="bt btn-repeats" title="Отложенные задачи"></div>
+              <div class="bt btn-hidden" title="Спрятанные ноды"></div>             
+            </div>                                     
 `;
   }
   removePowerIndicators(subFrameLID: number) {
@@ -212,6 +232,10 @@ export default class VTextEdit extends VNode {
     this.body.classList.remove("frame");
     this.body.querySelector(".el-frame-btn")?.remove();
     this.body.querySelector(".el-frame-link")?.remove();
+    if (this.elFrameBg) {
+      this.elFrameBg.remove();
+      this.elFrameBg = null;
+    }
     this.renderSVG();
   }
 
@@ -230,6 +254,177 @@ export default class VTextEdit extends VNode {
       if (str !== this.titleEl.innerHTML) {
         this.titleEl.innerHTML = str;
         // this.onChange()
+      }
+    }
+    this.refreshListBtns();
+  }
+
+  toggleListOpen() {
+    const list = this.node.list;
+    list.isListOpen = !list.isListOpen;
+    if (!list.isListOpen) {
+      list.forEachChildren((child) => {
+        child.hidden = true;
+        child.vNode?.hide();
+      });
+    } else {
+      const restoreVisibility = (parent: LNode) => {
+        parent.list.children?.forEach((child) => {
+          const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+          const isHidden = child.hiddenBD;
+
+          let shouldShow = true;
+          if (isRepeat && !list.isRepeatsOpen) {
+            shouldShow = false;
+          } else if (isHidden && !list.isHiddenOpen) {
+            shouldShow = false;
+          }
+
+          if (shouldShow) {
+            child.hidden = false;
+            if (!child.vNode && core.nodeRenderer) {
+              core.nodeRenderer.createVNode(child);
+            } else {
+              child.vNode?.show();
+            }
+            if (child.list.isListOpen) {
+              restoreVisibility(child);
+            }
+          } else {
+            child.hidden = true;
+            child.vNode?.hide();
+          }
+        });
+      };
+      restoreVisibility(this.node);
+    }
+
+    const mainParent = this.node.list.mainParent || this.node;
+    mainParent.list.setPositionForChildren();
+    mainParent.vNode?.renderSVG();
+    this.refreshListBtns();
+  }
+
+  toggleRepeatsOpen() {
+    const list = this.node.list;
+    list.isRepeatsOpen = !list.isRepeatsOpen;
+
+    if (list.isRepeatsOpen) {
+      if (!list.isListOpen) {
+        list.isListOpen = true;
+      }
+      list.children?.forEach((child) => {
+        if (child.repeatMode.mode > 0 || !!child.repeatMode.date) {
+          child.hidden = false;
+          if (!child.vNode && core.nodeRenderer) {
+            core.nodeRenderer.createVNode(child);
+          } else {
+            child.vNode?.show();
+          }
+        }
+      });
+    } else {
+      list.children?.forEach((child) => {
+        if (child.repeatMode.mode > 0 || !!child.repeatMode.date) {
+          child.hidden = true;
+          child.vNode?.hide();
+          child.list.children?.forEach((grandChild) => {
+            grandChild.hidden = true;
+            grandChild.vNode?.hide();
+          });
+        }
+      });
+    }
+
+    const mainParent = this.node.list.mainParent || this.node;
+    mainParent.list.setPositionForChildren();
+    mainParent.vNode?.renderSVG();
+    this.refreshListBtns();
+  }
+
+  toggleHiddenOpen() {
+    const list = this.node.list;
+    list.isHiddenOpen = !list.isHiddenOpen;
+
+    if (list.isHiddenOpen) {
+      if (!list.isListOpen) {
+        list.isListOpen = true;
+      }
+      list.children?.forEach((child) => {
+        if (child.hiddenBD) {
+          child.hidden = false;
+          if (!child.vNode && core.nodeRenderer) {
+            core.nodeRenderer.createVNode(child);
+          } else {
+            child.vNode?.show();
+          }
+        }
+      });
+    } else {
+      list.children?.forEach((child) => {
+        if (child.hiddenBD) {
+          child.hidden = true;
+          child.vNode?.hide();
+          child.list.children?.forEach((grandChild) => {
+            grandChild.hidden = true;
+            grandChild.vNode?.hide();
+          });
+        }
+      });
+    }
+
+    const mainParent = this.node.list.mainParent || this.node;
+    mainParent.list.setPositionForChildren();
+    mainParent.vNode?.renderSVG();
+    this.refreshListBtns();
+  }
+
+  refreshListBtns() {
+    if (!this.elListBtns) return;
+    const list = this.node.list;
+    if (!list.hasChildren) {
+      this.elListBtns.style.display = "none";
+      return;
+    }
+
+    this.elListBtns.style.display = "flex";
+
+    // 1. Серый индикатор (btn-open)
+    if (this.btnOpen) {
+      if (list.isListOpen) {
+        this.btnOpen.classList.add("open");
+      } else {
+        this.btnOpen.classList.remove("open");
+      }
+    }
+
+    // 2. Оранжевый индикатор (btn-repeats)
+    if (this.btnRepeats) {
+      const hasRepeats = list.hasRepeatChildren();
+      if (!hasRepeats) {
+        this.btnRepeats.style.display = "none";
+      } else {
+        this.btnRepeats.style.display = "";
+        if (list.isRepeatsOpen) {
+          this.btnRepeats.classList.add("open");
+        } else {
+          this.btnRepeats.classList.remove("open");
+        }
+      }
+    }
+
+    // 3. Синий индикатор (btn-hidden)
+    if (this.btnHidden) {
+      const hasHidden = list.hasHiddenChildren();
+      if (!hasHidden) {
+        this.btnHidden.style.display = "none";
+      } else {
+        this.btnHidden.style.display = "";
+        if (list.isHiddenOpen) {
+          this.btnHidden.classList.add("open");
+        } else {
+          this.btnHidden.classList.remove("open");
+        }
       }
     }
   }

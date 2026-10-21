@@ -31,6 +31,7 @@ export default class TFrame {
 
     newNode.list.setParent(this.owner, 0);
     this.owner.list.setPositionForChildren();
+    this.bringToFront();
   }
   setBtnsState() {
     this.owner.list.forEachChildren((child) => {
@@ -248,5 +249,34 @@ export default class TFrame {
       btn.classList.remove("active");
     }
     vNode.setRating(-1, subFrameLID);
+  }
+
+  static nextZIndex = 200;
+
+  bringToFront() {
+    const root = this.isFrame ? this.owner : this.frameNode;
+    if (!root) return;
+
+    const z = TFrame.nextZIndex;
+    TFrame.nextZIndex += 2;
+
+    // 1. Фон фрейма (подложка)
+    const frameBg = (root.vNode as VTextEdit)?.elFrameBg;
+    if (frameBg) {
+      frameBg.style.zIndex = String(z);
+    }
+
+    // 2. Заголовок
+    if (root.vNode) {
+      root.vNode.body.style.zIndex = String(z + 1);
+    }
+
+    // 3. Все дочерние ноды
+    root.list.forEachChildren((child) => {
+      if (child === root) return;
+      if (child.vNode) {
+        child.vNode.body.style.zIndex = String(z + 1);
+      }
+    });
   }
 }

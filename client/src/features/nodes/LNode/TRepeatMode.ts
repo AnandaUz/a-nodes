@@ -40,11 +40,16 @@ export default class TRepeatMode {
   }
   refreshIndicator() {
     const vNode = this.owner.vNode;
-    if (!vNode) return;
-    if (this.mode > 0 || this._date) {
-      vNode.repeatMode.showIndicator();
-    } else {
-      vNode.repeatMode.hideIndicator();
+    if (vNode) {
+      if (this.mode > 0 || this._date) {
+        vNode.repeatMode.showIndicator();
+      } else {
+        vNode.repeatMode.hideIndicator();
+      }
+    }
+    const parentNode = this.owner.list.parentNode;
+    if (parentNode) {
+      (parentNode.vNode as any)?.refreshListBtns?.();
     }
   }
   // set showAtDay(date: Date) {}

@@ -25,6 +25,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(express.text());
 
 app.use((_req, res, next) => {
   if (isDbReady()) return next();

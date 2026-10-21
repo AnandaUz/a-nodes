@@ -32,6 +32,7 @@ export class VNode {
   private lastClickTime: number = 0;
   private lastClickPos: { x: number; y: number } = { x: 0, y: 0 };
   protected elSVG?: SVGRectElement | null = null;
+  elFrameBg?: HTMLElement | null = null;
 
   // Константы для настройки чувствительности
 
@@ -69,38 +70,54 @@ export class VNode {
     );
     this.bind();
   }
-  repeatMode = {
-    // <div class="el-indicators">
-    //           <div class="ind-hidden"></div>
-    //           <div class="ind-repeats"></div>
-    //         </div>
-    showIndicator: () => {
-      if (this.hidden) return;
-      let elIndBlock = this.body.querySelector(".el-indicators");
-      if (!elIndBlock) {
-        elIndBlock = document.createElement("div");
-        elIndBlock.className = "el-indicators";
-        this.body.appendChild(elIndBlock);
-      }
-      let elRepeat = elIndBlock.querySelector(".ind-repeat");
+  refreshIndicators() {
+    let elIndBlock = this.body.querySelector(".el-indicators") as HTMLElement;
+    const needRepeat =
+      (this.node.repeatMode.mode > 0 || !!this.node.repeatMode.date) &&
+      !this.hidden;
+    const needHidden = Boolean(this.node.hiddenBD) && !this.hidden;
 
+    if (!needRepeat && !needHidden) {
+      if (elIndBlock) elIndBlock.remove();
+      return;
+    }
+
+    if (!elIndBlock) {
+      elIndBlock = document.createElement("div");
+      elIndBlock.className = "el-indicators";
+      this.body.appendChild(elIndBlock);
+    }
+
+    let elRepeat = elIndBlock.querySelector(".ind-repeat");
+    if (needRepeat) {
       if (!elRepeat) {
         elRepeat = document.createElement("div");
         elRepeat.className = "ind-repeat";
         elIndBlock.appendChild(elRepeat);
       }
+    } else {
+      elRepeat?.remove();
+    }
 
-      // if (this.node.hidden) {
-      //   elRepeat.classList.add("active");
-      // } else {
-      //   elRepeat.classList.remove("active");
-      // }
+    let elHidden = elIndBlock.querySelector(".ind-hidden");
+    if (needHidden) {
+      if (!elHidden) {
+        elHidden = document.createElement("div");
+        elHidden.className = "ind-hidden";
+        elIndBlock.appendChild(elHidden);
+      } else {
+        elIndBlock.appendChild(elHidden);
+      }
+    } else {
+      elHidden?.remove();
+    }
+  }
+  repeatMode = {
+    showIndicator: () => {
+      this.refreshIndicators();
     },
     hideIndicator: () => {
-      const elRepeat = this.body.querySelector(".ind-repeat");
-      if (elRepeat) {
-        elRepeat.remove();
-      }
+      this.refreshIndicators();
     },
   };
   hide() {
@@ -139,6 +156,10 @@ export class VNode {
     this.unsubscribers.forEach((unsub) => unsub());
     this.unbind();
     if (this.elSVG) core.desk.svgLayer.removeRect(this.elSVG);
+    if (this.elFrameBg) {
+      this.elFrameBg.remove();
+      this.elFrameBg = null;
+    }
   }
   bind() {
     this.movingElement.addEventListener("pointerdown", this.onPointerDown);
@@ -153,6 +174,20 @@ export class VNode {
   }
   onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
+    const textEdit = this.node as unknown as {
+      frame?: {
+        isFrame: boolean;
+        frameNode?: { frame?: { bringToFront(): void } };
+        bringToFront(): void;
+      };
+    };
+    if (textEdit.frame) {
+      if (textEdit.frame.isFrame) {
+        textEdit.frame.bringToFront();
+      } else if (textEdit.frame.frameNode?.frame) {
+        textEdit.frame.frameNode.frame.bringToFront();
+      }
+    }
     if (core.mode.textEditing) {
       if (this.node.isSelected) return;
       // если режим редактирования, то клик по ноде переходит в редактирование
@@ -227,6 +262,7 @@ export class VNode {
     }
 
     this.isMoved = true;
+    this.body.classList.add("is-dragging");
 
     const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
 
@@ -380,11 +416,7 @@ export class VNode {
     if (h) {
       this.body.classList.add(h);
     }
-    if (this.node.repeatMode.mode > 0 || this.node.repeatMode.date) {
-      this.repeatMode.showIndicator();
-    } else {
-      this.repeatMode.hideIndicator();
-    }
+    this.refreshIndicators();
     this.refreshBodyRect();
 
     // для атладки
@@ -412,33 +444,71 @@ export class VNode {
         core.desk.svgLayer.removeRect(this.elSVG);
         this.elSVG = null;
       }
+      if (this.elFrameBg) {
+        this.elFrameBg.remove();
+        this.elFrameBg = null;
+      }
       return;
     }
     const isFrame = !!(this.node as unknown as { frame?: { isFrame: boolean } })
       .frame?.isFrame;
-    // сменился тип фона (фрейм <-> группа) — пересоздаём
-    if (this.elSVG && (this.elSVG.dataset.frame === "1") !== isFrame) {
-      core.desk.svgLayer.removeRect(this.elSVG);
-      this.elSVG = null;
-    }
-    // если есть дети, то рисуется фон в виде прямоугольника
     const children = this.node.list.children;
     const hasVisibleChildren = children && [...children].some((c) => !c.hidden);
+
+    if (isFrame) {
+      if (this.elSVG) {
+        core.desk.svgLayer.removeRect(this.elSVG);
+        this.elSVG = null;
+      }
+      if (hasVisibleChildren) {
+        const lRect = this.node.getNodeRect();
+        this.body.style.width = `${Math.max(lRect.width, this.width)}px`;
+        const isNewFrameBg = !this.elFrameBg;
+        if (!this.elFrameBg) {
+          this.elFrameBg = document.createElement("div");
+          this.elFrameBg.className = "frame-bg";
+          this.elFrameBg.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;
+            (
+              this.node as unknown as { frame?: { bringToFront(): void } }
+            ).frame?.bringToFront();
+          });
+          this.container.appendChild(this.elFrameBg);
+        }
+        this.elFrameBg.style.transform = `translate(${lRect.x}px, ${lRect.y}px)`;
+        this.elFrameBg.style.width = `${lRect.width}px`;
+        this.elFrameBg.style.height = `${lRect.height}px`;
+        if (isNewFrameBg) {
+          (
+            this.node as unknown as { frame?: { bringToFront(): void } }
+          ).frame?.bringToFront();
+        }
+      } else {
+        this.body.style.width = "";
+        if (this.elFrameBg) {
+          this.elFrameBg.remove();
+          this.elFrameBg = null;
+        }
+      }
+      return;
+    }
+
+    // обычная группа (не фрейм)
+    if (this.elFrameBg) {
+      this.elFrameBg.remove();
+      this.elFrameBg = null;
+    }
     if (hasVisibleChildren) {
       const lRect = this.node.getNodeRect();
-      // заголовок фрейма: минимум — по тексту, максимум — на всю ширину блока
-      this.body.style.width = isFrame ? `${Math.max(lRect.width, this.width)}px` : "";
+      this.body.style.width = "";
       if (!this.elSVG) {
-        const svg = core.desk.svgLayer;
-        this.elSVG = isFrame
-          ? svg.drawFrameRect(lRect.x, lRect.y, lRect.width, lRect.height)
-          : svg.drawRect(
-              lRect.x,
-              lRect.y,
-              lRect.width,
-              lRect.height,
-              "#dce4e946",
-            );
+        this.elSVG = core.desk.svgLayer.drawRect(
+          lRect.x,
+          lRect.y,
+          lRect.width,
+          lRect.height,
+          "#dce4e946",
+        );
       } else {
         core.desk.svgLayer.moveRect(
           this.elSVG,

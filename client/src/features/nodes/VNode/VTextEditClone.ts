@@ -22,6 +22,7 @@ export default class VTextEditClone extends VTextEdit {
         this.titleEl.innerHTML = str;
       }
     }
+    this.refreshListBtns();
   }
   bodyInit() {
     super.bodyInit();

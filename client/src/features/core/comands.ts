@@ -454,6 +454,20 @@ const commands: Command[] = [
         },
       },
       {
+        label: "Спрятать",
+        shortcuts: ["h"],
+        execute: (e: KeyboardEvent) => {
+          if (core.mode.textEditing) return;
+          e.preventDefault();
+          const selected = Array.from(core.selectManager.selectedNodes.values());
+          selected.forEach((node) => {
+            if (node.list.parentNode) {
+              node.hide(true, true);
+            }
+          });
+        },
+      },
+      {
         label: "Порядок ступеньками",
         shortcuts: ["alt+q"],
         execute: () => {

@@ -101,15 +101,18 @@ export class LNode implements ILNode {
       }
     }
   }
-  hide(withChildren: boolean = true) {
+  hide(withChildren: boolean = true, isSelf: boolean = true) {
     this.hidden = true;
-    this.hiddenBD = true;
+    if (isSelf) {
+      this.hiddenBD = true;
+      this.save();
+    }
     this.vNode?.hide();
     core.selectManager?.unselectNode(this);
 
     if (withChildren && this.list.children?.size) {
       this.list.children.forEach((child) => {
-        child.hide(true);
+        child.hide(true, false);
       });
     }
 
@@ -119,13 +122,17 @@ export class LNode implements ILNode {
         mainParent.list.setPositionForChildren();
         mainParent.vNode?.renderSVG();
       }
+      (this.list.parentNode.vNode as any)?.refreshListBtns?.();
     } else {
       this.vNode?.renderSVG();
     }
   }
-  show(withChildren: boolean = true) {
+  show(withChildren: boolean = true, isSelf: boolean = true) {
     this.hidden = false;
-    this.hiddenBD = false;
+    if (isSelf) {
+      this.hiddenBD = false;
+      this.save();
+    }
     if (!this.vNode && core.nodeRenderer) {
       core.nodeRenderer.createVNode(this);
     } else {
@@ -134,7 +141,9 @@ export class LNode implements ILNode {
 
     if (withChildren && this.list.children?.size) {
       this.list.children.forEach((child) => {
-        child.show(true);
+        if (!child.hiddenBD) {
+          child.show(true, false);
+        }
       });
     }
 
@@ -144,9 +153,11 @@ export class LNode implements ILNode {
         mainParent.list.setPositionForChildren();
         mainParent.vNode?.renderSVG();
       }
+      (this.list.parentNode.vNode as any)?.refreshListBtns?.();
     } else {
       this.vNode?.renderSVG();
     }
+    (this.vNode as any)?.refreshListBtns?.();
   }
   /** возращает тип для VNode */
   getVNodeType(): typeof VNode {

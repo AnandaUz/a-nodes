@@ -34,6 +34,34 @@ export default class TList {
   index?: number | undefined;
   _tab?: number;
   children?: Set<LNode>;
+  isListOpen: boolean = true;
+  isRepeatsOpen: boolean = false;
+  isHiddenOpen: boolean = false;
+
+  get hasChildren(): boolean {
+    return (this.children?.size ?? 0) > 0;
+  }
+
+  hasRepeatChildren(): boolean {
+    if (!this.children?.size) return false;
+    for (const child of this.children) {
+      if (child.repeatMode.mode > 0 || !!child.repeatMode.date) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  hasHiddenChildren(): boolean {
+    if (!this.children?.size) return false;
+    for (const child of this.children) {
+      if (child.hiddenBD) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private _onChangeListeners: Set<() => void> = new Set();
   private _totalIndexCallBacks: Set<(v: number) => void> = new Set();
   private _totalIndex: number = 0;
@@ -214,6 +242,9 @@ export default class TList {
   setParent(parent: LNode, newIndex: number): LNode[] {
     const owner = this.owner;
     const willRefParent: LNode[] = [];
+    if ((owner as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame) {
+      return willRefParent;
+    }
     let t = 0;
     // если родитель принадлежит списку
 
