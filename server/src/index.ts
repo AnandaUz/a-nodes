@@ -1,7 +1,7 @@
 import "./config";
 import express from "express";
 import cors from "cors";
-import { connectDB, isDbReady } from "./db";
+import { connectDB, isDbReady, waitForDb } from "./db";
 import userRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
 import nodeRoutes from "./routes/node.routes";
@@ -27,8 +27,8 @@ app.use(
 app.use(express.json());
 app.use(express.text());
 
-app.use((_req, res, next) => {
-  if (isDbReady()) return next();
+app.use(async (_req, res, next) => {
+  if (isDbReady() || (await waitForDb(6000))) return next();
   res.status(503).json({
     error: "DB_UNAVAILABLE",
     message: "База данных недоступна. Проверьте IP whitelist в MongoDB Atlas.",
@@ -39,8 +39,11 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/nodes", nodeRoutes);
 
-connectDB();
+const start = async () => {
+  await connectDB();
+  app.listen(port, () => {
+    console.log(`Server is running at http://localhost:${port}`);
+  });
+};
 
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-});
+start();

@@ -12,6 +12,23 @@ if (process.env.NODE_ENV !== 'production' && !process.env.K_SERVICE) {
 
 export const isDbReady = () => mongoose.connection.readyState === 1;
 
+export const waitForDb = async (timeoutMs = 6000): Promise<boolean> => {
+    if (isDbReady()) return true;
+    if (mongoose.connection.readyState !== 2) return false;
+
+    return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(isDbReady()), timeoutMs);
+        mongoose.connection.once('connected', () => {
+            clearTimeout(timer);
+            resolve(true);
+        });
+        mongoose.connection.once('error', () => {
+            clearTimeout(timer);
+            resolve(false);
+        });
+    });
+};
+
 export const connectDB = async () => {
     const MONGO_URI = process.env.MONGODB_URI;
 
