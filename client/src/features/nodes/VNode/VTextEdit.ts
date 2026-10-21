@@ -77,7 +77,7 @@ export default class VTextEdit extends VNode {
   }
   setRating(rating: number, subFrameLID: number) {
     const maxWidth = 100;
-    const max = 20;
+    const max = 15;
     const w = (max - rating) / max;
     const ww = w > 0 ? Math.round(Math.pow(w, 3) * maxWidth) : 0;
 
@@ -172,7 +172,9 @@ export default class VTextEdit extends VNode {
       .querySelector(".el-frame-power-btns .sub .btn-" + subFrameLID)
       ?.remove();
     this.body
-      .querySelector(".el-frame-power-btns .sub .rating-line.line-" + subFrameLID)
+      .querySelector(
+        ".el-frame-power-btns .sub .rating-line.line-" + subFrameLID,
+      )
       ?.remove();
   }
   turnOn_frameMode() {
