@@ -118,3 +118,31 @@ A logical clone node (`LNode_TEClone`) synchronized with its original main node 
 1. **Spawn**: Generated via frame power button (`TFrame.addCloneOfNode()`).
 2. **Registration**: Linked to `mainNode.clones` and assigned to target subframe.
 3. **Deletion**: Deleting clone toggles off parent frame power button; deleting main removes all clones.
+
+---
+
+## быстрыеЗаметки / Quick Notes
+
+Механизм и API-эндпоинт для оперативного создания текстовых нод из внешних источников без открытия интерфейса доски.
+
+### Term Mapping
+
+- **быстрыеЗаметки**: Создание нод через эндпоинт `POST /nodes/quick-add`.
+- **API-ключ**: `API_SECRET_KEY` (передается через заголовок `x-api-key` или `Bearer`).
+- **Контроллер**: `quickAddNodeController` в `server/src/controllers/node.controller.ts`.
+- **Дефолтные параметры**: `pageId: 6a217eec3f6bb77979b18240`, `type: 1`, `s: 150`, `L: 4456625` (`parentLID: 136`, `tab: 1`, начальный `index: 22`).
+
+### Code References
+
+- **Logic / Controller**:
+  - `server/src/controllers/node.controller.ts` — `quickAddNodeController` (аутентификация, расчет индекса `L`, сохранение).
+  - `server/src/routes/node.routes.ts` — Маршрут `POST /quick-add`.
+- **DB / Model**:
+  - `server/src/models/Node.ts` — Модель документа `Node` (`title`, `type = 1`, битовая маска `L`, `pageId`).
+
+### Lifecycle
+
+1. **Request**: Внешний клиент отправляет `POST /nodes/quick-add` с текстом и API-ключом.
+2. **Auth & Resolution**: Валидируется `API_SECRET_KEY`, определяются `pageId`, `parentLID`, `tab` и `userId`.
+3. **Index Calculation**: Вычисляется следующий свободный `index` среди дочерних нод родителя и упаковывается поле `L`.
+4. **Persistence**: Создается и сохраняется документ `Node` в БД.

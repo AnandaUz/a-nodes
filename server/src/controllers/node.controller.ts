@@ -155,6 +155,7 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
     let customTab: number | undefined;
     let customIndex: number | undefined;
     let customUserId: any;
+    let customS: number | undefined;
 
     if (typeof req.body === "string") {
       rawText = req.body.trim();
@@ -164,6 +165,7 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       if (req.body.parentLID !== undefined) customParentLID = Number(req.body.parentLID);
       if (req.body.tab !== undefined) customTab = Number(req.body.tab);
       if (req.body.index !== undefined) customIndex = Number(req.body.index);
+      if (req.body.s !== undefined) customS = Number(req.body.s);
       customUserId = req.body.userId;
     }
 
@@ -171,10 +173,11 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Текст ноды не может быть пустым" });
     }
 
-    // Дефолтные значения: pageId: 6a202840c694fa28ab705628, родитель L: 4292609 (parentLID: 131, tab: 1)
-    const targetPageId = customPageId || "6a202840c694fa28ab705628";
-    const targetParentLID = customParentLID !== undefined ? customParentLID : 131;
+    // Дефолтные значения: pageId: 6a217eec3f6bb77979b18240, type: 1, s: 150, L: 4456625 (parentLID: 136, tab: 1, index: 22)
+    const targetPageId = customPageId || "6a217eec3f6bb77979b18240";
+    const targetParentLID = customParentLID !== undefined ? customParentLID : 136;
     const targetTab = customTab !== undefined ? customTab : 1;
+    const targetS = customS !== undefined ? customS : 150;
 
     let targetUserId: any = customUserId;
     if (!targetUserId) {
@@ -210,7 +213,12 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       }
     }
 
-    const finalIndex = customIndex !== undefined ? customIndex : maxChildIndex + 1;
+    const finalIndex =
+      customIndex !== undefined
+        ? customIndex
+        : maxChildIndex !== -1
+          ? maxChildIndex + 1
+          : 22;
 
     // Упаковываем L: tab (3 бита), index (12 бит), parentLID (17 бит)
     const t = targetTab & 0x7;
@@ -222,6 +230,7 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       title: rawText,
       type: 1, // TEXT_EDIT
       pageId: pageFilter,
+      s: targetS,
       L: newL,
       lastUpdate: new Date(),
     };
@@ -230,7 +239,6 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       nodeData["userId"] = new mongoose.Types.ObjectId(targetUserId);
     }
 
-    // Новой ноде поле s (lID) не задаем
     const newNode = new Node(nodeData);
     await newNode.save();
 
@@ -239,6 +247,8 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       node: {
         _id: newNode._id,
         title: newNode.title,
+        type: newNode.type,
+        s: newNode.s,
         L: newL,
         parentLID: targetParentLID,
         tab: targetTab,
