@@ -173,11 +173,10 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Текст ноды не может быть пустым" });
     }
 
-    // Дефолтные значения: pageId: 6a217eec3f6bb77979b18240, type: 1, s: 150, L: 4456625 (parentLID: 136, tab: 1, index: 22)
+    // Дефолтные значения: pageId: 6a217eec3f6bb77979b18240, type: 1, L: 4456625 (parentLID: 136, tab: 1, index: 22)
     const targetPageId = customPageId || "6a217eec3f6bb77979b18240";
     const targetParentLID = customParentLID !== undefined ? customParentLID : 136;
     const targetTab = customTab !== undefined ? customTab : 1;
-    const targetS = customS !== undefined ? customS : 150;
 
     let targetUserId: any = customUserId;
     if (!targetUserId) {
@@ -230,10 +229,13 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       title: rawText,
       type: 1, // TEXT_EDIT
       pageId: pageFilter,
-      s: targetS,
       L: newL,
       lastUpdate: new Date(),
     };
+
+    if (customS !== undefined) {
+      nodeData.s = customS;
+    }
 
     if (targetUserId) {
       nodeData["userId"] = new mongoose.Types.ObjectId(targetUserId);
@@ -248,7 +250,6 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
         _id: newNode._id,
         title: newNode.title,
         type: newNode.type,
-        s: newNode.s,
         L: newL,
         parentLID: targetParentLID,
         tab: targetTab,

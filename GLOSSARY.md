@@ -121,16 +121,16 @@ A logical clone node (`LNode_TEClone`) synchronized with its original main node 
 
 ---
 
-## быстрыеЗаметки / Quick Notes
+## быстраяЗапись / быстрыеЗаметки / Quick Notes
 
 Механизм и API-эндпоинт для оперативного создания текстовых нод из внешних источников без открытия интерфейса доски.
 
 ### Term Mapping
 
-- **быстрыеЗаметки**: Создание нод через эндпоинт `POST /nodes/quick-add`.
+- **быстраяЗапись / быстрыеЗаметки**: Создание нод через эндпоинт `POST /nodes/quick-add`.
 - **API-ключ**: `API_SECRET_KEY` (передается через заголовок `x-api-key` или `Bearer`).
 - **Контроллер**: `quickAddNodeController` в `server/src/controllers/node.controller.ts`.
-- **Дефолтные параметры**: `pageId: 6a217eec3f6bb77979b18240`, `type: 1`, `s: 150`, `L: 4456625` (`parentLID: 136`, `tab: 1`, начальный `index: 22`).
+- **Дефолтные параметры**: `pageId: 6a217eec3f6bb77979b18240`, `type: 1`, `L: 4456625` (`parentLID: 136`, `tab: 1`, начальный `index: 22`). Поле `s` (LID) новой ноде не задается.
 
 ### Code References
 
