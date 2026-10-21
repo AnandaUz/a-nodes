@@ -1,7 +1,14 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+// В облачных контейнерах (Cloud Run) переопределение DNS ломает резолв SRV-записей Atlas
+if (process.env.NODE_ENV !== 'production' && !process.env.K_SERVICE) {
+    try {
+        dns.setServers(['8.8.8.8', '1.1.1.1']);
+    } catch {
+        // игнорируем ошибку настройки DNS
+    }
+}
 
 export const isDbReady = () => mongoose.connection.readyState === 1;
 

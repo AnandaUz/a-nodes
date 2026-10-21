@@ -126,3 +126,12 @@ graph TD
 
 ### 5.2. Гарантия сохранения при закрытии вкладки
 При событии `window.beforeunload` метод `ServerPersistence.flushSync()` синхронно сбрасывает все `dirtyNodes` через `fetch(..., { keepalive: true })` с Bearer-токеном (или `navigator.sendBeacon` как fallback).
+
+---
+
+## 6. Инфраструктура и развёртывание (Deployment)
+
+- **Frontend (SPA)**: [Vercel](https://vercel.com/) — сборка Vite (`npm run build:client`), статический хостинг с роутингом через `vercel.json`.
+- **Backend (API)**: [Google Cloud Run](https://cloud.google.com/run) — контейнеризация Docker (Node.js 20, Express 5, порт задаётся через `$PORT`).
+- **База данных**: [MongoDB Atlas](https://www.mongodb.com/atlas) — облачный кластер, доступ по SRV-строке подключения (`MONGODB_URI_CLOUD` / `MONGODB_URI`).
+- **CORS**: `CLIENT_URL` в переменных Cloud Run должен содержать домен фронтенда на Vercel (например, `https://<app>.vercel.app`).

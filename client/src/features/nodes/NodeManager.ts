@@ -197,6 +197,7 @@ export class NodeManager {
   }
 
   loadSnapshot(snapshot: DeskSnapshot): void {
+    if (!snapshot || !Array.isArray(snapshot.nodes)) return;
     this.nodes.clear();
 
     for (const nodeData of snapshot.nodes) {
