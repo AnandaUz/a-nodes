@@ -240,7 +240,7 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
         let pLID = (parentNode.s || 0) & 0x1ffff;
         if (!pLID) {
           const pageNodesForLID = await Node.find({
-            pageId: parentNode.pageId,
+            pageId: parentNode.pageId ?? null,
             inTrash: { $ne: true },
           })
             .select("s")
