@@ -130,7 +130,7 @@ const blockS = new TPackedData<ILNode>()
     {
       get: (node) => node.frame?.isFrame,
       set: (node, v) => {
-        if (node.frame) node.frame.isFrame = v;
+        if (node.frame) node.frame.isFrame = Boolean(v);
       },
     },
     1,
@@ -139,7 +139,34 @@ const blockS = new TPackedData<ILNode>()
     {
       get: (node) => node.hiddenBD,
       set: (node, v) => {
-        node.hiddenBD = v;
+        node.hiddenBD = Boolean(v);
+      },
+    },
+    1,
+  )
+  .add<boolean>(
+    {
+      get: (node) => (node.list ? !node.list.isListOpen : undefined),
+      set: (node, v) => {
+        if (node.list) node.list.isListOpen = !v;
+      },
+    },
+    1,
+  )
+  .add<boolean>(
+    {
+      get: (node) => node.list?.isRepeatsOpen,
+      set: (node, v) => {
+        if (node.list) node.list.isRepeatsOpen = Boolean(v);
+      },
+    },
+    1,
+  )
+  .add<boolean>(
+    {
+      get: (node) => node.list?.isHiddenOpen,
+      set: (node, v) => {
+        if (node.list) node.list.isHiddenOpen = Boolean(v);
       },
     },
     1,

@@ -131,7 +131,9 @@ export class NodeManager {
           if (parentNode) {
             const index = byNode.list.index || 0;
             // i * 0.01 — небольшое смещение, чтобы сохранить порядок
-            willRefParent.push(...node.list.setParent(parentNode, index - 0.6 + i * 0.01));
+            willRefParent.push(
+              ...node.list.setParent(parentNode, index - 0.6 + i * 0.01),
+            );
           }
         } else {
           willRefParent.push(...node.list.setParent(byNode, i));
@@ -162,6 +164,11 @@ export class NodeManager {
           mainParent.frame.initBtns();
           mainParent.frame.setBtnsState();
         }
+
+        mainParent.list.forEachChildren((child) => {
+          (child.vNode as any)?.refreshListBtns?.();
+        });
+        (mainParent.vNode as any)?.refreshListBtns?.();
 
         mainParent.save();
       });
@@ -239,19 +246,34 @@ export class NodeManager {
       // показываем кому быть видимым кому нет
       node.hidden = node.hiddenBD;
       node.list.initParent();
+
+      // if (node._id === "6ad5d27c642f5c8beef12398") {
+      //   console.log(node.title, node._id);
+      // }
     });
 
-    const applyParentHidden = (node: LNode) => {
-      if (node.hidden && node.list.children?.size) {
-        node.list.children.forEach((child) => {
+    const applyTreeVisibility = (parent: LNode) => {
+      if (!parent.list.children?.size) return;
+      const list = parent.list;
+      parent.list.children.forEach((child) => {
+        if (parent.hidden || !list.isListOpen) {
           child.hidden = true;
-          applyParentHidden(child);
-        });
-      }
+        } else {
+          const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+          if (isRepeat && list.isRepeatsOpen) {
+            child.hidden = false;
+          } else if (child.hiddenBD && list.isHiddenOpen) {
+            child.hidden = false;
+          } else if (child.hiddenBD) {
+            child.hidden = true;
+          }
+        }
+        applyTreeVisibility(child);
+      });
     };
     this.nodes.forEach((node) => {
       if (!node.list.parentNode) {
-        applyParentHidden(node);
+        applyTreeVisibility(node);
       }
     });
 
@@ -527,14 +549,16 @@ export class NodeManager {
 
       newNode.list.setParent(node, 0);
 
-      if (node.frame.isInFrame) {
+      const mainNode = node.list.mainParent as LNode_TextEdit;
+      if (mainNode?.frame?.isFrame) {
+        newNode.vNode?.body.classList.add("in-frame");
         newNode.frame.addPowerBtns();
-      }
-
-      const mainNode = node.list.mainParent;
-      if (mainNode) {
+        mainNode.list.setPositionForChildren();
+        mainNode.frame.bringToFront();
+      } else if (mainNode) {
         mainNode.list.setPositionForChildren();
       }
+      (node.vNode as any)?.refreshListBtns?.();
 
       core.selectManager.selectNode(newNode);
       // newVnode?.onStop();

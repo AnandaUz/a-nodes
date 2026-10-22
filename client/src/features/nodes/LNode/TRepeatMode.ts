@@ -22,8 +22,8 @@ export default class TRepeatMode {
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + delay);
 
-    this.owner.hide();
     this.date = d;
+    this.owner.hide();
   }
   get date() {
     return this._date;

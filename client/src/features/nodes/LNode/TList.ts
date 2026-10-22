@@ -55,7 +55,8 @@ export default class TList {
   hasHiddenChildren(): boolean {
     if (!this.children?.size) return false;
     for (const child of this.children) {
-      if (child.hiddenBD) {
+      const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+      if (child.hiddenBD && !isRepeat) {
         return true;
       }
     }
@@ -185,10 +186,13 @@ export default class TList {
       }
 
       if (chNode.list && chNode.list.parentNode !== mParent?.node) {
+        const oldParent = chNode.list.parentNode;
         chNode.list.parentNode?.list.children?.delete(chNode);
+        (oldParent?.vNode as any)?.refreshListBtns?.();
         const s = mParent?.node.list;
         if (s && !s.children) s.children = new Set();
         s?.children?.add(chNode);
+        (mParent?.node.vNode as any)?.refreshListBtns?.();
         chNode.list.parentNode = mParent?.node || null;
         isChanged = true;
       }
@@ -225,6 +229,7 @@ export default class TList {
     const parentNode = this.parentNode;
     if (parentNode) {
       parentNode.list.children?.delete(this.owner);
+      (parentNode.vNode as any)?.refreshListBtns?.();
       willRefParent.push(parentNode);
     }
     this.parentLID = undefined;
@@ -278,8 +283,10 @@ export default class TList {
 
     // удаляем из списком прошлого родителя
     if (this.parentNode) {
-      this.parentNode.list.children?.delete(owner);
-      willRefParent.push(this.parentNode);
+      const oldParent = this.parentNode;
+      oldParent.list.children?.delete(owner);
+      (oldParent.vNode as any)?.refreshListBtns?.();
+      willRefParent.push(oldParent);
     }
     // this.parentLID = parent.lID ?? 0;
 
@@ -294,6 +301,7 @@ export default class TList {
 
     if (!parent.list.children) parent.list.children = new Set();
     parent.list.children.add(owner);
+    (parent.vNode as any)?.refreshListBtns?.();
     const m = [...parent.list.children].sort(
       (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
     );
@@ -320,40 +328,56 @@ export default class TList {
     parentX: number | undefined = undefined,
     totalTab = 0,
     totalIndex = 0,
+    isRoot = true,
+    isDrag = false,
   ) {
-    if (this.children?.size) {
-      const owner = this.owner;
-      const m = [...this.children].sort(
-        (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
-      );
-      let h = 0;
-      const startY = owner.y + (owner.vNode?.height ?? 0);
-      for (const child of m) {
-        if (child.hidden) continue;
-        child.x = owner.x + GRID.x * (child.list.tab ?? 0);
-        child.y = startY + h;
-        // if (totalTab == 0) totalIndex++;
-        totalIndex++;
-        child.list.totalIndex = totalIndex;
-        child.vNode?.applyPosition();
-        const xx = Math.round((child.x - (parentX || owner.x)) / GRID.x);
+    if (!this.children?.size) return 0;
 
-        const chVNode = child.vNode;
-        if (chVNode) {
-          chVNode.body.dataset.totaltab = xx.toString();
+    const owner = this.owner;
+    const m = [...this.children].sort(
+      (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
+    );
+    let h = 0;
+    const startY = owner.y + (owner.vNode?.height ?? 0);
+    const baseX = parentX ?? owner.x;
+
+    for (const child of m) {
+      if (child.hidden) continue;
+      child.x = owner.x + GRID.x * (child.list.tab ?? 0);
+      child.y = startY + h;
+      totalIndex++;
+      child.list.totalIndex = totalIndex;
+
+      const chVNode = child.vNode;
+      if (chVNode) {
+        const xx = Math.round((child.x - baseX) / GRID.x);
+        const strTab = xx.toString();
+        const tabChanged = chVNode.body.dataset.totaltab !== strTab;
+        if (tabChanged) {
+          chVNode.body.dataset.totaltab = strTab;
+        }
+
+        // При драге геометрия нод не меняется (пропуск для 60/120 FPS).
+        // При обычной перестройке замеряем реальные размеры с учетом переноса текста.
+        if (!isDrag || tabChanged || !chVNode.height) {
           chVNode.refreshBodyRect();
         }
 
-        h += chVNode?.height ?? 0;
-        h += child.list.setPositionForChildren(
-          parentX || owner.x,
-          totalTab + xx,
-          totalIndex,
-        );
+        chVNode.applyPosition();
+        h += chVNode.height;
       }
-      owner.vNode?.renderSVG();
-      return h;
+
+      h += child.list.setPositionForChildren(
+        baseX,
+        totalTab + Math.round((child.x - baseX) / GRID.x),
+        totalIndex,
+        false,
+        isDrag,
+      );
     }
-    return 0;
+    if (isRoot) {
+      owner.vNode?.renderSVG();
+    }
+    return h;
   }
 }

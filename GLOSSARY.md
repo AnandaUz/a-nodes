@@ -127,22 +127,91 @@ A logical clone node (`LNode_TEClone`) synchronized with its original main node 
 
 ### Term Mapping
 
-- **быстраяЗапись / быстрыеЗаметки**: Создание нод через эндпоинт `POST /nodes/quick-add`.
+- **быстраяЗапись / быстрыеЗаметки**: Создание и получение целевых нод через `GET /nodes/quick-targets` и `POST /nodes/quick-add`.
+- **Маркер приемника**: `>>` в `title` ноды (обозначает контейнер для внешней записи).
 - **API-ключ**: `API_SECRET_KEY` (передается через заголовок `x-api-key` или `Bearer`).
-- **Контроллер**: `quickAddNodeController` в `server/src/controllers/node.controller.ts`.
-- **Дефолтные параметры**: `pageId: 6a217eec3f6bb77979b18240`, `type: 1`, `L: 4456625` (`parentLID: 136`, `tab: 1`, начальный `index: 22`). Поле `s` (LID) новой ноде не задается.
+- **Контроллер**: `quickAddNodeController`, `getQuickTargetsController` в `server/src/controllers/node.controller.ts`.
+- **Дефолтные параметры**: `pageId: 6a217eec3f6bb77979b18240`, `type: 1`, `L: 4456625` (`parentLID: 136`, `tab: 1`, начальный `index: 22`).
 
 ### Code References
 
 - **Logic / Controller**:
-  - `server/src/controllers/node.controller.ts` — `quickAddNodeController` (аутентификация, расчет индекса `L`, сохранение).
-  - `server/src/routes/node.routes.ts` — Маршрут `POST /quick-add`.
+  - `server/src/controllers/node.controller.ts` — `getQuickTargetsController` (выборка целевых нод по `>>`), `quickAddNodeController` (резолв `parentTitle`, упаковка `L`, сохранение).
+  - `server/src/routes/node.routes.ts` — Маршруты `GET /quick-targets`, `POST /quick-add`.
 - **DB / Model**:
-  - `server/src/models/Node.ts` — Модель документа `Node` (`title`, `type = 1`, битовая маска `L`, `pageId`).
+  - `server/src/models/Node.ts` — Модель документа `Node` (`title`, `type = 1`, битовая маска `L`, `pageId`, `s`).
 
 ### Lifecycle
 
-1. **Request**: Внешний клиент отправляет `POST /nodes/quick-add` с текстом и API-ключом.
-2. **Auth & Resolution**: Валидируется `API_SECRET_KEY`, определяются `pageId`, `parentLID`, `tab` и `userId`.
-3. **Index Calculation**: Вычисляется следующий свободный `index` среди дочерних нод родителя и упаковывается поле `L`.
-4. **Persistence**: Создается и сохраняется документ `Node` в БД.
+1. **Target Discovery**: Клиент запрашивает `GET /nodes/quick-targets` и получает список нод с маркером `>>`.
+2. **Request**: Клиент отправляет `POST /nodes/quick-add` с текстом и `parentTitle`.
+3. **Auth & Resolution**: Проверяется `API_SECRET_KEY`, находится родительская нода, определяется/назначается её `lID` (в поле `s`).
+4. **Index Calculation**: Вычисляется следующий `index` в конце списка детей родителя и упаковывается поле `L`.
+5. **Persistence**: Создается и сохраняется дочерняя нода `Node` в БД.
+
+---
+
+## фонФрейма / Frame Background
+
+DOM-подложка (`div.frame-bg`), визуально объединяющая корневой узел фрейма и все его видимые дочерние ноды на холсте.
+
+### Term Mapping
+
+- **фон фрейма**: DOM-элемент `div.frame-bg` на холсте (`VNode.elFrameBg`)
+- **z-index координация**: `TFrame.bringToFront()` (подложка на уровне `z`, ноды на `z + 1`)
+- **геометрия подложки**: `node.getNodeRect()` вычисляет общий bounding box всех раскрытых детей
+
+### Code References
+
+- **Logic**:
+  - `nodes/LNode/TFrame.ts` — `bringToFront()` (координация z-index подложки и всех дочерних нод).
+  - `nodes/LNode/LNode.ts` — `getNodeRect()` (вычисление охватывающего прямоугольника дерева).
+- **View / CSS**:
+  - `nodes/VNode/VNode.ts` — `renderBgSVG()` (создание, позиционирование и вызов `bringToFront`).
+  - `nodes/VNode/VTextEdit.ts` — актуализация фона и z-index при переключении списков (`toggleListOpen`, фильтры).
+  - `nodes/VNode/vNode.scss` — стили `.frame-bg` (базовый `z-index: 90`, текстура, скругление).
+
+### Lifecycle
+
+1. **Создание**: При наличии видимых детей во фрейме в `renderBgSVG()` создается `div.frame-bg` и крепится к контейнеру холста.
+2. **Слои (Z-Index)**: `TFrame.bringToFront()` выставляет фон на `z`, а корневую ноду и всех детей — на `z + 1`, предотвращая перекрытие нод фоном.
+3. **Обновление геометрии**: Раскрытие/скрытие списков (`toggleListOpen`, фильтры) и перетаскивание вызывают `mainParent.vNode.renderSVG()` → пересчет `getNodeRect()` и синхронизацию `transform`, `width`, `height`.
+4. **Удаление**: При отсутствии видимых детей или отключении режима фрейма подложка удаляется из DOM (`elFrameBg.remove()`).
+
+---
+
+## отложенныеЗадачи / отложенныЗадачи / Delayed Tasks
+
+Механизм отложенного показа и повторения задач по расписанию или дням недели через класс `TRepeatMode`.
+
+### Term Mapping
+
+- **отложенныеЗадачи**: Ноды с активным `repeatMode` (`mode > 0` или `date != null`).
+- **задержка/таймер**: `node.repeatMode.setDelay(days)` (установка даты и скрытие узла).
+- **индикатор родителя**: `.el-list-btns .btn-repeats` (оранжевый индикатор в `VTextEdit`).
+- **индикатор ноды**: `.el-indicators .ind-repeat` (оранжевая точка в `VNodeRepeatMode`).
+
+### Code References
+
+- **Logic**:
+  - `nodes/LNode/TRepeatMode.ts` — `TRepeatMode` (`mode`, `date`, `setDelay`, `refreshIndicator`).
+  - `nodes/LNode/LNode.ts` — композиция `node.repeatMode = new TRepeatMode(this)`.
+  - `nodes/LNode/TList.ts` — предикат `hasRepeatChildren()` для родительских списков.
+- **View / CSS**:
+  - `nodes/VNode/VNodeRepeatMode.ts` — UI индикатора на самом узле (`showIndicator`, `hideIndicator`).
+  - `nodes/VNode/VTextEdit.ts` — кнопка фильтра `.btn-repeats` и метод `toggleRepeatsOpen()`.
+  - `nodes/VNode/vNode.scss` — стили `.btn-repeats` и `.ind-repeat` (hsl(32, 95%, 56%)).
+- **DB / Manager**:
+  - `shared/types/INodeDB.ts` — битовое поле `D` (`blockD: TPackedData` для `mode` 3 бита и `daysFromStartDay` 13 бит).
+  - `shared/types/ILNode.ts` — интерфейс `IRepeatMode` (`mode`, `date`).
+  - `nodes/NodeManager.ts` — проверка наступления даты (`date < now`) при гидрации.
+
+### Lifecycle
+
+1. **Назначение**: Пользователь задает задержку в днях (`setDelay`) или правило повтора по дням недели (`mode`).
+2. **Сериализация**: Поле `D` упаковывает `mode` (3 бита) и смещение дней от опорной даты `2026-10-13` (13 бит).
+3. **Скрытие и индикация**: Нода скрывается (`hiddenBD = true`, `hidden = true`), на ней включается `.ind-repeat`, а у родителя загорается кнопка `.btn-repeats`.
+4. **Активация**: При наступлении даты `date < now` при загрузке страницы `NodeManager` сбрасывает `hiddenBD = false`, возвращая ноду в отображение.
+5. **Фильтрация**: Клик по кнопке `.btn-repeats` у родителя временно принудительно раскрывает/скрывает отложенные задачи списка.
+
+

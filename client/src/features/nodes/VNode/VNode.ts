@@ -16,6 +16,8 @@ export class VNode {
   private pointerOffset = { x: 0, y: 0 };
   node!: LNode;
   private startPos: { x: number; y: number } = { x: 0, y: 0 };
+  private dragRafId: number | null = null;
+  private targetPos: { x: number; y: number } | null = null;
   // public _id: string;
   // public x: number;
   // public y: number;
@@ -168,6 +170,11 @@ export class VNode {
   }
 
   unbind() {
+    if (this.dragRafId !== null) {
+      cancelAnimationFrame(this.dragRafId);
+      this.dragRafId = null;
+    }
+    this.targetPos = null;
     this.movingElement.removeEventListener("pointerdown", this.onPointerDown);
     this.movingElement.removeEventListener("pointermove", this.onPointerMove);
     this.movingElement.removeEventListener("pointerup", this.onPointerUp);
@@ -225,6 +232,11 @@ export class VNode {
     Tools.stopEvent(e);
 
     this.isDragging = true;
+    if (this.dragRafId !== null) {
+      cancelAnimationFrame(this.dragRafId);
+      this.dragRafId = null;
+    }
+    this.targetPos = null;
     // core.store.emit(EVENTS.node.pointer.down, this);
 
     const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
@@ -240,7 +252,33 @@ export class VNode {
   };
   onDoubleClick(_e: PointerEvent) {}
 
-  onPointerMove = (e: PointerEvent) => {
+  flushDragMove() {
+    if (this.dragRafId !== null) {
+      cancelAnimationFrame(this.dragRafId);
+      this.dragRafId = null;
+    }
+    if (!this.targetPos) return;
+
+    this.node.x = this.targetPos.x;
+    this.node.y = this.targetPos.y;
+    this.targetPos = null;
+
+    this.node.onPointerMove();
+    this.applyPosition();
+    core.store.emit(EVENTS.node.moving, this.node);
+
+    // если у него есть дети
+    if (this.node.list.children?.size) {
+      this.node.list.setPositionForChildren(undefined, 0, 0, true, true);
+    }
+  }
+
+  private applyDragMove = () => {
+    this.dragRafId = null;
+    this.flushDragMove();
+  };
+
+  onPointerMove = (e: PointerEvent, fromTransform = false) => {
     if (!this.isDragging) return;
 
     if (
@@ -250,6 +288,10 @@ export class VNode {
     ) {
       core.selectManager.transformMove.start(); //если выбранно несколько
 
+      return;
+    }
+
+    if (core.mode.selectMoving && !fromTransform) {
       return;
     }
 
@@ -270,17 +312,14 @@ export class VNode {
     if (1) {
       x = Tools.getDiskPosition(x);
     }
+    const y = Math.round(worldPos.y - this.pointerOffset.y);
 
-    this.node.x = x;
-    this.node.y = Math.round(worldPos.y - this.pointerOffset.y);
+    this.targetPos = { x, y };
 
-    this.node.onPointerMove();
-    this.applyPosition();
-    core.store.emit(EVENTS.node.moving, this.node);
-
-    // если у него есть дети
-    if (this.node.list.children?.size) {
-      this.node.list.setPositionForChildren();
+    if (fromTransform) {
+      this.flushDragMove();
+    } else if (this.dragRafId === null) {
+      this.dragRafId = requestAnimationFrame(this.applyDragMove);
     }
   };
 
@@ -302,6 +341,7 @@ export class VNode {
 
   onPointerUp = (e: PointerEvent) => {
     if (!this.isDragging) return;
+    this.flushDragMove();
     this.body.classList.remove("is-dragging");
     this.isDragging = false;
     if (!this.isMoved) {
@@ -463,7 +503,6 @@ export class VNode {
       if (hasVisibleChildren) {
         const lRect = this.node.getNodeRect();
         this.body.style.width = `${Math.max(lRect.width, this.width)}px`;
-        const isNewFrameBg = !this.elFrameBg;
         if (!this.elFrameBg) {
           this.elFrameBg = document.createElement("div");
           this.elFrameBg.className = "frame-bg";
@@ -478,11 +517,6 @@ export class VNode {
         this.elFrameBg.style.transform = `translate(${lRect.x}px, ${lRect.y}px)`;
         this.elFrameBg.style.width = `${lRect.width}px`;
         this.elFrameBg.style.height = `${lRect.height}px`;
-        if (isNewFrameBg) {
-          (
-            this.node as unknown as { frame?: { bringToFront(): void } }
-          ).frame?.bringToFront();
-        }
       } else {
         this.body.style.width = "";
         if (this.elFrameBg) {

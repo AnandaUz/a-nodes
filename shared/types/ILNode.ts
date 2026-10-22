@@ -4,6 +4,9 @@ export interface ITList {
   parentLID?: number | undefined;
   index?: number | undefined;
   tab?: number | undefined;
+  isListOpen?: boolean;
+  isRepeatsOpen?: boolean;
+  isHiddenOpen?: boolean;
 }
 export interface IFrame {
   isFrame: boolean;

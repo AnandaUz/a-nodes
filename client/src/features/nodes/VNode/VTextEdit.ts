@@ -271,7 +271,7 @@ export default class VTextEdit extends VNode {
       const restoreVisibility = (parent: LNode) => {
         parent.list.children?.forEach((child) => {
           const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
-          const isHidden = child.hiddenBD;
+          const isHidden = child.hiddenBD && !isRepeat;
 
           let shouldShow = true;
           if (isRepeat && !list.isRepeatsOpen) {
@@ -302,7 +302,16 @@ export default class VTextEdit extends VNode {
     const mainParent = this.node.list.mainParent || this.node;
     mainParent.list.setPositionForChildren();
     mainParent.vNode?.renderSVG();
+    const frameNode = mainParent as unknown as {
+      frame?: { isFrame: boolean; initBtns(): void; setBtnsState(): void; bringToFront(): void };
+    };
+    if (frameNode.frame?.isFrame) {
+      frameNode.frame.initBtns();
+      frameNode.frame.setBtnsState();
+      frameNode.frame.bringToFront();
+    }
     this.refreshListBtns();
+    this.node.save();
   }
 
   toggleRepeatsOpen() {
@@ -339,7 +348,16 @@ export default class VTextEdit extends VNode {
     const mainParent = this.node.list.mainParent || this.node;
     mainParent.list.setPositionForChildren();
     mainParent.vNode?.renderSVG();
+    const frameNode = mainParent as unknown as {
+      frame?: { isFrame: boolean; initBtns(): void; setBtnsState(): void; bringToFront(): void };
+    };
+    if (frameNode.frame?.isFrame) {
+      frameNode.frame.initBtns();
+      frameNode.frame.setBtnsState();
+      frameNode.frame.bringToFront();
+    }
     this.refreshListBtns();
+    this.node.save();
   }
 
   toggleHiddenOpen() {
@@ -351,7 +369,8 @@ export default class VTextEdit extends VNode {
         list.isListOpen = true;
       }
       list.children?.forEach((child) => {
-        if (child.hiddenBD) {
+        const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+        if (child.hiddenBD && !isRepeat) {
           child.hidden = false;
           if (!child.vNode && core.nodeRenderer) {
             core.nodeRenderer.createVNode(child);
@@ -362,7 +381,8 @@ export default class VTextEdit extends VNode {
       });
     } else {
       list.children?.forEach((child) => {
-        if (child.hiddenBD) {
+        const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+        if (child.hiddenBD && !isRepeat) {
           child.hidden = true;
           child.vNode?.hide();
           child.list.children?.forEach((grandChild) => {
@@ -376,7 +396,16 @@ export default class VTextEdit extends VNode {
     const mainParent = this.node.list.mainParent || this.node;
     mainParent.list.setPositionForChildren();
     mainParent.vNode?.renderSVG();
+    const frameNode = mainParent as unknown as {
+      frame?: { isFrame: boolean; initBtns(): void; setBtnsState(): void; bringToFront(): void };
+    };
+    if (frameNode.frame?.isFrame) {
+      frameNode.frame.initBtns();
+      frameNode.frame.setBtnsState();
+      frameNode.frame.bringToFront();
+    }
     this.refreshListBtns();
+    this.node.save();
   }
 
   refreshListBtns() {

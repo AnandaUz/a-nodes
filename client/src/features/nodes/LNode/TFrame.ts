@@ -257,21 +257,23 @@ export default class TFrame {
     const root = this.isFrame ? this.owner : this.frameNode;
     if (!root) return;
 
+    const rootVNode = root.vNode as VTextEdit | undefined;
+    const frameBg = rootVNode?.elFrameBg;
+
+    // Если фрейм уже находится на переднем плане, повторный обход не требуется
+    if (frameBg && frameBg.style.zIndex === String(TFrame.nextZIndex - 2)) {
+      return;
+    }
+
     const z = TFrame.nextZIndex;
     TFrame.nextZIndex += 2;
 
-    // 1. Фон фрейма (подложка)
-    const frameBg = (root.vNode as VTextEdit)?.elFrameBg;
     if (frameBg) {
       frameBg.style.zIndex = String(z);
     }
-
-    // 2. Заголовок
-    if (root.vNode) {
-      root.vNode.body.style.zIndex = String(z + 1);
+    if (rootVNode) {
+      rootVNode.body.style.zIndex = String(z + 1);
     }
-
-    // 3. Все дочерние ноды
     root.list.forEachChildren((child) => {
       if (child === root) return;
       if (child.vNode) {

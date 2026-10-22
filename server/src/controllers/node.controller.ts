@@ -134,22 +134,66 @@ export const deleteNodeController = async (req: Request, res: Response) => {
   }
 };
 
+const checkApiKey = (req: Request): boolean => {
+  const secretKey =
+    process.env.API_SECRET_KEY || "anodes_sec_9f7c2a4e8b1d3f605a9e7c1b4d8a2f5e";
+  const authHeader = req.headers.authorization;
+  const apiKey =
+    (req.headers["x-api-key"] as string) ||
+    (authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null);
+  return Boolean(apiKey && apiKey === secretKey);
+};
+
+export const getQuickTargetsController = async (req: Request, res: Response) => {
+  try {
+    if (!checkApiKey(req)) {
+      return res.status(401).json({ message: "Неверный API ключ" });
+    }
+
+    const marker = (req.query.q as string) || ">>";
+    const pageId = req.query.pageId as string | undefined;
+
+    const query: any = {
+      title: { $regex: marker },
+      inTrash: { $ne: true },
+    };
+
+    if (pageId) {
+      query.pageId = pageId === "root" ? null : new mongoose.Types.ObjectId(pageId);
+    }
+
+    const nodes = await Node.find(query).select("_id title pageId s L").lean();
+
+    const targets = nodes.map((n) => {
+      const rawTitle = n.title || "";
+      const cleanTitle = rawTitle.replace(marker, "").trim();
+      const parentLID = (n.s || 0) & 0x1ffff;
+      return {
+        _id: n._id,
+        title: rawTitle,
+        cleanTitle: cleanTitle || rawTitle,
+        parentLID,
+        pageId: n.pageId ? n.pageId.toString() : "root",
+      };
+    });
+
+    res.json({ success: true, targets });
+  } catch (err: any) {
+    console.error("[getQuickTargets Error]:", err);
+    res.status(500).json({ message: "Ошибка получения списка целей", error: err?.message });
+  }
+};
+
 export const quickAddNodeController = async (req: Request, res: Response) => {
   try {
-    const secretKey =
-      process.env.API_SECRET_KEY || "anodes_sec_9f7c2a4e8b1d3f605a9e7c1b4d8a2f5e";
-    const authHeader = req.headers.authorization;
-    const apiKey =
-      (req.headers["x-api-key"] as string) ||
-      (authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.split(" ")[1]
-        : null);
-
-    if (!apiKey || apiKey !== secretKey) {
+    if (!checkApiKey(req)) {
       return res.status(401).json({ message: "Неверный API ключ" });
     }
 
     let rawText = "";
+    let customParentTitle: string | undefined;
     let customPageId: string | undefined;
     let customParentLID: number | undefined;
     let customTab: number | undefined;
@@ -161,6 +205,7 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       rawText = req.body.trim();
     } else if (req.body && typeof req.body === "object") {
       rawText = (req.body.text || req.body.title || "").toString().trim();
+      customParentTitle = req.body.parentTitle;
       customPageId = req.body.pageId;
       if (req.body.parentLID !== undefined) customParentLID = Number(req.body.parentLID);
       if (req.body.tab !== undefined) customTab = Number(req.body.tab);
@@ -173,10 +218,45 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Текст ноды не может быть пустым" });
     }
 
-    // Дефолтные значения: pageId: 6a217eec3f6bb77979b18240, type: 1, L: 4456625 (parentLID: 136, tab: 1, index: 22)
-    const targetPageId = customPageId || "6a217eec3f6bb77979b18240";
-    const targetParentLID = customParentLID !== undefined ? customParentLID : 136;
+    let targetPageId = customPageId || "6a217eec3f6bb77979b18240";
+    let targetParentLID = customParentLID !== undefined ? customParentLID : 136;
     const targetTab = customTab !== undefined ? customTab : 1;
+
+    // Поиск родителя по названию
+    if (customParentTitle && customParentLID === undefined) {
+      const cleanParentSearch = customParentTitle.trim();
+      const escaped = cleanParentSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const parentFilter: any = {
+        title: { $regex: escaped, $options: "i" },
+        inTrash: { $ne: true },
+      };
+      if (customPageId) {
+        parentFilter.pageId =
+          customPageId === "root" ? null : new mongoose.Types.ObjectId(customPageId);
+      }
+      const parentNode = await Node.findOne(parentFilter);
+      if (parentNode) {
+        targetPageId = parentNode.pageId ? parentNode.pageId.toString() : "root";
+        let pLID = (parentNode.s || 0) & 0x1ffff;
+        if (!pLID) {
+          const pageNodesForLID = await Node.find({
+            pageId: parentNode.pageId,
+            inTrash: { $ne: true },
+          })
+            .select("s")
+            .lean();
+          let maxLID = 0;
+          for (const n of pageNodesForLID) {
+            const curLID = (n.s || 0) & 0x1ffff;
+            if (curLID > maxLID) maxLID = curLID;
+          }
+          pLID = maxLID + 1;
+          parentNode.s = ((parentNode.s || 0) & ~0x1ffff) | (pLID & 0x1ffff);
+          await parentNode.save();
+        }
+        targetParentLID = pLID;
+      }
+    }
 
     let targetUserId: any = customUserId;
     if (!targetUserId) {
@@ -217,7 +297,9 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
         ? customIndex
         : maxChildIndex !== -1
           ? maxChildIndex + 1
-          : 22;
+          : customParentTitle || customParentLID !== undefined
+            ? 1
+            : 22;
 
     // Упаковываем L: tab (3 бита), index (12 бит), parentLID (17 бит)
     const t = targetTab & 0x7;

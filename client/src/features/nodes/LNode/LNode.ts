@@ -94,6 +94,9 @@ export class LNode implements ILNode {
   remove() {
     this.vNode?.remove();
     if (this.list.parentNode) {
+      const parentNode = this.list.parentNode;
+      parentNode.list.children?.delete(this);
+      (parentNode.vNode as any)?.refreshListBtns?.();
       const mainParent = this.list.mainParent;
       if (mainParent) {
         mainParent.list.setPositionForChildren();
