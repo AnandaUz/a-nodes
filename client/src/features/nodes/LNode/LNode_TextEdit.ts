@@ -1,6 +1,7 @@
+import { LNode } from "./LNode";
 import { core } from "@/features/core/core";
 import VTextEdit from "../VNode/VTextEdit";
-import { LNode } from "./LNode";
+
 
 import TFrame from "./TFrame";
 import type { LNode_TEClone } from "./LNode_TEClone";

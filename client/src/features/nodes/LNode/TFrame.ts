@@ -29,6 +29,7 @@ export default class TFrame {
       rect.y + rect.height,
     );
 
+    core.nodeManager.ensureLID(this.owner);
     newNode.list.setParent(this.owner, 0);
     this.owner.list.setPositionForChildren();
     this.bringToFront();
@@ -73,7 +74,7 @@ export default class TFrame {
             chFrame.frame.addCloneOfNode(this.owner);
           },
           () => {
-            this.owner.clones?.removeAllClones();
+            core.nodeManager.removeAllClones(this.owner);
             vNode.setRating(-1, chFrame.lID || 0);
           },
           chFrame.lID || 0,
@@ -159,13 +160,8 @@ export default class TFrame {
   /** связать: parent становится родителем этого фрейма */
   linkToParent(parent: LNode_TextEdit) {
     if (!this.canLinkTo(parent)) return;
-    if (!parent.lID) {
-      parent.lID = core.nodeManager.getMaxLID() + 1;
-      parent.save();
-    }
-    if (!this.owner.lID) {
-      this.owner.lID = core.nodeManager.getMaxLID() + 1;
-    }
+    core.nodeManager.ensureLID(parent);
+    core.nodeManager.ensureLID(this.owner);
     this.parents.add({ node: parent, path: this.makePath(parent) });
     parent.frame.children.add(this.owner);
     parent.frame.initBtns();
@@ -205,10 +201,7 @@ export default class TFrame {
 
     const rect = this.owner.getNodeRect();
 
-    if (!this.owner.lID) {
-      this.owner.lID = core.nodeManager.getMaxLID() + 1;
-      this.owner.save();
-    }
+    core.nodeManager.ensureLID(this.owner);
 
     const newNode = core.nodeManager.copyNode(this.owner, {
       x: Tools.getDiskPosition(this.owner.x + rect.width + GRID.x),
@@ -260,24 +253,34 @@ export default class TFrame {
     const rootVNode = root.vNode as VTextEdit | undefined;
     const frameBg = rootVNode?.elFrameBg;
 
-    // Если фрейм уже находится на переднем плане, повторный обход не требуется
-    if (frameBg && frameBg.style.zIndex === String(TFrame.nextZIndex - 2)) {
-      return;
+    const isAlreadyAtTop =
+      (frameBg && frameBg.style.zIndex === String(TFrame.nextZIndex - 2)) ||
+      (!frameBg &&
+        rootVNode?.body.style.zIndex === String(TFrame.nextZIndex - 1));
+
+    let z: number;
+    if (isAlreadyAtTop) {
+      z = TFrame.nextZIndex - 2;
+      if (frameBg && frameBg.style.zIndex !== String(z)) {
+        frameBg.style.zIndex = String(z);
+      }
+    } else {
+      z = TFrame.nextZIndex;
+      TFrame.nextZIndex += 2;
+
+      if (frameBg) {
+        frameBg.style.zIndex = String(z);
+      }
+      if (rootVNode) {
+        rootVNode.body.style.zIndex = String(z + 1);
+      }
     }
 
-    const z = TFrame.nextZIndex;
-    TFrame.nextZIndex += 2;
-
-    if (frameBg) {
-      frameBg.style.zIndex = String(z);
-    }
-    if (rootVNode) {
-      rootVNode.body.style.zIndex = String(z + 1);
-    }
+    const childZ = String(z + 1);
     root.list.forEachChildren((child) => {
       if (child === root) return;
-      if (child.vNode) {
-        child.vNode.body.style.zIndex = String(z + 1);
+      if (child.vNode && child.vNode.body.style.zIndex !== childZ) {
+        child.vNode.body.style.zIndex = childZ;
       }
     });
   }

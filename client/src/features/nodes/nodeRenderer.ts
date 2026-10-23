@@ -31,6 +31,7 @@ export class NodeRenderer {
 
   createVNode(node: LNode): VNode | null {
     const NodeClass = node.getVNodeType();
+    if (!NodeClass) return null;
     try {
       const vNode = new NodeClass(node, this.nodesEl);
       node.vNode = vNode;

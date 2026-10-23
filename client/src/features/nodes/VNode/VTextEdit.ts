@@ -259,6 +259,37 @@ export default class VTextEdit extends VNode {
     this.refreshListBtns();
   }
 
+  private restoreSubtreeVisibility(parent: LNode) {
+    if (!parent.list.children?.size) return;
+    const parentList = parent.list;
+    parentList.children?.forEach((child) => {
+      const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+      const isHidden = child.hiddenBD && !isRepeat;
+
+      let shouldShow = true;
+      if (isRepeat && !parentList.isRepeatsOpen) {
+        shouldShow = false;
+      } else if (isHidden && !parentList.isHiddenOpen) {
+        shouldShow = false;
+      }
+
+      if (shouldShow) {
+        child.hidden = false;
+        if (!child.vNode && core.nodeRenderer) {
+          core.nodeRenderer.createVNode(child);
+        } else {
+          child.vNode?.show();
+        }
+        if (child.list.isListOpen) {
+          this.restoreSubtreeVisibility(child);
+        }
+      } else {
+        child.hidden = true;
+        child.vNode?.hide();
+      }
+    });
+  }
+
   toggleListOpen() {
     const list = this.node.list;
     list.isListOpen = !list.isListOpen;
@@ -268,35 +299,7 @@ export default class VTextEdit extends VNode {
         child.vNode?.hide();
       });
     } else {
-      const restoreVisibility = (parent: LNode) => {
-        parent.list.children?.forEach((child) => {
-          const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
-          const isHidden = child.hiddenBD && !isRepeat;
-
-          let shouldShow = true;
-          if (isRepeat && !list.isRepeatsOpen) {
-            shouldShow = false;
-          } else if (isHidden && !list.isHiddenOpen) {
-            shouldShow = false;
-          }
-
-          if (shouldShow) {
-            child.hidden = false;
-            if (!child.vNode && core.nodeRenderer) {
-              core.nodeRenderer.createVNode(child);
-            } else {
-              child.vNode?.show();
-            }
-            if (child.list.isListOpen) {
-              restoreVisibility(child);
-            }
-          } else {
-            child.hidden = true;
-            child.vNode?.hide();
-          }
-        });
-      };
-      restoreVisibility(this.node);
+      this.restoreSubtreeVisibility(this.node);
     }
 
     const mainParent = this.node.list.mainParent || this.node;
@@ -330,6 +333,9 @@ export default class VTextEdit extends VNode {
           } else {
             child.vNode?.show();
           }
+          if (child.list.isListOpen) {
+            this.restoreSubtreeVisibility(child);
+          }
         }
       });
     } else {
@@ -337,7 +343,7 @@ export default class VTextEdit extends VNode {
         if (child.repeatMode.mode > 0 || !!child.repeatMode.date) {
           child.hidden = true;
           child.vNode?.hide();
-          child.list.children?.forEach((grandChild) => {
+          child.list.forEachChildren((grandChild) => {
             grandChild.hidden = true;
             grandChild.vNode?.hide();
           });
@@ -377,6 +383,9 @@ export default class VTextEdit extends VNode {
           } else {
             child.vNode?.show();
           }
+          if (child.list.isListOpen) {
+            this.restoreSubtreeVisibility(child);
+          }
         }
       });
     } else {
@@ -385,7 +394,7 @@ export default class VTextEdit extends VNode {
         if (child.hiddenBD && !isRepeat) {
           child.hidden = true;
           child.vNode?.hide();
-          child.list.children?.forEach((grandChild) => {
+          child.list.forEachChildren((grandChild) => {
             grandChild.hidden = true;
             grandChild.vNode?.hide();
           });

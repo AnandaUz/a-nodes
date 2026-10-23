@@ -2,8 +2,9 @@ import { core, EVENTS } from "@features/core/core";
 import { NODE_TYPES } from "../nodes/node-registry";
 import { GRID } from "./CONST";
 import Tools from "./Tools";
-import { LNode_TEClone } from "../nodes/LNode/LNode_TEClone";
-import { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
+import type { LNode } from "../nodes/LNode/LNode";
+import type { LNode_TEClone } from "../nodes/LNode/LNode_TEClone";
+import type { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
 
 interface Command {
   label: string;
@@ -294,16 +295,16 @@ const commands: Command[] = [
           Tools.stopEvent(e);
           const nodes = Array.from(core.selectManager.selectedNodes.values());
 
-          const newNodes: LNode_TEClone[] = [];
+          const newNodes: LNode[] = [];
           nodes.forEach((node) => {
-            if (!(node instanceof LNode_TextEdit)) return;
+            if (node.type !== NODE_TYPES.TEXT_EDIT.id && node.type !== NODE_TYPES.TEXT_EDIT_CLONE.id) return;
 
             const nNode = core.nodeManager.create_TextEditCloneNode(
-              node,
+              node as any,
               node.x,
               node.y,
             );
-            if (nNode && nNode instanceof LNode_TEClone) {
+            if (nNode) {
               newNodes.push(nNode);
             }
           });
@@ -331,6 +332,24 @@ const commands: Command[] = [
             execute: (e) => {
               if (core.mode.textEditing) return;
               Tools.stopEvent(e);
+
+              const selectedNodes = Array.from(
+                core.selectManager.selectedNodes.values(),
+              );
+              if (selectedNodes.length === 1) {
+                const selectedNode = selectedNodes[0] as LNode_TextEdit;
+                const isNodeInList = !!(
+                  selectedNode.list?.parentNode ||
+                  (selectedNode as any).frame?.isInFrame ||
+                  (selectedNode as any).frame?.isFrame ||
+                  (selectedNode.list?.hasChildren &&
+                    selectedNode.list.children!.size > 0)
+                );
+                if (isNodeInList) {
+                  core.nodeManager.addTextEditNode_underSelected(selectedNode);
+                  return;
+                }
+              }
 
               // console.time("createNode");
               core.nodeManager.createNodeWithTypeAndPositionFromCursor(
@@ -360,8 +379,8 @@ const commands: Command[] = [
                 core.nodeManager.createNodeWithTypeAndPositionFromCursor(
                   NODE_TYPES.TEXT_EDIT.id,
                 );
-              if (node instanceof LNode_TextEdit) {
-                node.frame.turnOn_frameMode();
+              if (node && (node as any).frame) {
+                (node as any).frame.turnOn_frameMode();
                 node.save();
               }
             },
@@ -441,11 +460,12 @@ const commands: Command[] = [
           if (core.mode.textEditing) return;
           e.preventDefault();
           core.selectManager.selectedNodes.forEach((node) => {
-            if (!(node instanceof LNode_TextEdit)) return;
-            if (!node.frame.isFrame) {
-              node.frame.turnOn_frameMode();
+            const frame = (node as any).frame;
+            if (!frame) return;
+            if (!frame.isFrame) {
+              frame.turnOn_frameMode();
             } else {
-              node.frame.turnOff_frameMode();
+              frame.turnOff_frameMode();
             }
 
             node.save();
@@ -596,7 +616,12 @@ function flattenCommands(commands: Command[]): Command[] {
 
 const flatCommands = flattenCommands(commands);
 
+let isCommandsInited = false;
+
 export function initCommands() {
+  if (isCommandsInited) return;
+  isCommandsInited = true;
+
   window.addEventListener("keydown", (e) => {
     const key = e.code
       .replace("Key", "") // "KeyN" → "N"

@@ -10,8 +10,7 @@ import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import Tools from "./Tools";
-import { app } from "@/app";
-import { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
+import type { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
 
 export { EVENTS };
 export class Core {
@@ -98,7 +97,7 @@ export class Core {
             checkLID.add(node.lID);
           } else {
             console.log("дубль LID", node.title);
-            node.lID = this.nodeManager.getMaxLID() + 1;
+            node.lID = this.nodeManager.generateLID();
             node.save();
           }
         });
@@ -117,7 +116,7 @@ export class Core {
         });
 
         const frames = [...core.nodeManager.nodes.values()].filter(
-          (node) => node instanceof LNode_TextEdit && node.frame.isFrame,
+          (node: any) => node?.frame?.isFrame,
         ) as LNode_TextEdit[];
 
         /** подключаем детей к родителям */
@@ -134,8 +133,6 @@ export class Core {
         this.nodeManager.setPositionForAllLinkedChildNodes();
         core.nodeManager.nodes.forEach((node) => {
           node.vNode?.renderSVG();
-          if (node instanceof LNode_TextEdit) {
-          }
         });
 
         frames.forEach((node) => {
@@ -159,6 +156,7 @@ export class Core {
     this.nodeRenderer = new NodeRenderer();
  
 
+    const { app } = await import("@/app");
     app.showLoader();
 
     const container = document.getElementById("main")!;
@@ -197,3 +195,6 @@ export class Core {
 }
 
 export const core = new Core();
+if (typeof window !== "undefined") {
+  (window as any).core = core;
+}

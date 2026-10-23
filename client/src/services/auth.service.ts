@@ -1,4 +1,3 @@
-import { app } from "@/app";
 import type { IUser } from "@shared/types";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -107,6 +106,7 @@ export async function logout(): Promise<void> {
   } finally {
     removeUser();
     removeTokens();
+    const { app } = await import("@/app");
     app.gotoPage_welcome();
   }
 }
@@ -132,6 +132,7 @@ export async function handleCredential(response: {
   saveTokens(result.token, result.refreshToken);
   saveUser(result.user);
 
+  const { app } = await import("@/app");
   if (result.isNew) {
     app.gotoPage_register();
   } else {

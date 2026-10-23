@@ -21,7 +21,18 @@ export default class SelectionRect {
   private onPointerDown = (e: PointerEvent) => {
     if (e.buttons !== 1) return;
     if (e.pointerType === "touch") return;
-    if (core.mode.textEditing) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest(".vNode, .frame-bg")) return;
+
+    if (core.mode.textEditing) {
+      (document.activeElement as HTMLElement)?.blur();
+      core.selectManager.selectedNodes.forEach((node) => {
+        if ((node as any).isEditMode) {
+          (node as any).turnOff_EditTitleMode();
+        }
+      });
+      core.selectManager.clearSelection();
+    }
 
     this.p1 = { x: e.clientX, y: e.clientY };
     this.el.style.display = "block";

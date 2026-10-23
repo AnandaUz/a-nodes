@@ -1,4 +1,3 @@
-import { core } from "@/features/core/core";
 import { LNode } from "./LNode";
 
 export default class TClones {
@@ -15,9 +14,6 @@ export default class TClones {
     this.owner = owner;
   }
   removeAllClones() {
-    this.nodes.forEach((node) => {
-      core.nodeManager.putNodeInTrash(node);
-    });
     this.nodes.clear();
   }
   doForAll(fn: (node: LNode) => void) {

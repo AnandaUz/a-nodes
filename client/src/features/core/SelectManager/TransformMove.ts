@@ -12,22 +12,31 @@ export class TransformMove {
     this.selectManager = selectManager;
   }
 
-  start() {
+  start(e?: PointerEvent) {
     if (this.selectManager.selectedNodes.size === 0) return;
     this.active = true;
 
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
 
+    const clientX = e?.clientX ?? core.desk.pointer.x;
+    const clientY = e?.clientY ?? core.desk.pointer.y;
+    const pointerId = e?.pointerId ?? 1;
+
     const pEvent = new PointerEvent("pointerdown", {
-      clientX: core.desk.pointer.x,
-      clientY: core.desk.pointer.y,
-      pointerId: 1,
+      clientX,
+      clientY,
+      pointerId,
       pointerType: "mouse",
       isPrimary: true,
     });
     this.selectManager.selectedNodes.forEach((node) => {
-      node.vNode?.onPointerDown(pEvent);
+      try {
+        node.vNode?.onPointerDown(pEvent);
+        if (node.vNode) {
+          node.vNode.isMoved = true;
+        }
+      } catch {}
     });
     core.mode.selectMoving = true;
   }

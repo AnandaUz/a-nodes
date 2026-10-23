@@ -45,7 +45,7 @@ writeFileSync(envPath, envContent);
 
 // // установка зависимостей
 console.log("Starting installing dependencies");
-execSync("npm install --omit=dev", {
+execSync("npm install --omit=dev --no-deprecation", {
   cwd: join(DEPLOY, "server"),
   stdio: "inherit", // выводит логи npm в консоль
 });

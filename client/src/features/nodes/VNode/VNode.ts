@@ -12,7 +12,7 @@ const DBL_CLICK_DISTANCE = 5;
 export class VNode {
   private container: HTMLElement;
   body: HTMLElement;
-  private isDragging: boolean = false;
+  isDragging: boolean = false;
   private pointerOffset = { x: 0, y: 0 };
   node!: LNode;
   private startPos: { x: number; y: number } = { x: 0, y: 0 };
@@ -26,7 +26,7 @@ export class VNode {
   hidden: boolean = false;
 
   // private isSelectAble = true;
-  protected isMoved = false;
+  isMoved = false;
   protected movingElement!: HTMLElement;
   protected unsubscribers: Array<() => void> = [];
   private animationId: number | null = null;
@@ -248,7 +248,9 @@ export class VNode {
 
     this.startPos = { x: this.node.x, y: this.node.y };
 
-    this.movingElement.setPointerCapture(e.pointerId);
+    try {
+      this.movingElement.setPointerCapture(e.pointerId);
+    } catch {}
   };
   onDoubleClick(_e: PointerEvent) {}
 
@@ -286,7 +288,7 @@ export class VNode {
       core.selectManager.selectedNodes.size > 1 &&
       !core.mode.selectMoving
     ) {
-      core.selectManager.transformMove.start(); //если выбранно несколько
+      core.selectManager.transformMove.start(e); //если выбранно несколько
 
       return;
     }
@@ -344,7 +346,7 @@ export class VNode {
     this.flushDragMove();
     this.body.classList.remove("is-dragging");
     this.isDragging = false;
-    if (!this.isMoved) {
+    if (!this.isMoved && !core.mode.selectMoving) {
       this.toggleSelect();
       core.selectManager.onVNodeClick(e, this);
       return;
@@ -364,7 +366,9 @@ export class VNode {
 
     core.selectManager.onNodeMoveEnd(this);
 
-    core.mode.selectMoving = false;
+    if (core.selectManager.selectedNodes.size <= 1) {
+      core.mode.selectMoving = false;
+    }
 
     this.onStop();
   };

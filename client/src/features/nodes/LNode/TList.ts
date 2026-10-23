@@ -1,7 +1,7 @@
 import Tools from "@/features/core/Tools";
 import { LNode } from "./LNode";
 import { GRID } from "@/features/core/CONST";
-import { core } from "@/features/core/core";
+
 
 // /** класс для полей на изменение которых вызывает обновление */
 // class Observable<T> {
@@ -87,25 +87,18 @@ export default class TList {
     return this._parentNode || null;
   }
   set parentNode(node: LNode | null) {
+    this.parentLID = node ? node.lID : undefined;
     if (node === this._parentNode) return;
     this._parentNode = node;
-    if (node) {
-      if (!node.lID) {
-        node.lID = core.nodeManager.getMaxLID() + 1;
-        node.save();
-      }
-      this.parentLID = node.lID;
-    } else {
-      this.parentLID = undefined;
-    }
     this._onChangeListeners.forEach((fn) => fn());
   }
   get tab() {
-    return this._tab ?? 0;
+    return Math.max(0, this._tab ?? 0);
   }
   set tab(tab: number) {
-    if (this._tab === tab) return;
-    this._tab = tab;
+    const val = Math.max(0, tab);
+    if (this._tab === val) return;
+    this._tab = val;
     this._onChangeListeners.forEach((fn) => fn());
   }
   onChange(fn: () => void): () => void {
@@ -123,17 +116,14 @@ export default class TList {
       }
     }
   }
-  initParent() {
-    if (this.parentLID && this.parentLID !== this.owner.lID) {
-      const parentNode = core.nodeManager.getNodeByLID(this.parentLID);
-      if (parentNode) {
-        if (!parentNode.list.children) {
-          parentNode.list.children = new Set<LNode>();
-        }
-        parentNode.list.children.add(this.owner);
-
-        this.owner.list.parentNode = parentNode;
+  initParent(parentNode?: LNode) {
+    if (parentNode) {
+      if (!parentNode.list.children) {
+        parentNode.list.children = new Set<LNode>();
       }
+      parentNode.list.children.add(this.owner);
+      this._parentNode = parentNode;
+      this.parentLID = parentNode.lID;
     }
   }
   /** проверяем дерево выстроенно верно или случились ошибки */
@@ -153,6 +143,7 @@ export default class TList {
     descendants.sort((a, b) => a.y - b.y);
 
     const list = [owner, ...descendants];
+    const excluded = new Set<LNode>();
 
     type TLevelParent = { node: LNode; count: number } | undefined | null;
     let levelsParents: TLevelParent[] = [];
@@ -162,9 +153,20 @@ export default class TList {
       if (index === 0) return;
       if (!chNode) return;
 
-      const tabIndex =
+      const tabIndex = Math.round(
         (Tools.getDiskPosition(chNode.x) - Tools.getDiskPosition(owner.x)) /
-        GRID.x;
+          GRID.x,
+      );
+
+      const parentIsExcluded =
+        chNode.list.parentNode && excluded.has(chNode.list.parentNode);
+
+      if (tabIndex < 0 || parentIsExcluded) {
+        excluded.add(chNode);
+        chNode.list.clearParent();
+        chNode.save();
+        return;
+      }
 
       levelsParents[tabIndex] = { node: chNode, count: 0 };
       levelsParents.splice(tabIndex + 1);
@@ -180,10 +182,6 @@ export default class TList {
       }
 
       let isChanged = false;
-      if (mParent?.node && !mParent.node.lID) {
-        mParent.node.lID = core.nodeManager.getMaxLID() + 1;
-        mParent.node.save();
-      }
 
       if (chNode.list && chNode.list.parentNode !== mParent?.node) {
         const oldParent = chNode.list.parentNode;
@@ -231,6 +229,28 @@ export default class TList {
       parentNode.list.children?.delete(this.owner);
       (parentNode.vNode as any)?.refreshListBtns?.();
       willRefParent.push(parentNode);
+
+      const isRepeat =
+        (this.owner.repeatMode?.mode ?? 0) > 0 ||
+        !!this.owner.repeatMode?.date;
+      if ((this.owner.hiddenBD || this.owner.hidden) && !isRepeat) {
+        this.owner.hiddenBD = false;
+        this.owner.hidden = false;
+        this.owner.vNode?.show();
+        this.owner.vNode?.refreshIndicators?.();
+        if (this.children?.size) {
+          this.forEachChildren((child) => {
+            const childIsRepeat =
+              (child.repeatMode?.mode ?? 0) > 0 || !!child.repeatMode?.date;
+            if (!child.hiddenBD && !childIsRepeat) {
+              child.hidden = false;
+              child.vNode?.show();
+              child.vNode?.refreshIndicators?.();
+            }
+          });
+          this.setPositionForChildren();
+        }
+      }
     }
     this.parentLID = undefined;
     this.parentNode = null;
@@ -274,12 +294,14 @@ export default class TList {
         parent = pnode;
       }
     }
-    if (!parent.lID) {
-      parent.lID = core.nodeManager.getMaxLID() + 1;
-      parent.save();
-    }
 
     const tab = Math.round((owner.x - parent.x) / GRID.x);
+    if (tab < 0) {
+      if (this.parentNode) {
+        willRefParent.push(...this.clearParent());
+      }
+      return willRefParent;
+    }
 
     // удаляем из списком прошлого родителя
     if (this.parentNode) {

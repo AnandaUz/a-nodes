@@ -9,7 +9,9 @@
     "deploy": "tsx ./deploy_project.ts",
     "backup:db": "tsx ./backup_db.ts",
     "restore:db": "tsx ./restore_db.ts",
-    "restore:db:drop": "tsx ./restore_db.ts --drop"
+    "restore:db:drop": "tsx ./restore_db.ts --drop",
+    "test:client": "npm run test -w client",
+    "test": "npm run test -w client"
   },
   "workspaces": [
     "client",

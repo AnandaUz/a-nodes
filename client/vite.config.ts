@@ -1,7 +1,12 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import { resolve } from "path";
 
 export default defineConfig({
+  test: {
+    environment: "happy-dom",
+    globals: true,
+  },
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",

@@ -1,6 +1,5 @@
 import { core, EVENTS } from "@/features/core/core";
 import type { VNode } from "@/features/nodes/VNode/VNode";
-import VTextEdit from "../VNode/VTextEdit";
 import TList from "./TList";
 import type { ILNode } from "@shared/types/ILNode";
 import type { IExData } from "@shared/types/IExData";
@@ -67,24 +66,7 @@ export class LNode implements ILNode {
           this.save();
         }
       }
-      // конвертация старой версии clones
-      if (this.exData.ownerNodesIds) {
-        const sourceNodeId = this.exData.ownerNodesIds[0];
-        if (sourceNodeId) {
-          const mainNode = [...core.nodeManager.nodes.values()].find(
-            (n) => n._id === sourceNodeId,
-          );
-          if (mainNode) {
-            if (!mainNode.lID) {
-              mainNode.lID = core.nodeManager.getMaxLID() + 1;
-              mainNode.save();
-            }
-            this.clones.mainNode = mainNode;
-            this.exData.ownerNodesIds = undefined;
-            this.save();
-          }
-        }
-      }
+
     }
   }
   /** всё что необходимо чтобы обновить ноду */
@@ -92,6 +74,22 @@ export class LNode implements ILNode {
   init() {}
   /** удаляет ноду */
   remove() {
+    if (this.list.children?.size) {
+      const children = Array.from(this.list.children);
+      if (!this.list.isListOpen) {
+        this.list.isListOpen = true;
+        this.list.children.forEach((c) => {
+          if (!c.hiddenBD) c.hidden = false;
+        });
+        this.list.setPositionForChildren();
+      }
+      children.forEach((child) => {
+        child.list.clearParent();
+        child.vNode?.applyPosition();
+        child.vNode?.renderSVG();
+      });
+    }
+
     this.vNode?.remove();
     if (this.list.parentNode) {
       const parentNode = this.list.parentNode;
@@ -163,8 +161,8 @@ export class LNode implements ILNode {
     (this.vNode as any)?.refreshListBtns?.();
   }
   /** возращает тип для VNode */
-  getVNodeType(): typeof VNode {
-    return VTextEdit;
+  getVNodeType(): typeof VNode | undefined {
+    return undefined;
   }
 
   /** возращает прямоугольник в который входит и родитель и все его дети */
@@ -213,6 +211,6 @@ export class LNode implements ILNode {
   }
 
   save() {
-    core.store.emit(EVENTS.node.updated, this);
+    core.store?.emit(EVENTS.node.updated, this);
   }
 }

@@ -1,7 +1,5 @@
-import { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
-import { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import type { LNode } from "@features/nodes/LNode/LNode";
-import { LNode_Page } from "@features/nodes/LNode/LNode_Page";
+
 export const NODE_TYPES = {
   TEXT_EDIT: {
     id: 1,
@@ -18,8 +16,14 @@ export const NODE_TYPES = {
 };
 export type NodeType = (typeof NODE_TYPES)[keyof typeof NODE_TYPES];
 
-export const NODE_REGISTRY: Record<number, new () => LNode> = {
-  [NODE_TYPES.TEXT_EDIT.id]: LNode_TextEdit,
-  [NODE_TYPES.TEXT_EDIT_CLONE.id]: LNode_TEClone,
-  [NODE_TYPES.PAGE.id]: LNode_Page,
-};
+export type NodeConstructor = new () => LNode;
+
+export const NODE_REGISTRY: Record<number, NodeConstructor> = {};
+
+export function registerNodeType(
+  type: number,
+  constructor: NodeConstructor,
+): void {
+  NODE_REGISTRY[type] = constructor;
+}
+

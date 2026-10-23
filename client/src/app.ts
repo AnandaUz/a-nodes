@@ -6,6 +6,15 @@ import { getUser, handleCredential } from "@services/auth.service";
 import { Router } from "@base/client/features/router/router";
 import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
+import { registerNodeType, NODE_TYPES } from "@features/nodes/node-registry";
+import { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
+import { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
+import { LNode_Page } from "@features/nodes/LNode/LNode_Page";
+
+registerNodeType(NODE_TYPES.TEXT_EDIT.id, LNode_TextEdit);
+registerNodeType(NODE_TYPES.TEXT_EDIT_CLONE.id, LNode_TEClone);
+registerNodeType(NODE_TYPES.PAGE.id, LNode_Page);
+
 
 class RouterEx extends Router {
   // override showLoader(): void {
@@ -96,4 +105,6 @@ function loadGsi(): Promise<void> {
 }
 
 export const app = new App();
-app.init();
+if (!import.meta.env.TEST) {
+  app.init();
+}
