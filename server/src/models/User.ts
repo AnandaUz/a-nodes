@@ -10,6 +10,12 @@ const userSchema = new Schema<IUserDocument>({
     unique: true, // База не даст создать двух юзеров с одинаковым ID
     trim: true, // Удалит лишние пробелы по краям
   },
+  email: {
+    type: String,
+  },
+  picture: {
+    type: String,
+  },
   isRegistered: {
     type: Boolean,
     default: false,

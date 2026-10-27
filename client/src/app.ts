@@ -71,6 +71,18 @@ class App {
       this.router.render();
     }
   }
+  gotoRedirectOrHome() {
+    const redirectUrl = sessionStorage.getItem("auth_redirect");
+    if (redirectUrl) {
+      sessionStorage.removeItem("auth_redirect");
+      history.pushState({}, "", redirectUrl);
+      if ((this.router as any).routes) {
+        this.router.render();
+      }
+    } else {
+      this.gotoPage_home();
+    }
+  }
   async initGoogleAuth() {
     await loadGsi();
     (window as any).google.accounts.id.initialize({

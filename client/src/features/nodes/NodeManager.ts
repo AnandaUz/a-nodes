@@ -163,10 +163,35 @@ export class NodeManager {
         if (!mainParent) return;
         if (wasRef.has(mainParent)) return;
         wasRef.add(mainParent);
-        mainParent.list.checkTree();
-        mainParent.list.setPositionForChildren();
 
-        mainParent.vNode?.renderSVG();
+        const oldPositions = new Map<LNode, { x: number; y: number }>();
+        const oldFrameRect =
+          (mainParent as any).frame?.isFrame && mainParent.vNode?.elFrameBg
+            ? mainParent.getNodeRect()
+            : null;
+        mainParent.list.forEachChildren((ch) => {
+          oldPositions.set(ch, { x: ch.x, y: ch.y });
+        });
+
+        mainParent.list.setPositionForChildren(
+          undefined,
+          0,
+          0,
+          true,
+          false,
+          false,
+        );
+        mainParent.list.checkTree();
+        mainParent.list.setPositionForChildren(
+          undefined,
+          0,
+          0,
+          true,
+          false,
+          true,
+          oldPositions,
+          oldFrameRect,
+        );
 
         // нода добавлена во фрейм — рисуем кнопки включения
         if ((mainParent as any).frame?.isFrame) {
@@ -203,10 +228,27 @@ export class NodeManager {
         if (!mainParent) return;
         if (wasRef.has(mainParent)) return;
         wasRef.add(mainParent);
-        mainParent.list.checkTree();
-        mainParent.list.setPositionForChildren();
 
-        mainParent.vNode?.renderSVG();
+        const oldPositions = new Map<LNode, { x: number; y: number }>();
+        const oldFrameRect =
+          (mainParent as any).frame?.isFrame && mainParent.vNode?.elFrameBg
+            ? mainParent.getNodeRect()
+            : null;
+        mainParent.list.forEachChildren((ch) => {
+          oldPositions.set(ch, { x: ch.x, y: ch.y });
+        });
+
+        mainParent.list.checkTree();
+        mainParent.list.setPositionForChildren(
+          undefined,
+          0,
+          0,
+          true,
+          false,
+          true,
+          oldPositions,
+          oldFrameRect,
+        );
 
         mainParent.save();
       });

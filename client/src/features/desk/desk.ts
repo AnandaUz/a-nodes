@@ -117,6 +117,66 @@ export class Desk {
 
     const svgLayerEl = container.querySelector<HTMLElement>(".desk-svg-layer")!;
     this.svgLayer = new DeskSVG(svgLayerEl);
+    this.initHint(container);
+  }
+
+  private initHint(container: HTMLElement) {
+    const HINT_KEY = "desk_nav_hint_seen";
+    if (localStorage.getItem(HINT_KEY)) return;
+
+    const hintEl = document.createElement("div");
+    hintEl.className = "desk-hint-popup";
+    hintEl.innerHTML = `
+      <div class="desk-hint-popup__header">
+        <div class="desk-hint-popup__title">
+          <span class="desk-hint-popup__icon">🧭</span>
+          <span>Навигация по документу</span>
+        </div>
+        <button class="desk-hint-popup__close" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="desk-hint-popup__body desk-hint-popup__desktop">
+        <div class="desk-hint-popup__item">
+          <span class="desk-hint-popup__item-icon">🖐️</span>
+          <span><b>Перемещение:</b> зажмите <kbd>Пробел</kbd> + ЛКМ или среднюю кнопку мыши</span>
+        </div>
+        <div class="desk-hint-popup__item">
+          <span class="desk-hint-popup__item-icon">🔍</span>
+          <span><b>Масштаб:</b> вращайте колёсико мыши</span>
+        </div>
+        <div class="desk-hint-popup__item">
+          <span class="desk-hint-popup__item-icon">🔗</span>
+          <span><b>Переход в документ:</b> кликните значок 🔗 на узле</span>
+        </div>
+      </div>
+      <div class="desk-hint-popup__body desk-hint-popup__mobile">
+        <div class="desk-hint-popup__item">
+          <span class="desk-hint-popup__item-icon">👆</span>
+          <span><b>Перемещение:</b> свайп одним пальцем по холсту</span>
+        </div>
+        <div class="desk-hint-popup__item">
+          <span class="desk-hint-popup__item-icon">🤏</span>
+          <span><b>Масштаб:</b> щипок двумя пальцами</span>
+        </div>
+        <div class="desk-hint-popup__item">
+          <span class="desk-hint-popup__item-icon">🔗</span>
+          <span><b>Переход в документ:</b> нажмите значок 🔗 на узле</span>
+        </div>
+      </div>
+      <div class="desk-hint-popup__footer">
+        <button class="desk-hint-popup__btn">Понятно</button>
+      </div>
+    `;
+
+    const close = () => {
+      localStorage.setItem(HINT_KEY, "true");
+      hintEl.classList.add("desk-hint-popup--hide");
+      setTimeout(() => hintEl.remove(), 250);
+    };
+
+    hintEl.querySelector(".desk-hint-popup__close")?.addEventListener("click", close);
+    hintEl.querySelector(".desk-hint-popup__btn")?.addEventListener("click", close);
+
+    container.appendChild(hintEl);
   }
 
   unmount() {

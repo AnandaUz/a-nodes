@@ -352,10 +352,25 @@ export default class TList {
     totalIndex = 0,
     isRoot = true,
     isDrag = false,
+    animate = false,
+    oldPositions?: Map<LNode, { x: number; y: number }>,
+    customOldFrameRect?: DOMRect | null,
   ) {
     if (!this.children?.size) return 0;
 
     const owner = this.owner;
+    let oldFrameRect: DOMRect | null = null;
+    if (customOldFrameRect !== undefined) {
+      oldFrameRect = customOldFrameRect;
+    } else if (
+      isRoot &&
+      animate &&
+      (owner as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame &&
+      owner.vNode?.elFrameBg
+    ) {
+      oldFrameRect = owner.getNodeRect();
+    }
+
     const m = [...this.children].sort(
       (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
     );
@@ -365,6 +380,10 @@ export default class TList {
 
     for (const child of m) {
       if (child.hidden) continue;
+      const prevPos = oldPositions?.get(child);
+      const oldX = prevPos ? prevPos.x : child.x;
+      const oldY = prevPos ? prevPos.y : child.y;
+
       child.x = owner.x + GRID.x * (child.list.tab ?? 0);
       child.y = startY + h;
       totalIndex++;
@@ -385,6 +404,14 @@ export default class TList {
           chVNode.refreshBodyRect();
         }
 
+        if (
+          animate &&
+          (oldX !== child.x || oldY !== child.y) &&
+          typeof (chVNode as any).animateMove === "function"
+        ) {
+          (chVNode as any).animateMove(oldX, oldY, child.x, child.y);
+        }
+
         chVNode.applyPosition();
         h += chVNode.height;
       }
@@ -395,10 +422,12 @@ export default class TList {
         totalIndex,
         false,
         isDrag,
+        animate,
+        oldPositions,
       );
     }
     if (isRoot) {
-      owner.vNode?.renderSVG();
+      owner.vNode?.renderSVG(animate, oldFrameRect);
     }
     return h;
   }

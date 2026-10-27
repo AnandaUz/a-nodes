@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { LoginTicket, OAuth2Client } from "google-auth-library";
 import { User } from "../models/User";
+import { Node } from "../models/Node";
 import {
   generateToken,
   generateRefreshToken,
   verifyToken,
   verifyRefreshToken,
 } from "../utils/jwt";
-// import { saveNodes } from "./node.controller";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -36,6 +36,8 @@ export const googleAuth = async (req: Request, res: Response) => {
 
       user = new User({
         googleId: payload.sub,
+        email: payload.email,
+        picture: payload.picture,
         name: payload.name || "Anonymous",
         isRegistered: false,
         // settings: {
@@ -43,42 +45,26 @@ export const googleAuth = async (req: Request, res: Response) => {
         // },
       });
       await user.save();
-
-      //- создание главной страницы для пользователя
-      // const newNodeEss: INode = {
-      //   title: "♥️ Главная",
-      //   type: 2,
-      //   userId: user._id?.toString(),
-      // };
-      // const homeNodeIds = await saveNodes([newNodeEss]);
-      // if (!homeNodeIds)
-      //   return res.status(500).json({ error: "Ошибка сервера" });
-      // user.settings = { homeId: homeNodeIds[0] };
-      //-
-      // const newNodeEssMess: INode = {
-      //   title:
-      //     "Это ваша главная страница, вы можете создавать сколько угодна записей/узлов/нод",
-      //   type: 1,
-      //   x: 100,
-      //   y: 100,
-      //   pageId: homeNodeIds[0],
-      // };
-      // await saveNodes([newNodeEssMess]);
-
-      // const newNodeEssMess2: INode = {
-      //   title: "🎨Инструкция по использованию (нажмите значок цепи)",
-      //   type: 4,
-      //   x: 100,
-      //   y: 200,
-      //   exData: {
-      //     url: "6a38c536ddc2e09f58fe390f",
-      //   },
-      //   pageId: homeNodeIds[0],
-      // };
-      // await saveNodes([newNodeEssMess2]);
     } else {
+      if (!user.isRegistered) {
+        isNew = true;
+      } else if (!user.settings?.homeId) {
+        const homeNode = new Node({
+          title: "♥️ Главная",
+          type: 4,
+          userId: user._id,
+        });
+        await homeNode.save();
+        user.settings = { ...(user.settings || {}), homeId: homeNode._id.toString() };
+      }
       if (payload.name) {
         user.name = payload.name;
+      }
+      if (payload.picture) {
+        user.picture = payload.picture;
+      }
+      if (payload.email) {
+        user.email = payload.email;
       }
       await user.save();
     }
@@ -144,6 +130,17 @@ export const registerUser = async (req: Request, res: Response) => {
     user.name = name.trim();
     user.isRegistered = true;
 
+    // Создание рабочего стола для пользователя
+    if (!user.settings?.homeId) {
+      const homeNode = new Node({
+        title: "♥️ Главная",
+        type: 4,
+        userId: user._id,
+      });
+      await homeNode.save();
+      user.settings = { ...(user.settings || {}), homeId: homeNode._id.toString() };
+    }
+
     await user.save();
 
     // Генерируем новый токен с обновлённым именем
@@ -155,7 +152,19 @@ export const registerUser = async (req: Request, res: Response) => {
       ...(payload.picture && { picture: payload.picture }),
     });
 
-    return res.json({ token: newToken });
+    return res.json({
+      token: newToken,
+      user: {
+        id: user._id,
+        googleId: user.googleId,
+        email: payload.email,
+        name: user.name,
+        picture: payload.picture,
+        isRegistered: user.isRegistered,
+        telegramId: user.telegramId,
+        settings: user.settings,
+      },
+    });
   } catch (error) {
     console.error("Ошибка регистрации:", error);
     res.status(500).json({ error: "Ошибка сервера" });
@@ -171,10 +180,31 @@ export const verifySession = async (req: Request, res: Response) => {
     if (!payload)
       return res.status(401).json({ error: "Токен недействителен" });
 
-    const user = await User.findById(payload.id).lean();
+    const user = await User.findById(payload.id);
     if (!user) return res.status(404).json({ error: "Пользователь не найден" });
 
-    return res.json({ valid: true, user });
+    if (!user.picture && payload.picture) {
+      user.picture = payload.picture;
+      await user.save();
+    }
+    if (!user.email && payload.email) {
+      user.email = payload.email;
+      await user.save();
+    }
+
+    return res.json({
+      valid: true,
+      user: {
+        id: user._id.toString(),
+        googleId: user.googleId,
+        email: user.email || payload.email,
+        name: user.name,
+        picture: user.picture || payload.picture,
+        isRegistered: user.isRegistered,
+        telegramId: user.telegramId,
+        settings: user.settings,
+      },
+    });
   } catch (error) {
     res.status(401).json({ error: "Ошибка проверки токена" });
   }

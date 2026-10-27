@@ -11,8 +11,8 @@ class CUserMenu extends HTMLElement {
     <div class="avatar">
         ${
           user?.picture
-            ? `<img class="header-avatar" src="${user.picture}" alt="${user.name}" />`
-            : ""
+            ? `<img class="header-avatar" src="${user.picture}" alt="${user.name}" referrerpolicy="no-referrer" />`
+            : `${user?.name ? user.name.charAt(0).toUpperCase() : ""}`
         }
     </div>
     <div class="dropdown">

@@ -6,6 +6,7 @@ import { core } from "@/features/core/core";
 import { NodeManager } from "@/features/nodes/NodeManager";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import { Store } from "@/features/core/store";
+import { GRID } from "@/features/core/CONST";
 
 describe("TList (листГруппа)", () => {
   beforeEach(() => {
@@ -639,6 +640,122 @@ describe("TList (листГруппа)", () => {
       Element.prototype.setPointerCapture = originalSetCapture;
     }
   });
+
+  it("проверка иерархии при перемещении в листГруп", () => {
+    const originalSetCapture = Element.prototype.setPointerCapture;
+    Element.prototype.setPointerCapture = vi.fn();
+
+    try {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+
+      const node1 = new LNode_TextEdit();
+      node1.title = "1";
+      node1.lID = 1;
+      node1.x = 100;
+      node1.y = 100;
+      node1.vNode = new VTextEdit(node1, container);
+      node1.vNode.init();
+      node1.vNode.width = 100;
+      node1.vNode.height = 30;
+      core.nodeManager.nodes.add(node1);
+
+      const node2 = new LNode_TextEdit();
+      node2.title = "2";
+      node2.lID = 2;
+      node2.x = 100 + GRID.x;
+      node2.y = 130;
+      node2.vNode = new VTextEdit(node2, container);
+      node2.vNode.init();
+      node2.vNode.width = 100;
+      node2.vNode.height = 30;
+      node2.list.setParent(node1, 1);
+      node2.list.tab = 1;
+      core.nodeManager.nodes.add(node2);
+
+      const node3 = new LNode_TextEdit();
+      node3.title = "3";
+      node3.lID = 3;
+      node3.x = 300;
+      node3.y = 100;
+      node3.vNode = new VTextEdit(node3, container);
+      node3.vNode.init();
+      node3.vNode.width = 100;
+      node3.vNode.height = 30;
+      core.nodeManager.nodes.add(node3);
+
+      const node4 = new LNode_TextEdit();
+      node4.title = "4";
+      node4.lID = 4;
+      node4.x = 300 + GRID.x;
+      node4.y = 130;
+      node4.vNode = new VTextEdit(node4, container);
+      node4.vNode.init();
+      node4.vNode.width = 100;
+      node4.vNode.height = 30;
+      node4.list.setParent(node3, 1);
+      node4.list.tab = 1;
+      core.nodeManager.nodes.add(node4);
+
+      core.nodeManager.init();
+
+      // Выделяем 3
+      core.selectManager.selectedNodes.add(node3);
+      node3.isSelected = true;
+      core.mode.selectedVNodeCount = 1;
+
+      core.desk.viewport = {
+        screenToWorld: (x: number, y: number) => ({ x, y }),
+      } as any;
+      core.history = { execute: vi.fn() } as any;
+
+      // Пользователь начинает тащить node3
+      core.desk.pointer = { x: 300, y: 100 };
+      const downEvent = new PointerEvent("pointerdown", {
+        clientX: 300,
+        clientY: 100,
+        button: 0,
+        pointerId: 1,
+      });
+      node3.vNode.onPointerDown(downEvent);
+
+      // Несем к 1 и отпускаем с отступом в один таб
+      core.desk.pointer = { x: node1.x + GRID.x, y: node1.y + 10 };
+      const moveEvent = new PointerEvent("pointermove", {
+        clientX: node1.x + GRID.x,
+        clientY: node1.y + 10,
+        button: 0,
+        pointerId: 1,
+      });
+      node3.vNode.onPointerMove(moveEvent);
+
+      node3.x = node1.x + GRID.x;
+      node3.y = node1.y + 10;
+      node4.x = node3.x + GRID.x;
+      node4.y = node3.y + 30;
+
+      const upEvent = new PointerEvent("pointerup", {
+        clientX: node1.x + GRID.x,
+        clientY: node1.y + 10,
+        button: 0,
+        pointerId: 1,
+      });
+      node3.vNode.onPointerUp(upEvent);
+
+      // Проверка: у ноды 1 должны быть дети 3 и 2, у 3 — 4
+      expect(node3.list.parentNode).toBe(node1);
+      expect(node2.list.parentNode).toBe(node1);
+      expect(node1.list.children?.has(node3)).toBe(true);
+      expect(node1.list.children?.has(node2)).toBe(true);
+
+      // Проверка последовательности: дети располагаются 3, затем 2
+      expect(node3.list.index).toBe(0);
+      expect(node2.list.index).toBe(1);
+
+      expect(node4.list.parentNode).toBe(node3);
+      expect(node3.list.children?.has(node4)).toBe(true);
+    } finally {
+      Element.prototype.setPointerCapture = originalSetCapture;
+    }
+  });
 });
-
-

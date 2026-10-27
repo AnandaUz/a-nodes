@@ -1,6 +1,7 @@
 import { getToken, saveUser } from "@services/auth.service";
 import api from "@features/core/api";
 import { app } from "@/app";
+import { renderHeader } from "@/components/header";
 
 export async function authGuard(): Promise<void> {
   const token = getToken();
@@ -10,12 +11,18 @@ export async function authGuard(): Promise<void> {
   const isPublic = publicRoutes.includes(path);
 
   if (!token && !isPublic) {
+    if (path !== "/") {
+      sessionStorage.setItem(
+        "auth_redirect",
+        path + window.location.search + window.location.hash,
+      );
+    }
     app.gotoPage_welcome();
     return;
   }
 
   if (token && path === "/welcome") {
-    app.gotoPage_home();
+    app.gotoRedirectOrHome();
     return;
   }
 
@@ -26,6 +33,17 @@ export async function authGuard(): Promise<void> {
         const data = await res.json();
         if (data.user) {
           saveUser(data.user);
+          renderHeader();
+          if (!data.user.isRegistered && path !== "/register") {
+            if (path !== "/" && !isPublic) {
+              sessionStorage.setItem(
+                "auth_redirect",
+                path + window.location.search + window.location.hash,
+              );
+            }
+            app.gotoPage_register();
+            return;
+          }
         }
       }
     } catch (e) {

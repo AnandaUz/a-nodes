@@ -133,9 +133,12 @@ export async function handleCredential(response: {
   saveUser(result.user);
 
   const { app } = await import("@/app");
-  if (result.isNew) {
+  const { renderHeader } = await import("@/components/header");
+  renderHeader();
+
+  if (result.isNew || !result.user.isRegistered) {
     app.gotoPage_register();
   } else {
-    app.gotoPage_home();
+    app.gotoRedirectOrHome();
   }
 }

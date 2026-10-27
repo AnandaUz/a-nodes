@@ -1,6 +1,6 @@
 import html from "./register.html?raw";
 import api from "@/features/core/api";
-import { saveTokens } from "@/services/auth.service";
+import { saveTokens, saveUser } from "@/services/auth.service";
 import "./register.scss";
 import { app } from "@/app";
 
@@ -31,9 +31,15 @@ export function registerPage() {
           if (!response.ok) throw new Error("Ошибка регистрации");
 
           const data = await response.json();
-          saveTokens(data.token, data.refreshToken);
+          saveTokens(data.token, data.refreshToken || "");
+          if (data.user) {
+            saveUser(data.user);
+          }
 
-          app.gotoPage_home();
+          const { renderHeader } = await import("@/components/header");
+          renderHeader();
+
+          app.gotoRedirectOrHome();
         } catch (e) {
           console.error("Ошибка регистрации:", e);
         }

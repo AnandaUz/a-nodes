@@ -56,8 +56,8 @@ export class VNode {
   }
   refreshBodyRect() {
     this.body.style.width = ""; // естественная ширина по тексту (заголовок фрейма растягивается в renderBgSVG)
-    this.width = this.body.offsetWidth;
-    this.height = this.body.offsetHeight;
+    this.width = this.body.offsetWidth || this.width || 0;
+    this.height = this.body.offsetHeight || this.height || 0;
   }
   init() {
     this.bodyInit();
@@ -474,14 +474,62 @@ export class VNode {
       }
     }  */
   }
-  renderSVG() {
-    this.renderBgSVG();
+
+  animateMove(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    duration = 200,
+  ) {
+    if (typeof this.body?.animate !== "function") return;
+    this.body.animate(
+      [
+        { transform: `translate(${fromX}px, ${fromY}px)` },
+        { transform: `translate(${toX}px, ${toY}px)` },
+      ],
+      { duration, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    );
+  }
+
+  animateFrameBg(
+    fromRect: DOMRect,
+    toRect: DOMRect,
+    duration = 200,
+  ) {
+    if (!this.elFrameBg || typeof this.elFrameBg.animate !== "function") return;
+    this.elFrameBg.animate(
+      [
+        {
+          transform: `translate(${fromRect.x}px, ${fromRect.y}px)`,
+          width: `${fromRect.width}px`,
+          height: `${fromRect.height}px`,
+        },
+        {
+          transform: `translate(${toRect.x}px, ${toRect.y}px)`,
+          width: `${toRect.width}px`,
+          height: `${toRect.height}px`,
+        },
+      ],
+      { duration, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    );
+  }
+
+  renderSVG(animate = false, oldFrameRect: DOMRect | null = null) {
+    this.renderBgSVG(animate, oldFrameRect);
     // фон мог измениться — перерисовываем связи фрейма
     (
       this.node as unknown as { frame?: { redrawPaths(): void } }
     ).frame?.redrawPaths();
+    if (animate) {
+      setTimeout(() => {
+        (
+          this.node as unknown as { frame?: { redrawPaths(): void } }
+        ).frame?.redrawPaths();
+      }, 210);
+    }
   }
-  private renderBgSVG() {
+  private renderBgSVG(animate = false, oldFrameRect: DOMRect | null = null) {
     // только у топовых родителей
     if (this.node.list.parentNode || this.hidden || this.node.hidden) {
       if (this.elSVG) {
@@ -517,6 +565,16 @@ export class VNode {
             ).frame?.bringToFront();
           });
           this.container.appendChild(this.elFrameBg);
+        }
+        if (
+          animate &&
+          oldFrameRect &&
+          (oldFrameRect.x !== lRect.x ||
+            oldFrameRect.y !== lRect.y ||
+            oldFrameRect.width !== lRect.width ||
+            oldFrameRect.height !== lRect.height)
+        ) {
+          this.animateFrameBg(oldFrameRect, lRect);
         }
         this.elFrameBg.style.transform = `translate(${lRect.x}px, ${lRect.y}px)`;
         this.elFrameBg.style.width = `${lRect.width}px`;
