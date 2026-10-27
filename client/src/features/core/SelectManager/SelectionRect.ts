@@ -21,6 +21,12 @@ export default class SelectionRect {
   private onPointerDown = (e: PointerEvent) => {
     if (e.buttons !== 1) return;
     if (e.pointerType === "touch") return;
+    if (
+      core.mode.isPinching ||
+      Date.now() - core.mode.lastPinchEndTime < 300
+    ) {
+      return;
+    }
     const target = e.target as HTMLElement | null;
     if (target?.closest(".vNode, .frame-bg")) return;
 
@@ -43,17 +49,29 @@ export default class SelectionRect {
   };
 
   private onPointerMove = (e: PointerEvent) => {
+    if (core.mode.isPinching) {
+      this.el.style.display = "none";
+      window.removeEventListener("pointermove", this.onPointerMove);
+      window.removeEventListener("pointerup", this.onPointerUp);
+      return;
+    }
     this.update(e.clientX, e.clientY);
   };
 
   private onPointerUp = (e: PointerEvent) => {
-    const rect = this.getRect(e.clientX, e.clientY);
-
     this.el.style.display = "none";
 
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
 
+    if (
+      core.mode.isPinching ||
+      Date.now() - core.mode.lastPinchEndTime < 300
+    ) {
+      return;
+    }
+
+    const rect = this.getRect(e.clientX, e.clientY);
     this.onComplete(rect, e);
   };
 

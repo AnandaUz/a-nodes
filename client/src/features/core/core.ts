@@ -37,6 +37,8 @@ export class Core {
     wasMoving: false, //переменная для того чтобы клик не снимал выделения
     scale: 1,
     inputMode: Tools.getInputMode(),
+    isPinching: false,
+    lastPinchEndTime: 0,
     mobile_mode: {
       navigation: false,
       adding: false,

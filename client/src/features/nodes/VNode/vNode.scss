@@ -36,6 +36,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
 
 
@@ -134,9 +137,22 @@
 
     &.v-n-page {
         display: flex;
+        align-items: center;
 
         .btn-el {
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 4px;
+            touch-action: manipulation;
+
+            @media (pointer: coarse) {
+                min-width: 36px;
+                min-height: 36px;
+                font-size: 20px;
+                padding: 4px 6px;
+            }
         }
     }
 
@@ -152,6 +168,11 @@
         padding: 3px 4px 3px var(--GRID_x);
         line-height: 0.9;
         // color: hsl(var(--color), 70%, 40%);
+
+        &[contenteditable="true"] {
+            user-select: text;
+            -webkit-user-select: text;
+        }
     }
 
     &__text {

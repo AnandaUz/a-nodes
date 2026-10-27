@@ -179,8 +179,28 @@ export class VNode {
     this.movingElement.removeEventListener("pointermove", this.onPointerMove);
     this.movingElement.removeEventListener("pointerup", this.onPointerUp);
   }
+  cancelDrag() {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.isMoved = false;
+    if (this.dragRafId !== null) {
+      cancelAnimationFrame(this.dragRafId);
+      this.dragRafId = null;
+    }
+    this.targetPos = null;
+    this.body.classList.remove("is-dragging");
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
+  }
+
   onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
+    if (
+      core.mode.isPinching ||
+      Date.now() - core.mode.lastPinchEndTime < 300
+    ) {
+      return;
+    }
     const textEdit = this.node as unknown as {
       frame?: {
         isFrame: boolean;
@@ -282,6 +302,13 @@ export class VNode {
 
   onPointerMove = (e: PointerEvent, fromTransform = false) => {
     if (!this.isDragging) return;
+    if (
+      core.mode.isPinching ||
+      Date.now() - core.mode.lastPinchEndTime < 300
+    ) {
+      this.cancelDrag();
+      return;
+    }
 
     if (
       this.node.isSelected &&
@@ -343,6 +370,13 @@ export class VNode {
 
   onPointerUp = (e: PointerEvent) => {
     if (!this.isDragging) return;
+    if (
+      core.mode.isPinching ||
+      Date.now() - core.mode.lastPinchEndTime < 300
+    ) {
+      this.cancelDrag();
+      return;
+    }
     this.flushDragMove();
     this.body.classList.remove("is-dragging");
     this.isDragging = false;

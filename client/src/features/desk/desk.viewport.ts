@@ -158,6 +158,11 @@ export class Viewport {
   // ─── Touch: pan + pinch + double tap ─────────────────────────
 
   private onTouchStart = (e: TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("a") || target.closest(".btn-el")) {
+      return;
+    }
+
     Tools.stopEvent(e);
 
     for (const t of Array.from(e.changedTouches)) {
@@ -165,6 +170,12 @@ export class Viewport {
     }
 
     if (this.activeTouches.size === 1) {
+      if (
+        core.mode.isPinching ||
+        Date.now() - core.mode.lastPinchEndTime < 300
+      ) {
+        return;
+      }
       const t = e.changedTouches[0]!;
       this.startPan(t.clientX, t.clientY);
 
@@ -183,10 +194,15 @@ export class Viewport {
       }
     }
 
-    if (this.activeTouches.size === 2) {
+    if (this.activeTouches.size >= 2) {
       this.isPanning = false;
+      core.mode.isPinching = true;
       this.pinchStartDist = this.getPinchDist();
       this.pinchStartScale = this.state.scale;
+
+      core.nodeManager?.nodes.forEach((node) => {
+        node.vNode?.cancelDrag();
+      });
     }
   };
 
@@ -198,12 +214,19 @@ export class Viewport {
     }
 
     if (this.activeTouches.size === 1 && this.isPanning) {
+      if (
+        core.mode.isPinching ||
+        Date.now() - core.mode.lastPinchEndTime < 300
+      ) {
+        return;
+      }
       const t = e.changedTouches[0]!;
       this.movePan(t.clientX, t.clientY);
       return;
     }
 
-    if (this.activeTouches.size === 2) {
+    if (this.activeTouches.size >= 2) {
+      core.mode.isPinching = true;
       const dist = this.getPinchDist();
       const newScale = Math.min(
         this.maxScale,
@@ -230,19 +253,32 @@ export class Viewport {
   };
 
   private onTouchEnd = (e: TouchEvent) => {
+    const wasPinching = core.mode.isPinching;
+
     for (const t of Array.from(e.changedTouches)) {
       this.activeTouches.delete(t.identifier);
     }
 
     if (this.activeTouches.size === 0) {
       this.isPanning = false;
+      if (wasPinching) {
+        core.mode.isPinching = false;
+        core.mode.lastPinchEndTime = Date.now();
+      }
+    } else if (this.activeTouches.size === 1) {
+      if (wasPinching) {
+        this.isPanning = false;
+        core.mode.isPinching = false;
+        core.mode.lastPinchEndTime = Date.now();
+      } else if (!this.isPanning) {
+        const remaining = Array.from(this.activeTouches.values())[0]!;
+        this.startPan(remaining.x, remaining.y);
+      }
     }
+  };
 
-    if (this.activeTouches.size === 1) {
-      // Остался один палец — возобновляем pan с его позиции
-      const remaining = Array.from(this.activeTouches.values())[0]!;
-      this.startPan(remaining.x, remaining.y);
-    }
+  private onTouchCancel = (e: TouchEvent) => {
+    this.onTouchEnd(e);
   };
 
   private getPinchDist(): number {
@@ -296,6 +332,7 @@ export class Viewport {
       passive: false,
     });
     this.scene.addEventListener("touchend", this.onTouchEnd);
+    this.scene.addEventListener("touchcancel", this.onTouchCancel);
 
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
@@ -310,6 +347,7 @@ export class Viewport {
     this.scene.removeEventListener("touchstart", this.onTouchStart);
     this.scene.removeEventListener("touchmove", this.onTouchMove);
     this.scene.removeEventListener("touchend", this.onTouchEnd);
+    this.scene.removeEventListener("touchcancel", this.onTouchCancel);
 
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);

@@ -1,5 +1,5 @@
-// import { router } from "@/router";
 import { app } from "@/app";
+import { core } from "@/features/core/core";
 import Tools from "@/features/core/Tools";
 import VTextEdit from "@/features/nodes/VNode/VTextEdit";
 
@@ -8,9 +8,16 @@ export class VPage extends VTextEdit {
     super.init();
 
     const btnEl = this.body.querySelector(".btn-el") as HTMLElement;
+    if (!btnEl) return;
 
-    btnEl.addEventListener("pointerup", (e) => {
+    btnEl.addEventListener("pointerdown", (e) => {
       Tools.stopEvent(e);
+    });
+    btnEl.addEventListener("touchstart", (e) => {
+      e.stopPropagation();
+    });
+
+    const navigateToPage = (openInNewTab: boolean) => {
       const _id = this.node._id;
       let url = "";
       const essUrl = this.node.exData?.url;
@@ -24,14 +31,41 @@ export class VPage extends VTextEdit {
         url = "/desk/" + _id;
       }
 
+      if (openInNewTab) {
+        window.open(url, "_blank");
+      } else {
+        app.router.navigate(url);
+      }
+    };
+
+    btnEl.addEventListener("pointerup", (e) => {
+      Tools.stopEvent(e);
+      if (
+        core.mode.isPinching ||
+        Date.now() - core.mode.lastPinchEndTime < 300
+      ) {
+        return;
+      }
+
       switch (e.button) {
         case 0:
-          app.router.navigate(url);
+          navigateToPage(false);
           break;
         case 1:
-          window.open(url, "_blank");
+          navigateToPage(true);
           break;
       }
+    });
+
+    btnEl.addEventListener("click", (e) => {
+      Tools.stopEvent(e);
+      if (
+        core.mode.isPinching ||
+        Date.now() - core.mode.lastPinchEndTime < 300
+      ) {
+        return;
+      }
+      navigateToPage(false);
     });
   }
   initMovingElement(): void {
