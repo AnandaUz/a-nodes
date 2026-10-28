@@ -34,6 +34,14 @@ const userSchema = new Schema<IUserDocument>({
     type: String,
     required: true,
   },
+  lastActiveAt: {
+    type: Date,
+    default: Date.now,
+  },
+  pageViewsCount: {
+    type: Number,
+    default: 1,
+  },
   settings: {
     homeId: {
       type: String,

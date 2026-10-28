@@ -66,16 +66,18 @@ export class Desk {
       const title = core.nodeManager.pageNode?.title || "a-nodes";
       this.h1El.innerHTML = title;
 
-      const chars = [...title];
-      const firstChar = chars[0] || "";
-      const hasEmoji = /^\p{Emoji}/u.test(firstChar);
+      const [firstSegment] = new Intl.Segmenter(undefined, {
+        granularity: "grapheme",
+      }).segment(title);
+      const firstGrapheme = firstSegment?.segment || "";
+      const hasEmoji = /^\p{Extended_Pictographic}/u.test(firstGrapheme);
       const titleWithoutEmoji = hasEmoji
-        ? chars.slice(firstChar.length).join("")
+        ? title.slice(firstGrapheme.length).trimStart()
         : title;
 
-      document.title = titleWithoutEmoji;
+      document.title = titleWithoutEmoji || title;
 
-      this.setEmojiFavicon(hasEmoji ? firstChar : "🔥");
+      this.setEmojiFavicon(hasEmoji ? firstGrapheme : "🔥");
     });
   }
   selectPath(p: Ge_Path | null) {

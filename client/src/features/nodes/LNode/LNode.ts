@@ -38,17 +38,7 @@ export class LNode implements ILNode {
   /** поле которое показывает видна нода или нет */
   hidden: boolean = false;
 
-  constructor() {
-    // this.list.onChange(() => {
-    //   console.log("LNode list.onChange()");
-    //   this.list.forEachChildren((child) => {
-    //     const node = child as LNode_TextEdit;
-    //     node.clones.nodes.forEach((cl) => {
-    //       cl.refresh();
-    //     });
-    //   });
-    // });
-  }
+  constructor() {}
   forCompatibility() {
     // конвертация старой версии repeatMode
     if (this.exData) {
@@ -66,7 +56,6 @@ export class LNode implements ILNode {
           this.save();
         }
       }
-
     }
   }
   /** всё что необходимо чтобы обновить ноду */

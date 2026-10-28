@@ -152,10 +152,16 @@ export function refreshListBtns(view: VTextEdit): void {
 
   // 1. Серый индикатор (btn-open)
   if (view.btnOpen) {
-    if (list.isListOpen) {
-      view.btnOpen.classList.add("open");
+    const hasSimple = list.hasSimpleChildren();
+    if (!hasSimple) {
+      view.btnOpen.style.display = "none";
     } else {
-      view.btnOpen.classList.remove("open");
+      view.btnOpen.style.display = "";
+      if (list.isListOpen) {
+        view.btnOpen.classList.add("open");
+      } else {
+        view.btnOpen.classList.remove("open");
+      }
     }
   }
 

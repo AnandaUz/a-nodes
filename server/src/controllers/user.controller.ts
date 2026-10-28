@@ -70,3 +70,44 @@ export const updateSettings = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Ошибка на сервере", error });
   }
 };
+
+export const recordPageView = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Не авторизован" });
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      $set: { lastActiveAt: new Date() },
+      $inc: { pageViewsCount: 1 },
+    });
+
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: "Ошибка сохранения статистики" });
+  }
+};
+
+export const getAdminUsersStats = async (_req: Request, res: Response) => {
+  try {
+    const users = await User.find({})
+      .select("name email picture createdAt lastActiveAt pageViewsCount")
+      .sort({ lastActiveAt: -1, createdAt: -1 })
+      .lean();
+
+    const mapped = users.map((u: any) => ({
+      id: u._id.toString(),
+      name: u.name,
+      email: u.email,
+      picture: u.picture,
+      createdAt: u.createdAt,
+      lastActiveAt: u.lastActiveAt || u.createdAt,
+      pageViewsCount: u.pageViewsCount || 1,
+    }));
+
+    res.json(mapped);
+  } catch (error) {
+    res.status(500).json({ error: "Ошибка получения статистики пользователей" });
+  }
+};

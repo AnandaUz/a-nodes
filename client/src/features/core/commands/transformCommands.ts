@@ -1,8 +1,12 @@
 import { core } from "@features/core/core";
+import type { LNode } from "@features/nodes/LNode/LNode";
 import { GRID } from "../CONST";
 import { BatchCommand } from "../history";
 import type { Command as IHistoryCommand } from "../interfaces";
 import type { UICommand } from "./types";
+import Tools from "../Tools";
+
+let lastHiddenNodes: LNode[] = [];
 
 export const transformCommands: UICommand[] = [
   {
@@ -123,11 +127,77 @@ export const transformCommands: UICommand[] = [
         execute: (e: KeyboardEvent) => {
           if (core.mode.textEditing) return;
           e.preventDefault();
-          const selected = Array.from(core.selectManager.selectedNodes.values());
-          selected.forEach((node) => {
-            if (node.list.parentNode) {
+          const selected = Array.from(
+            core.selectManager.selectedNodes.values(),
+          );
+          const toHide = selected.filter((node) =>
+            Boolean(node.list.parentNode),
+          );
+          if (toHide.length > 0) {
+            lastHiddenNodes = toHide;
+            toHide.forEach((node) => {
               node.hide(true, true);
+            });
+          }
+        },
+      },
+      {
+        label: "Показать",
+        shortcuts: ["ctrl+h"],
+        execute: (e: KeyboardEvent) => {
+          if (core.mode.textEditing) return;
+          Tools.stopEvent(e);
+          const selected = Array.from(
+            core.selectManager.selectedNodes.values(),
+          );
+          const toShow = new Set<LNode>();
+
+          const collectHiddenDescendants = (n: LNode) => {
+            n.list.children?.forEach((child) => {
+              if (child.hiddenBD || child.hidden) {
+                toShow.add(child);
+              }
+              collectHiddenDescendants(child);
+            });
+          };
+
+          if (selected.length > 0) {
+            selected.forEach((node) => {
+              if (node.hiddenBD || node.hidden) {
+                toShow.add(node);
+              }
+              collectHiddenDescendants(node);
+              if (node.list.parentNode?.list.children) {
+                node.list.parentNode.list.children.forEach((sibling) => {
+                  if (sibling.hiddenBD || sibling.hidden) {
+                    toShow.add(sibling);
+                  }
+                });
+              }
+            });
+          } else if (
+            lastHiddenNodes.length > 0 &&
+            lastHiddenNodes.some((n) => n.hiddenBD || n.hidden)
+          ) {
+            lastHiddenNodes.forEach((node) => {
+              if (node.hiddenBD || node.hidden) {
+                toShow.add(node);
+              }
+            });
+            lastHiddenNodes = [];
+          } else {
+            core.nodeManager.nodes.forEach((node) => {
+              if (node.hiddenBD || node.hidden) {
+                toShow.add(node);
+              }
+            });
+          }
+
+          toShow.forEach((node) => {
+            if (node.list.parentNode && !node.list.parentNode.list.isListOpen) {
+              node.list.parentNode.list.isListOpen = true;
             }
+            node.show(true, true);
           });
         },
       },

@@ -8,6 +8,9 @@ export interface IUser {
   email?: string;
   picture?: string;
   name: string;
+  isAdmin?: boolean;
+  lastActiveAt?: Date | string;
+  pageViewsCount?: number;
   settings?: {
     homeId?: string;
   };

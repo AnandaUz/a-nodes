@@ -1,0 +1,144 @@
+.admin-page {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--darkBlue, #002e50);
+      font-weight: 600;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+
+      .admin-search {
+        padding: 6px 12px;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        font-size: 14px;
+        outline: none;
+
+        &:focus {
+          border-color: #0969da;
+          box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.2);
+        }
+      }
+
+      .btn-refresh {
+        padding: 6px 14px;
+        background: #0969da;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #0856b3;
+        }
+
+        &:disabled {
+          background: #8c959f;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  .admin-table-wrap {
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    text-align: left;
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #e1e4e8;
+    }
+
+    th {
+      background: #f6f8fa;
+      color: #57606a;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #e1e4e8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #24292f;
+        flex-shrink: 0;
+      }
+
+      .user-name {
+        font-weight: 500;
+        color: #24292f;
+      }
+    }
+
+    .views-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #ddf4ff;
+      color: #0969da;
+      border-radius: 12px;
+    }
+
+    .date-cell {
+      color: #57606a;
+      white-space: nowrap;
+    }
+  }
+
+  .admin-loading,
+  .admin-empty,
+  .admin-error {
+    text-align: center;
+    padding: 40px;
+    color: #57606a;
+    font-size: 15px;
+  }
+
+  .admin-error {
+    color: #cf222e;
+  }
+}

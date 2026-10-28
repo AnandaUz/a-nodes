@@ -1,4 +1,4 @@
-import { getToken, logout } from "@/services/auth.service";
+import { getToken, getUser, logout } from "@/services/auth.service";
 import "@components/c-user-menu/c-user-menu";
 
 export function renderHeader(): void {
@@ -6,6 +6,7 @@ export function renderHeader(): void {
   if (!header) return;
 
   const isAuth = !!getToken();
+  const user = getUser();
 
   const path = window.location.pathname;
 
@@ -21,6 +22,7 @@ export function renderHeader(): void {
           <div class="right-bl">
             
             <c-user-menu>
+              ${user?.isAdmin ? `<a href="/admin">админка</a>` : ""}
               <a href="/settings" class="btn-settings"></a>
               <a href="/news">новости</a>
               

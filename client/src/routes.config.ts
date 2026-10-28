@@ -17,6 +17,11 @@ export const routes: RouteConfig[] = [
     title: "Настройки",
   },
   {
+    path: "/admin",
+    load: () => import("./pages/admin/admin").then((m) => m.adminPage),
+    title: "Панель администратора",
+  },
+  {
     path: "/news",
     load: () => import("./pages/news/news").then((m) => m.newsPage),
     title: "Новости",

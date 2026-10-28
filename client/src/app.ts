@@ -2,7 +2,8 @@ import "@styles/style.scss";
 import { renderHeader } from "./components/header"; // добавить
 import { renderFooter } from "./components/footer"; // добавить
 import { authGuard } from "@services/auth.guard";
-import { getUser, handleCredential } from "@services/auth.service";
+import { getToken, getUser, handleCredential } from "@services/auth.service";
+import api from "@features/core/api";
 import { Router } from "@base/client/features/router/router";
 import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
@@ -17,6 +18,13 @@ registerNodeType(NODE_TYPES.PAGE.id, LNode_Page);
 
 
 class RouterEx extends Router {
+  override async render(): Promise<void> {
+    await super.render();
+    if (getToken()) {
+      api.fetchWithAuth("/api/users/pageview", { method: "POST" }).catch(() => {});
+    }
+  }
+
   // override showLoader(): void {
   //   app.showLoader();
   // }

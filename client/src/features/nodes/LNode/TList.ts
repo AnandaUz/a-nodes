@@ -42,6 +42,17 @@ export default class TList {
     return false;
   }
 
+  hasSimpleChildren(): boolean {
+    if (!this.children?.size) return false;
+    for (const child of this.children) {
+      const isRepeat = child.repeatMode.mode > 0 || !!child.repeatMode.date;
+      if (!child.hiddenBD && !isRepeat) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private _onChangeListeners: Set<() => void> = new Set();
   private _totalIndexCallBacks: Set<(v: number) => void> = new Set();
   private _totalIndex: number = 0;

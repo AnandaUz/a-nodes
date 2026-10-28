@@ -4,7 +4,7 @@
 
 Связанная документация:
 - [ARCHITECTURE.md](file:///d:/_sites/a-node(v.AI)/ARCHITECTURE.md) — детальная архитектура системы и потоки данных.
-- [GLOSSARY.md](file:///d:/_sites/a-node(v.AI)/GLOSSARY.md) — глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
+- [.agents/glossary/index.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/index.md) — глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
 - [docs/ANALYSIS_REPORT.md](file:///d:/_sites/a-node(v.AI)/docs/ANALYSIS_REPORT.md) — технический аудит, рекомендации и roadmap.
 
 ---

@@ -1,13 +1,15 @@
 import { Router } from 'express';
-import { getAllUsers, getUserById, updateSettings} from '../controllers/user.controller';
-
+import { getAllUsers, getUserById, updateSettings, recordPageView, getAdminUsersStats } from '../controllers/user.controller';
+import { authenticate, requireAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Когда кто-то зайдет на /api/users (POST), сработает создание
-// router.post('/', createUser);
+// Фиксация просмотра страницы
+router.post('/pageview', authenticate, recordPageView);
 
-//
+// Получение статистики пользователей администратором
+router.get('/admin/stats', authenticate, requireAdmin, getAdminUsersStats);
+
 router.get('/', getAllUsers);
 
 router.get('/:id', getUserById);

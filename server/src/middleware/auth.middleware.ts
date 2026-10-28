@@ -22,3 +22,10 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     req.user = decoded;
     next();
 };
+
+export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || req.user.id !== process.env.ADMIN_USER_ID) {
+        return res.status(403).json({ error: 'Доступ запрещён: требуются права администратора' });
+    }
+    next();
+};

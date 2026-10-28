@@ -25,18 +25,30 @@ class CUserMenu extends HTMLElement {
 
     this.innerHTML = str;
 
-    const wrap = document.getElementById("avatarWrap");
+    const wrap = this.querySelector(".avatar-wrap") as HTMLElement | null;
+    const avatar = this.querySelector(".avatar") as HTMLElement | null;
+    const dropdown = this.querySelector(".dropdown") as HTMLElement | null;
 
-    if (wrap) {
-      // клик на аватарке — переключает меню
-      wrap.addEventListener("click", function (e) {
-        Tools.stopEvent(e); // не даём клику всплыть до document
+    if (wrap && avatar) {
+      // клик строго на аватарке — переключает меню
+      avatar.addEventListener("click", function (e) {
+        Tools.stopEvent(e);
         wrap.classList.toggle("open");
       });
 
+      // клик по пунктам меню закрывает его, не ломая навигацию
+      dropdown?.addEventListener("click", function (e) {
+        const target = e.target as HTMLElement;
+        if (target.closest("a")) {
+          wrap.classList.remove("open");
+        }
+      });
+
       // клик в любом другом месте — закрывает меню
-      document.addEventListener("click", function () {
-        wrap.classList.remove("open");
+      document.addEventListener("click", function (e) {
+        if (!wrap.contains(e.target as Node)) {
+          wrap.classList.remove("open");
+        }
       });
 
       // ESC тоже закрывает

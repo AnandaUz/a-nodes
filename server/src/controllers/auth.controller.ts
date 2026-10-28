@@ -84,6 +84,7 @@ export const googleAuth = async (req: Request, res: Response) => {
     });
     // Сохраняем токен в БД для пользователя
     user.token = token;
+    user.lastActiveAt = new Date();
     await user.save();
 
     return res.json({
@@ -99,6 +100,9 @@ export const googleAuth = async (req: Request, res: Response) => {
         isRegistered: user.isRegistered,
         telegramId: user.telegramId,
         settings: user.settings,
+        isAdmin: user._id.toString() === process.env.ADMIN_USER_ID,
+        lastActiveAt: user.lastActiveAt,
+        pageViewsCount: user.pageViewsCount,
       },
     });
   } catch (error) {
@@ -163,6 +167,9 @@ export const registerUser = async (req: Request, res: Response) => {
         isRegistered: user.isRegistered,
         telegramId: user.telegramId,
         settings: user.settings,
+        isAdmin: user._id.toString() === process.env.ADMIN_USER_ID,
+        lastActiveAt: user.lastActiveAt,
+        pageViewsCount: user.pageViewsCount,
       },
     });
   } catch (error) {
@@ -189,8 +196,10 @@ export const verifySession = async (req: Request, res: Response) => {
     }
     if (!user.email && payload.email) {
       user.email = payload.email;
-      await user.save();
     }
+
+    user.lastActiveAt = new Date();
+    await user.save();
 
     return res.json({
       valid: true,
@@ -203,6 +212,9 @@ export const verifySession = async (req: Request, res: Response) => {
         isRegistered: user.isRegistered,
         telegramId: user.telegramId,
         settings: user.settings,
+        isAdmin: user._id.toString() === process.env.ADMIN_USER_ID,
+        lastActiveAt: user.lastActiveAt,
+        pageViewsCount: user.pageViewsCount,
       },
     });
   } catch (error) {

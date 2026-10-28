@@ -7,7 +7,7 @@
 Связанная документация:
 - [ARCHITECTURE.md](file:///d:/_sites/a-node(v.AI)/ARCHITECTURE.md) — системная архитектура и потоки данных.
 - [docs/PROJECT_CONTEXT.md](file:///d:/_sites/a-node(v.AI)/docs/PROJECT_CONTEXT.md) — выжимка для AI-ассистента.
-- [GLOSSARY.md](file:///d:/_sites/a-node(v.AI)/GLOSSARY.md) — проектный глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
+- [.agents/glossary/index.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/index.md) — проектный глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
 
 ---
 
