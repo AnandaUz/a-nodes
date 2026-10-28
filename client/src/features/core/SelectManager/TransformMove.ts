@@ -1,12 +1,16 @@
 import { core } from "@/features/core/core";
 import type { SelectManager } from "./SelectManager";
 import Tools from "../Tools";
+import { BatchCommand } from "../history";
+import type { Command } from "../interfaces";
+import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export class TransformMove {
   private active = false;
   private selectManager: SelectManager;
   private rafId: number | null = null;
   private lastPointerEvent: PointerEvent | null = null;
+  private startPositions = new Map<LNode, { x: number; y: number }>();
 
   constructor(selectManager: SelectManager) {
     this.selectManager = selectManager;
@@ -15,6 +19,10 @@ export class TransformMove {
   start(e?: PointerEvent) {
     if (this.selectManager.selectedNodes.size === 0) return;
     this.active = true;
+    this.startPositions.clear();
+    this.selectManager.selectedNodes.forEach((node) => {
+      this.startPositions.set(node, { x: node.x, y: node.y });
+    });
 
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
@@ -82,6 +90,25 @@ export class TransformMove {
       node.vNode?.onPointerUp(e);
     });
     Tools.stopEvent(e);
+
+    const commands: Command[] = [];
+    this.startPositions.forEach((startPos, node) => {
+      if (startPos.x !== node.x || startPos.y !== node.y) {
+        const endPos = { x: node.x, y: node.y };
+        commands.push({
+          execute: () => node.moveTo(endPos),
+          undo: () => node.moveTo(startPos),
+        });
+      }
+    });
+    if (commands.length > 0 && core.history) {
+      if (core.history.push) {
+        core.history.push(new BatchCommand(commands));
+      } else if (core.history.execute) {
+        core.history.execute(new BatchCommand(commands));
+      }
+    }
+    this.startPositions.clear();
 
     this.active = false;
     core.mode.selectMoving = false;

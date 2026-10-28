@@ -1,33 +1,17 @@
 import type { Request, Response } from "express";
-import { Node } from "../models/Node";
-import { User } from "../models/User";
-import mongoose from "mongoose";
+import {
+  bulkSaveNodes,
+  createQuickNode,
+  deleteNodeById,
+  findQuickTargets,
+  getNodesAndPageByNodeId,
+  isValidObjectId,
+} from "../services/node.service";
 
 export const getNodesByParentNodeId = async (req: Request, res: Response) => {
   try {
     const nodeId = req.params["nodeId"] as string;
-    const isRoot = nodeId === "root";
-
-    const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(nodeId);
-
-    const exStr = "-__v -inTrash -ok";
-
-    const [nodes, pageNode] = await Promise.all([
-      Node.find({
-        pageId: pageFilter as any,
-        $or: [
-          // обычные ноды — без мусора
-          { inTrash: { $ne: true }, ok: { $ne: true } },
-          // просроченные — выдаём всегда
-          { "exData.repeatDay": { $lt: new Date() } },
-        ],
-      })
-        .select(exStr)
-        .lean(),
-
-      isRoot ? null : Node.findById(nodeId).select(exStr).lean(),
-    ]);
-
+    const { nodes, pageNode } = await getNodesAndPageByNodeId(nodeId);
     res.json({ nodes, pageNode });
   } catch (err: any) {
     console.error("[getNodesByParentNodeId Error]:", err);
@@ -37,29 +21,6 @@ export const getNodesByParentNodeId = async (req: Request, res: Response) => {
   }
 };
 
-// export const saveNode = async (req: AuthRequest, res: Response) => {
-//   try {
-//     const { node } = req.body;
-
-//     let updatedNode;
-
-//     if (node._id) {
-//       // Обновляем существующую
-//       updatedNode = await Node.findByIdAndUpdate(
-//         node._id,
-//         { $set: { ...node } },
-//         { new: true },
-//       );
-//     } else {
-//       // Создаём новую — MongoDB сам сгенерирует _id
-//       updatedNode = await Node.create(node);
-//     }
-
-//     res.status(200).json({ node: updatedNode });
-//   } catch (error) {
-//     res.status(500).json({ error: "Server error" });
-//   }
-// };
 export const saveNodesController = async (req: Request, res: Response) => {
   try {
     const { nodes } = req.body;
@@ -67,7 +28,7 @@ export const saveNodesController = async (req: Request, res: Response) => {
     if (!Array.isArray(nodes)) {
       return res.status(400).json({ message: "Ожидался массив нод" });
     }
-    const ids = await saveNodes(nodes);
+    const ids = await bulkSaveNodes(nodes);
     res.json({ ids });
   } catch (err: any) {
     console.error("[saveNodes Error]:", err);
@@ -77,60 +38,21 @@ export const saveNodesController = async (req: Request, res: Response) => {
   }
 };
 
-export const saveNodes = async (nodes: any[]) => {
-  try {
-    const operations = nodes.map((node: any) => {
-      const { _id, ...updateData } = node;
-
-      const setFields: Record<string, any> = {};
-      const unsetFields: Record<string, ""> = {};
-
-      for (const [key, value] of Object.entries(updateData)) {
-        if (value === null) {
-          // ← проверяем null, не undefined
-          unsetFields[key] = "";
-        } else {
-          setFields[key] = value;
-        }
-      }
-
-      const update: Record<string, any> = {};
-      if (Object.keys(setFields).length > 0) update.$set = setFields;
-      if (Object.keys(unsetFields).length > 0) update.$unset = unsetFields;
-
-      return {
-        updateOne: {
-          filter: { _id: _id || new mongoose.Types.ObjectId() },
-          update,
-          upsert: true,
-        },
-      };
-    });
-
-    const result = await Node.bulkWrite(operations, { ordered: true });
-
-    const ids = nodes.map((node: any, index: number) => {
-      const upsertedId = result.upsertedIds[index];
-      return upsertedId ? upsertedId.toString() : node._id;
-    });
-
-    return ids;
-  } catch (err: any) {
-    return null;
-  }
-};
+export const saveNodes = bulkSaveNodes;
 
 export const deleteNodeController = async (req: Request, res: Response) => {
   try {
     const id = req.params["id"] as string;
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Невалидный id" });
     }
-    await Node.findByIdAndDelete(id);
+    await deleteNodeById(id);
     res.json({ success: true, id });
   } catch (err: any) {
     console.error("[deleteNode Error]:", err);
-    res.status(500).json({ message: "Ошибка удаления ноды", error: err?.message });
+    res
+      .status(500)
+      .json({ message: "Ошибка удаления ноды", error: err?.message });
   }
 };
 
@@ -146,7 +68,10 @@ const checkApiKey = (req: Request): boolean => {
   return Boolean(apiKey && apiKey === secretKey);
 };
 
-export const getQuickTargetsController = async (req: Request, res: Response) => {
+export const getQuickTargetsController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     if (!checkApiKey(req)) {
       return res.status(401).json({ message: "Неверный API ключ" });
@@ -155,34 +80,13 @@ export const getQuickTargetsController = async (req: Request, res: Response) => 
     const marker = (req.query.q as string) || ">>";
     const pageId = req.query.pageId as string | undefined;
 
-    const query: any = {
-      title: { $regex: marker },
-      inTrash: { $ne: true },
-    };
-
-    if (pageId) {
-      query.pageId = pageId === "root" ? null : new mongoose.Types.ObjectId(pageId);
-    }
-
-    const nodes = await Node.find(query).select("_id title pageId s L").lean();
-
-    const targets = nodes.map((n) => {
-      const rawTitle = n.title || "";
-      const cleanTitle = rawTitle.replace(marker, "").trim();
-      const parentLID = (n.s || 0) & 0x1ffff;
-      return {
-        _id: n._id,
-        title: rawTitle,
-        cleanTitle: cleanTitle || rawTitle,
-        parentLID,
-        pageId: n.pageId ? n.pageId.toString() : "root",
-      };
-    });
-
+    const targets = await findQuickTargets(marker, pageId);
     res.json({ success: true, targets });
   } catch (err: any) {
     console.error("[getQuickTargets Error]:", err);
-    res.status(500).json({ message: "Ошибка получения списка целей", error: err?.message });
+    res
+      .status(500)
+      .json({ message: "Ошибка получения списка целей", error: err?.message });
   }
 };
 
@@ -207,7 +111,8 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
       rawText = (req.body.text || req.body.title || "").toString().trim();
       customParentTitle = req.body.parentTitle;
       customPageId = req.body.pageId;
-      if (req.body.parentLID !== undefined) customParentLID = Number(req.body.parentLID);
+      if (req.body.parentLID !== undefined)
+        customParentLID = Number(req.body.parentLID);
       if (req.body.tab !== undefined) customTab = Number(req.body.tab);
       if (req.body.index !== undefined) customIndex = Number(req.body.index);
       if (req.body.s !== undefined) customS = Number(req.body.s);
@@ -215,132 +120,31 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
     }
 
     if (!rawText) {
-      return res.status(400).json({ message: "Текст ноды не может быть пустым" });
+      return res
+        .status(400)
+        .json({ message: "Текст ноды не может быть пустым" });
     }
 
-    let targetPageId = customPageId || "6a217eec3f6bb77979b18240";
-    let targetParentLID = customParentLID !== undefined ? customParentLID : 136;
-    const targetTab = customTab !== undefined ? customTab : 1;
-
-    // Поиск родителя по названию
-    if (customParentTitle && customParentLID === undefined) {
-      const cleanParentSearch = customParentTitle.trim();
-      const escaped = cleanParentSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const parentFilter: any = {
-        title: { $regex: escaped, $options: "i" },
-        inTrash: { $ne: true },
-      };
-      if (customPageId) {
-        parentFilter.pageId =
-          customPageId === "root" ? null : new mongoose.Types.ObjectId(customPageId);
-      }
-      const parentNode = await Node.findOne(parentFilter);
-      if (parentNode) {
-        targetPageId = parentNode.pageId ? parentNode.pageId.toString() : "root";
-        let pLID = (parentNode.s || 0) & 0x1ffff;
-        if (!pLID) {
-          const pageNodesForLID = await Node.find({
-            pageId: parentNode.pageId ?? null,
-            inTrash: { $ne: true },
-          })
-            .select("s")
-            .lean();
-          let maxLID = 0;
-          for (const n of pageNodesForLID) {
-            const curLID = (n.s || 0) & 0x1ffff;
-            if (curLID > maxLID) maxLID = curLID;
-          }
-          pLID = maxLID + 1;
-          parentNode.s = ((parentNode.s || 0) & ~0x1ffff) | (pLID & 0x1ffff);
-          await parentNode.save();
-        }
-        targetParentLID = pLID;
-      }
-    }
-
-    let targetUserId: any = customUserId;
-    if (!targetUserId) {
-      const adminId = process.env.BOT_ADMIN ? Number(process.env.BOT_ADMIN) : null;
-      let user = adminId
-        ? await User.findOne({ telegramId: adminId }).select("_id").lean()
-        : null;
-      if (!user) {
-        user = await User.findOne().select("_id").lean();
-      }
-      targetUserId = user?._id;
-    }
-
-    const isRoot = !targetPageId || targetPageId === "root";
-    const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(targetPageId);
-
-    // Ищем детей целевого родителя, чтобы вычислить следующий index
-    const pageNodes = await Node.find({
-      pageId: pageFilter as any,
-      inTrash: { $ne: true },
-    })
-      .select("L")
-      .lean();
-
-    let maxChildIndex = -1;
-    for (const n of pageNodes) {
-      if (typeof n.L === "number") {
-        const pLID = (n.L >> 15) & 0x1ffff;
-        if (pLID === targetParentLID) {
-          const cIdx = (n.L >> 3) & 0xfff;
-          if (cIdx > maxChildIndex) maxChildIndex = cIdx;
-        }
-      }
-    }
-
-    const finalIndex =
-      customIndex !== undefined
-        ? customIndex
-        : maxChildIndex !== -1
-          ? maxChildIndex + 1
-          : customParentTitle || customParentLID !== undefined
-            ? 1
-            : 22;
-
-    // Упаковываем L: tab (3 бита), index (12 бит), parentLID (17 бит)
-    const t = targetTab & 0x7;
-    const idx = finalIndex & 0xfff;
-    const pLID = targetParentLID & 0x1ffff;
-    const newL = ((t | (idx << 3) | (pLID << 15)) >>> 0);
-
-    const nodeData: Record<string, any> = {
-      title: rawText,
-      type: 1, // TEXT_EDIT
-      pageId: pageFilter,
-      L: newL,
-      lastUpdate: new Date(),
-    };
-
-    if (customS !== undefined) {
-      nodeData.s = customS;
-    }
-
-    if (targetUserId) {
-      nodeData["userId"] = new mongoose.Types.ObjectId(targetUserId);
-    }
-
-    const newNode = new Node(nodeData);
-    await newNode.save();
+    const node = await createQuickNode({
+      rawText,
+      customParentTitle,
+      customPageId,
+      customParentLID,
+      customTab,
+      customIndex,
+      customUserId,
+      customS,
+    });
 
     res.status(201).json({
       success: true,
-      node: {
-        _id: newNode._id,
-        title: newNode.title,
-        type: newNode.type,
-        L: newL,
-        parentLID: targetParentLID,
-        tab: targetTab,
-        index: finalIndex,
-        pageId: targetPageId,
-      },
+      node,
     });
   } catch (err: any) {
     console.error("[quickAddNode Error]:", err);
-    res.status(500).json({ message: "Ошибка добавления ноды", error: err?.message });
+    res
+      .status(500)
+      .json({ message: "Ошибка добавления ноды", error: err?.message });
   }
 };
+

@@ -7,6 +7,7 @@ scope: "client/**/*"
 # Client & Canvas Directives
 
 - **Frameworks:** No React, Vue, or Tailwind. Native DOM, TypeScript, SVG, and SCSS only.
+- **TypeScript:** Соблюдение `erasableSyntaxOnly`. Запрещены parameter properties (`constructor(public x: ...)` -> объявлять поля класса явно) и `enum` (использовать string unions или `as const`).
 - **Model-View Separation:**
   - [LNode](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/LNode.ts): Encapsulates node data, hierarchy, position calculations, and invariants.
   - [VNode](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/VNode/VNode.ts): View only. Handles DOM rendering, CSS classes, and user event dispatch. No business logic or hierarchy mutation inside VNode.

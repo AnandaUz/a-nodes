@@ -1,11 +1,15 @@
 import { core } from "../core/core";
 import Tools from "../core/Tools";
+import {
+  applyViewportTransform,
+  calculatePinchZoom,
+  calculateZoom,
+  screenToWorld,
+  type ViewportState,
+} from "./viewportTransform";
+import { ViewportGestureController } from "./viewportGestures";
 
-export interface ViewportState {
-  x: number;
-  y: number;
-  scale: number;
-}
+export type { ViewportState };
 
 const SCALE_STEP = 0.15;
 
@@ -17,15 +21,8 @@ export class Viewport {
   private isPanning = false;
   private panStart = { x: 0, y: 0 };
   private panOrigin = { x: 0, y: 0 };
+  private gestureController: ViewportGestureController;
 
-  // Touch: pinch-to-zoom
-  private activeTouches: Map<number, { x: number; y: number }> = new Map();
-  private pinchStartDist = 0;
-  private pinchStartScale = 1;
-
-  // Двойной тап (мобильный аналог dblclick)
-  private lastTapTime = 0;
-  private lastTapPos = { x: 0, y: 0 };
   onDoubleTap?: (clientX: number, clientY: number) => void;
 
   readonly minScale = 0.1;
@@ -35,6 +32,32 @@ export class Viewport {
   constructor(el: HTMLElement, scene: HTMLElement) {
     this.el = el;
     this.scene = scene;
+
+    this.gestureController = new ViewportGestureController({
+      startPan: (clientX, clientY) => this.startPan(clientX, clientY),
+      movePan: (clientX, clientY) => this.movePan(clientX, clientY),
+      isPanning: () => this.isPanning,
+      setIsPanning: (v) => {
+        this.isPanning = v;
+      },
+      getCurrentScale: () => this.state.scale,
+      onPinchZoom: (dist, startDist, startScale, center) => {
+        const rect = this.scene.getBoundingClientRect();
+        this.state = calculatePinchZoom(
+          this.state,
+          dist,
+          startDist,
+          startScale,
+          center,
+          rect,
+          this.minScale,
+          this.maxScale,
+        );
+        this.applyTransform();
+      },
+      getOnDoubleTap: () => this.onDoubleTap,
+    });
+
     this.bindEvents();
     this.applyTransform();
 
@@ -48,16 +71,7 @@ export class Viewport {
   // ─── Transform ───────────────────────────────────────────────
 
   private applyTransform() {
-    const { x, y, scale } = this.state;
-    core.mode.scale = scale;
-    this.el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-
-    // Двигаем фоновую сетку синхронно с viewport
-    const bgSize = this.gridSize * scale;
-    const bgX = x % bgSize;
-    const bgY = y % bgSize;
-    this.scene.style.backgroundSize = `${bgSize}px ${bgSize}px`;
-    this.scene.style.backgroundPosition = `${bgX}px ${bgY}px`;
+    applyViewportTransform(this.el, this.scene, this.state, this.gridSize);
   }
 
   getState(): Readonly<ViewportState> {
@@ -65,11 +79,7 @@ export class Viewport {
   }
 
   screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
-    const { x, y, scale } = this.state;
-    return {
-      x: (screenX - x) / scale,
-      y: (screenY - y) / scale,
-    };
+    return screenToWorld(this.state, screenX, screenY);
   }
 
   // ─── Pan helpers ──────────────────────────────────────────────
@@ -125,7 +135,6 @@ export class Viewport {
   };
 
   private onWheel = (e: WheelEvent) => {
-    // if (!e.ctrlKey) return;
     Tools.stopEvent(e);
 
     const factor = e.deltaY < 0 ? 1 + SCALE_STEP : 1 - SCALE_STEP;
@@ -139,158 +148,15 @@ export class Viewport {
   };
 
   private applyZoom(factor: number, originX: number, originY: number) {
-    const newScale = Math.min(
+    this.state = calculateZoom(
+      this.state,
+      factor,
+      originX,
+      originY,
+      this.minScale,
       this.maxScale,
-      Math.max(this.minScale, this.state.scale * factor),
     );
-
-    this.state.x = Math.round(
-      originX - (originX - this.state.x) * (newScale / this.state.scale),
-    );
-    this.state.y = Math.round(
-      originY - (originY - this.state.y) * (newScale / this.state.scale),
-    );
-    this.state.scale = newScale;
-
     this.applyTransform();
-  }
-
-  // ─── Touch: pan + pinch + double tap ─────────────────────────
-
-  private onTouchStart = (e: TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("a") || target.closest(".btn-el")) {
-      return;
-    }
-
-    Tools.stopEvent(e);
-
-    for (const t of Array.from(e.changedTouches)) {
-      this.activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
-    }
-
-    if (this.activeTouches.size === 1) {
-      if (
-        core.mode.isPinching ||
-        Date.now() - core.mode.lastPinchEndTime < 300
-      ) {
-        return;
-      }
-      const t = e.changedTouches[0]!;
-      this.startPan(t.clientX, t.clientY);
-
-      // Двойной тап
-      const now = Date.now();
-      const dx = t.clientX - this.lastTapPos.x;
-      const dy = t.clientY - this.lastTapPos.y;
-      const dist = Math.hypot(dx, dy);
-
-      if (now - this.lastTapTime < 300 && dist < 20) {
-        this.onDoubleTap?.(t.clientX, t.clientY);
-        this.lastTapTime = 0;
-      } else {
-        this.lastTapTime = now;
-        this.lastTapPos = { x: t.clientX, y: t.clientY };
-      }
-    }
-
-    if (this.activeTouches.size >= 2) {
-      this.isPanning = false;
-      core.mode.isPinching = true;
-      this.pinchStartDist = this.getPinchDist();
-      this.pinchStartScale = this.state.scale;
-
-      core.nodeManager?.nodes.forEach((node) => {
-        node.vNode?.cancelDrag();
-      });
-    }
-  };
-
-  private onTouchMove = (e: TouchEvent) => {
-    Tools.stopEvent(e);
-
-    for (const t of Array.from(e.changedTouches)) {
-      this.activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
-    }
-
-    if (this.activeTouches.size === 1 && this.isPanning) {
-      if (
-        core.mode.isPinching ||
-        Date.now() - core.mode.lastPinchEndTime < 300
-      ) {
-        return;
-      }
-      const t = e.changedTouches[0]!;
-      this.movePan(t.clientX, t.clientY);
-      return;
-    }
-
-    if (this.activeTouches.size >= 2) {
-      core.mode.isPinching = true;
-      const dist = this.getPinchDist();
-      const newScale = Math.min(
-        this.maxScale,
-        Math.max(
-          this.minScale,
-          this.pinchStartScale * (dist / this.pinchStartDist),
-        ),
-      );
-      const center = this.getPinchCenter();
-      const rect = this.scene.getBoundingClientRect();
-      const ox = center.x - rect.left;
-      const oy = center.y - rect.top;
-
-      this.state.x = Math.round(
-        ox - (ox - this.state.x) * (newScale / this.state.scale),
-      );
-      this.state.y = Math.round(
-        oy - (oy - this.state.y) * (newScale / this.state.scale),
-      );
-      this.state.scale = newScale;
-
-      this.applyTransform();
-    }
-  };
-
-  private onTouchEnd = (e: TouchEvent) => {
-    const wasPinching = core.mode.isPinching;
-
-    for (const t of Array.from(e.changedTouches)) {
-      this.activeTouches.delete(t.identifier);
-    }
-
-    if (this.activeTouches.size === 0) {
-      this.isPanning = false;
-      if (wasPinching) {
-        core.mode.isPinching = false;
-        core.mode.lastPinchEndTime = Date.now();
-      }
-    } else if (this.activeTouches.size === 1) {
-      if (wasPinching) {
-        this.isPanning = false;
-        core.mode.isPinching = false;
-        core.mode.lastPinchEndTime = Date.now();
-      } else if (!this.isPanning) {
-        const remaining = Array.from(this.activeTouches.values())[0]!;
-        this.startPan(remaining.x, remaining.y);
-      }
-    }
-  };
-
-  private onTouchCancel = (e: TouchEvent) => {
-    this.onTouchEnd(e);
-  };
-
-  private getPinchDist(): number {
-    const [a, b] = Array.from(this.activeTouches.values());
-    if (!a || !b) return 1;
-    return Math.hypot(b.x - a.x, b.y - a.y);
-  }
-
-  private getPinchCenter(): { x: number; y: number } {
-    const [a, b] = Array.from(this.activeTouches.values());
-    if (!a || !b) return { x: 0, y: 0 };
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   }
 
   // ─── Space + drag ─────────────────────────────────────────────
@@ -325,14 +191,14 @@ export class Viewport {
     this.scene.addEventListener("pointerup", this.onPointerUp);
     this.scene.addEventListener("wheel", this.onWheel, { passive: false });
 
-    this.scene.addEventListener("touchstart", this.onTouchStart, {
+    this.scene.addEventListener("touchstart", this.gestureController.onTouchStart, {
       passive: false,
     });
-    this.scene.addEventListener("touchmove", this.onTouchMove, {
+    this.scene.addEventListener("touchmove", this.gestureController.onTouchMove, {
       passive: false,
     });
-    this.scene.addEventListener("touchend", this.onTouchEnd);
-    this.scene.addEventListener("touchcancel", this.onTouchCancel);
+    this.scene.addEventListener("touchend", this.gestureController.onTouchEnd);
+    this.scene.addEventListener("touchcancel", this.gestureController.onTouchCancel);
 
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
@@ -344,10 +210,10 @@ export class Viewport {
     this.scene.removeEventListener("pointerup", this.onPointerUp);
     this.scene.removeEventListener("wheel", this.onWheel);
 
-    this.scene.removeEventListener("touchstart", this.onTouchStart);
-    this.scene.removeEventListener("touchmove", this.onTouchMove);
-    this.scene.removeEventListener("touchend", this.onTouchEnd);
-    this.scene.removeEventListener("touchcancel", this.onTouchCancel);
+    this.scene.removeEventListener("touchstart", this.gestureController.onTouchStart);
+    this.scene.removeEventListener("touchmove", this.gestureController.onTouchMove);
+    this.scene.removeEventListener("touchend", this.gestureController.onTouchEnd);
+    this.scene.removeEventListener("touchcancel", this.gestureController.onTouchCancel);
 
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);

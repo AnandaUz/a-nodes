@@ -1,63 +1,80 @@
 import { core, EVENTS } from "../../core/core";
-import type { Command } from "../../core/interfaces";
-import Tools from "../../core/Tools";
 import type { LNode } from "@/features/nodes/LNode/LNode";
+import { DndController } from "./DndController";
+import { ResizeController } from "./ResizeController";
 
-interface Position {
-  x: number;
-  y: number;
-}
-const DBL_CLICK_DELAY = 300; // Максимальное время между кликами (мс)
-const DBL_CLICK_DISTANCE = 5;
+export { DndController } from "./DndController";
+export { ResizeController } from "./ResizeController";
+
 export class VNode {
   private container: HTMLElement;
   body: HTMLElement;
-  isDragging: boolean = false;
-  private pointerOffset = { x: 0, y: 0 };
   node!: LNode;
-  private startPos: { x: number; y: number } = { x: 0, y: 0 };
-  private dragRafId: number | null = null;
-  private targetPos: { x: number; y: number } | null = null;
-  // public _id: string;
-  // public x: number;
-  // public y: number;
-  width: number = 0;
-  height: number = 0;
   hidden: boolean = false;
 
-  // private isSelectAble = true;
-  isMoved = false;
-  protected movingElement!: HTMLElement;
+  movingElement!: HTMLElement;
   protected unsubscribers: Array<() => void> = [];
   private animationId: number | null = null;
 
-  private lastClickTime: number = 0;
-  private lastClickPos: { x: number; y: number } = { x: 0, y: 0 };
   protected elSVG?: SVGRectElement | null = null;
   elFrameBg?: HTMLElement | null = null;
 
-  // Константы для настройки чувствительности
+  readonly dndController: DndController;
+  readonly resizeController: ResizeController;
 
   constructor(node: LNode, container: HTMLElement) {
     this.node = node;
     this.container = container;
+    this.dndController = new DndController(this);
+    this.resizeController = new ResizeController(this);
     this.body = document.createElement("div");
     this.body.className = "vNode";
     this.applyPosition();
     this.container.appendChild(this.body);
   }
-  get bodyRect() {
-    return {
-      x: this.node.x,
-      y: this.node.y,
-      width: this.width,
-      height: this.height,
-    } as DOMRect;
+
+  get width(): number {
+    return this.resizeController.width;
   }
-  refreshBodyRect() {
-    this.body.style.width = ""; // естественная ширина по тексту (заголовок фрейма растягивается в renderBgSVG)
-    this.width = this.body.offsetWidth || this.width || 0;
-    this.height = this.body.offsetHeight || this.height || 0;
+  set width(val: number) {
+    this.resizeController.width = val;
+  }
+
+  get height(): number {
+    return this.resizeController.height;
+  }
+  set height(val: number) {
+    this.resizeController.height = val;
+  }
+
+  get bodyRect(): DOMRect {
+    return this.resizeController.bodyRect;
+  }
+
+  refreshBodyRect(): void {
+    this.resizeController.refreshBodyRect();
+  }
+
+  checkPointOver(x: number, y: number): boolean {
+    return this.resizeController.checkPointOver(x, y);
+  }
+
+  checkInRect(selectedArea: DOMRect): boolean {
+    return this.resizeController.checkInRect(selectedArea);
+  }
+
+  get isDragging(): boolean {
+    return this.dndController.isDragging;
+  }
+  set isDragging(val: boolean) {
+    this.dndController.isDragging = val;
+  }
+
+  get isMoved(): boolean {
+    return this.dndController.isMoved;
+  }
+  set isMoved(val: boolean) {
+    this.dndController.isMoved = val;
   }
   init() {
     this.bodyInit();
@@ -164,192 +181,29 @@ export class VNode {
     }
   }
   bind() {
-    this.movingElement.addEventListener("pointerdown", this.onPointerDown);
-    this.movingElement.addEventListener("pointermove", this.onPointerMove);
-    this.movingElement.addEventListener("pointerup", this.onPointerUp);
+    this.dndController.bind(this.movingElement);
   }
 
   unbind() {
-    if (this.dragRafId !== null) {
-      cancelAnimationFrame(this.dragRafId);
-      this.dragRafId = null;
-    }
-    this.targetPos = null;
-    this.movingElement.removeEventListener("pointerdown", this.onPointerDown);
-    this.movingElement.removeEventListener("pointermove", this.onPointerMove);
-    this.movingElement.removeEventListener("pointerup", this.onPointerUp);
+    this.dndController.unbind();
   }
+
   cancelDrag() {
-    if (!this.isDragging) return;
-    this.isDragging = false;
-    this.isMoved = false;
-    if (this.dragRafId !== null) {
-      cancelAnimationFrame(this.dragRafId);
-      this.dragRafId = null;
-    }
-    this.targetPos = null;
-    this.body.classList.remove("is-dragging");
-    window.removeEventListener("pointermove", this.onPointerMove);
-    window.removeEventListener("pointerup", this.onPointerUp);
+    this.dndController.cancelDrag();
   }
 
   onPointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-    if (
-      core.mode.isPinching ||
-      Date.now() - core.mode.lastPinchEndTime < 300
-    ) {
-      return;
-    }
-    const textEdit = this.node as unknown as {
-      frame?: {
-        isFrame: boolean;
-        frameNode?: { frame?: { bringToFront(): void } };
-        bringToFront(): void;
-      };
-    };
-    if (textEdit.frame) {
-      if (textEdit.frame.isFrame) {
-        textEdit.frame.bringToFront();
-      } else if (textEdit.frame.frameNode?.frame) {
-        textEdit.frame.frameNode.frame.bringToFront();
-      }
-    }
-    if (core.mode.textEditing) {
-      if (this.node.isSelected) return;
-      // если режим редактирования, то клик по ноде переходит в редактирование
-      // core.selectManager.clearSelection();
-      core.selectManager.selectNode(this.node, { ctrlKey: false });
-      // this.select();
-      this.onDoubleClick(e);
-      core.mode.textEditing = true;
-      return;
-    }
-    if (core.mode.selectMoving && core.mode.selectedVNodeCount > 1) return;
-
-    // --- КАТАЛИЗАТОР ДВОЙНОГО КЛИКА ---
-    const currentTime = Date.now();
-    const timeDiff = currentTime - this.lastClickTime;
-
-    // Проверяем расстояние между первым и вторым кликом (на случай если пользователь дернул мышкой)
-    const distance = Math.hypot(
-      e.clientX - this.lastClickPos.x,
-      e.clientY - this.lastClickPos.y,
-    );
-
-    if (timeDiff < DBL_CLICK_DELAY && distance < DBL_CLICK_DISTANCE) {
-      this.onDoubleClick(e); // Вызываем наш кастомный метод двойного клика
-      return; // Прерываем выполнение, чтобы не начинать тащить ноду при двойном клике
-    }
-
-    // Сохраняем текущее время и координаты для следующей проверки
-    this.lastClickTime = currentTime;
-    this.lastClickPos = { x: e.clientX, y: e.clientY };
-    // ---------------------------------
-
-    this.isMoved = false;
-
-    Tools.stopEvent(e);
-
-    this.isDragging = true;
-    if (this.dragRafId !== null) {
-      cancelAnimationFrame(this.dragRafId);
-      this.dragRafId = null;
-    }
-    this.targetPos = null;
-    // core.store.emit(EVENTS.node.pointer.down, this);
-
-    const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
-
-    this.pointerOffset = {
-      x: worldPos.x - (this.node.x || 0),
-      y: worldPos.y - (this.node.y || 0),
-    };
-
-    this.startPos = { x: this.node.x, y: this.node.y };
-
-    try {
-      this.movingElement.setPointerCapture(e.pointerId);
-    } catch {}
+    this.dndController.onPointerDown(e);
   };
+
   onDoubleClick(_e: PointerEvent) {}
 
   flushDragMove() {
-    if (this.dragRafId !== null) {
-      cancelAnimationFrame(this.dragRafId);
-      this.dragRafId = null;
-    }
-    if (!this.targetPos) return;
-
-    this.node.x = this.targetPos.x;
-    this.node.y = this.targetPos.y;
-    this.targetPos = null;
-
-    this.node.onPointerMove();
-    this.applyPosition();
-    core.store.emit(EVENTS.node.moving, this.node);
-
-    // если у него есть дети
-    if (this.node.list.children?.size) {
-      this.node.list.setPositionForChildren(undefined, 0, 0, true, true);
-    }
+    this.dndController.flushDragMove();
   }
 
-  private applyDragMove = () => {
-    this.dragRafId = null;
-    this.flushDragMove();
-  };
-
   onPointerMove = (e: PointerEvent, fromTransform = false) => {
-    if (!this.isDragging) return;
-    if (
-      core.mode.isPinching ||
-      Date.now() - core.mode.lastPinchEndTime < 300
-    ) {
-      this.cancelDrag();
-      return;
-    }
-
-    if (
-      this.node.isSelected &&
-      core.selectManager.selectedNodes.size > 1 &&
-      !core.mode.selectMoving
-    ) {
-      core.selectManager.transformMove.start(e); //если выбранно несколько
-
-      return;
-    }
-
-    if (core.mode.selectMoving && !fromTransform) {
-      return;
-    }
-
-    if (!this.node.isSelected) {
-      if (!core.mode.inputMode.coarse) {
-        core.selectManager.onVNodeClick(e, this);
-      }
-
-      // this.select();
-    }
-
-    this.isMoved = true;
-    this.body.classList.add("is-dragging");
-
-    const worldPos = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
-
-    let x = Math.round(worldPos.x - this.pointerOffset.x);
-    if (1) {
-      x = Tools.getDiskPosition(x);
-    }
-    const y = Math.round(worldPos.y - this.pointerOffset.y);
-
-    this.targetPos = { x, y };
-
-    if (fromTransform) {
-      this.flushDragMove();
-    } else if (this.dragRafId === null) {
-      this.dragRafId = requestAnimationFrame(this.applyDragMove);
-    }
+    this.dndController.onPointerMove(e, fromTransform);
   };
 
   select() {
@@ -369,87 +223,8 @@ export class VNode {
   }
 
   onPointerUp = (e: PointerEvent) => {
-    if (!this.isDragging) return;
-    if (
-      core.mode.isPinching ||
-      Date.now() - core.mode.lastPinchEndTime < 300
-    ) {
-      this.cancelDrag();
-      return;
-    }
-    this.flushDragMove();
-    this.body.classList.remove("is-dragging");
-    this.isDragging = false;
-    if (!this.isMoved && !core.mode.selectMoving) {
-      this.toggleSelect();
-      core.selectManager.onVNodeClick(e, this);
-      return;
-    }
-    this.node.moveTo({ x: this.node.x, y: this.node.y });
-
-    const moveCommand = (from: Position, to: Position): Command => ({
-      execute: () => this.node.moveTo(to),
-      undo: () => this.node.moveTo(from),
-    });
-
-    core.history.execute(
-      moveCommand(this.startPos, { x: this.node.x, y: this.node.y }),
-    );
-
-    core.store.emit(EVENTS.node.moved, this.node);
-
-    core.selectManager.onNodeMoveEnd(this);
-
-    if (core.selectManager.selectedNodes.size <= 1) {
-      core.mode.selectMoving = false;
-    }
-
-    this.onStop();
+    this.dndController.onPointerUp(e);
   };
-  /** проверям точка над нодой */
-  checkPointOver(x: number, y: number) {
-    const rect = this.bodyRect; // Получаем координаты и размеры элемента
-    // Проверяем, находится ли точка внутри границ элемента
-    return (
-      x >= this.node.x &&
-      x <= this.node.x + rect.width &&
-      y >= this.node.y &&
-      y <= this.node.y + rect.height
-    );
-  }
-  checkInRect(selectedArea: DOMRect) {
-    let f_x = false;
-    let f_y = false;
-
-    const x = selectedArea.x;
-    const y = selectedArea.y;
-    const w = selectedArea.width;
-    const h = selectedArea.height;
-
-    const rect = this.bodyRect;
-
-    const b_x = rect.x; // + dx
-    const b_w = rect.width;
-
-    const b_y = rect.y; // + dy
-    const b_h = rect.height;
-
-    if (x < b_x && x + w > b_x) {
-      f_x = true;
-    } else {
-      if (x > b_x && x < b_x + b_w) {
-        f_x = true;
-      }
-    }
-    if (y < b_y && y + h > b_y) {
-      f_y = true;
-    } else {
-      if (y > b_y && y < b_y + b_h) {
-        f_y = true;
-      }
-    }
-    return f_x && f_y;
-  }
   render() {
     if (this.hidden) return;
     const idx = parseInt(this.node.exData?.repeatMode || "");
@@ -531,21 +306,11 @@ export class VNode {
     toRect: DOMRect,
     duration = 200,
   ) {
-    if (!this.elFrameBg || typeof this.elFrameBg.animate !== "function") return;
-    this.elFrameBg.animate(
-      [
-        {
-          transform: `translate(${fromRect.x}px, ${fromRect.y}px)`,
-          width: `${fromRect.width}px`,
-          height: `${fromRect.height}px`,
-        },
-        {
-          transform: `translate(${toRect.x}px, ${toRect.y}px)`,
-          width: `${toRect.width}px`,
-          height: `${toRect.height}px`,
-        },
-      ],
-      { duration, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    this.resizeController.animateFrameBg(
+      this.elFrameBg,
+      fromRect,
+      toRect,
+      duration,
     );
   }
 

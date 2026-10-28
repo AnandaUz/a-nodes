@@ -32,11 +32,14 @@ export class LNode_TextEdit extends LNode {
       childNode.refresh();
     });
   }
+  private startTitle: string | undefined;
+
   turnOn_EditTitleMode() {
     if (core.mode.selectedVNodeCount > 1) {
       return;
     }
     // console.log("turnOn", this.title);
+    this.startTitle = this.title;
     core.mode.textEditing = true; // = DESK_MODE.TEXT_EDIT
     core.mode.textNode = true;
     this.isEditMode = true;
@@ -70,6 +73,24 @@ export class LNode_TextEdit extends LNode {
       vNode.refreshBodyRect();
     }
     this.save();
+
+    const oldTitle = this.startTitle;
+    const newTitle = this.title;
+    if (oldTitle !== undefined && oldTitle !== newTitle && core.history) {
+      core.history.push({
+        execute: () => {
+          this.setTitleText(newTitle, true);
+          this.title = newTitle;
+          this.save();
+        },
+        undo: () => {
+          this.setTitleText(oldTitle, true);
+          this.title = oldTitle;
+          this.save();
+        },
+      });
+    }
+    this.startTitle = undefined;
   }
 
   setTitleText(
