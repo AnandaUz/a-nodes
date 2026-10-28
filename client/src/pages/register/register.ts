@@ -2,7 +2,6 @@ import html from "./register.html?raw";
 import api from "@/features/core/api";
 import { saveTokens, saveUser } from "@/services/auth.service";
 import "./register.scss";
-import { app } from "@/app";
 
 export function registerPage() {
   return {
@@ -36,10 +35,9 @@ export function registerPage() {
             saveUser(data.user);
           }
 
-          const { renderHeader } = await import("@/components/header");
-          renderHeader();
-
-          app.gotoRedirectOrHome();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth:login", { detail: data }));
+          }
         } catch (e) {
           console.error("Ошибка регистрации:", e);
         }

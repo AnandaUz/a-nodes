@@ -1,10 +1,9 @@
 import "@styles/style.scss";
-import { renderHeader } from "./components/header"; // добавить
-import { renderFooter } from "./components/footer"; // добавить
+import { renderHeader } from "./components/header";
+import { renderFooter } from "./components/footer";
 import { authGuard } from "@services/auth.guard";
-import { getToken, getUser, handleCredential } from "@services/auth.service";
-import api from "@features/core/api";
-import { Router } from "@base/client/features/router/router";
+import { handleCredential } from "@services/auth.service";
+import { router } from "@/router";
 import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
 import { registerNodeType, NODE_TYPES } from "@features/nodes/node-registry";
@@ -16,41 +15,16 @@ registerNodeType(NODE_TYPES.TEXT_EDIT.id, LNode_TextEdit);
 registerNodeType(NODE_TYPES.TEXT_EDIT_CLONE.id, LNode_TEClone);
 registerNodeType(NODE_TYPES.PAGE.id, LNode_Page);
 
-
-class RouterEx extends Router {
-  override async render(): Promise<void> {
-    await super.render();
-    if (getToken()) {
-      api.fetchWithAuth("/api/users/pageview", { method: "POST" }).catch(() => {});
-    }
-  }
-
-  // override showLoader(): void {
-  //   app.showLoader();
-  // }
-  // override hideLoader(): void {
-  //   app.hideLoader();
-  // }
-  checkRedirect(path: string): string {
-    if (path === "/") {
-      const user = getUser();
-      if (user?.settings?.homeId) {
-        const targetPath = `/desk/${user.settings.homeId}`;
-        history.replaceState({}, "", targetPath);
-        path = targetPath;
-      }
-    }
-    return path;
-  }
-}
 const LOADER_DELAY_MS = 150;
 class App {
-  router: RouterEx = new RouterEx();
+  router = router;
   private loaderTimer: ReturnType<typeof setTimeout> | undefined;
   private loading: CLoading = new CLoading();
 
   constructor() {
     document.body.appendChild(this.loading);
+    window.addEventListener("loader:show", () => this.showLoader());
+    window.addEventListener("loader:hide", () => this.hideLoader());
   }
   showLoader(): void {
     this.loaderTimer = setTimeout(() => {
@@ -62,34 +36,16 @@ class App {
     this.loading.hide();
   }
   gotoPage_welcome() {
-    history.pushState({}, "", "/welcome");
-    if ((this.router as any).routes) {
-      this.router.render();
-    }
+    this.router.gotoPage_welcome();
   }
   gotoPage_register() {
-    history.pushState({}, "", "/register");
-    if ((this.router as any).routes) {
-      this.router.render();
-    }
+    this.router.gotoPage_register();
   }
   gotoPage_home() {
-    history.pushState({}, "", "/");
-    if ((this.router as any).routes) {
-      this.router.render();
-    }
+    this.router.gotoPage_home();
   }
   gotoRedirectOrHome() {
-    const redirectUrl = sessionStorage.getItem("auth_redirect");
-    if (redirectUrl) {
-      sessionStorage.removeItem("auth_redirect");
-      history.pushState({}, "", redirectUrl);
-      if ((this.router as any).routes) {
-        this.router.render();
-      }
-    } else {
-      this.gotoPage_home();
-    }
+    this.router.gotoRedirectOrHome();
   }
   async initGoogleAuth() {
     await loadGsi();

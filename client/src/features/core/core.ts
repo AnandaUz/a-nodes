@@ -158,8 +158,9 @@ export class Core {
     this.nodeRenderer = new NodeRenderer();
  
 
-    const { app } = await import("@/app");
-    app.showLoader();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("loader:show"));
+    }
 
     const container = document.getElementById("main")!;
 
@@ -179,7 +180,9 @@ export class Core {
     });
     await this.serverPersistence.init();
 
-    app.hideLoader();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("loader:hide"));
+    }
   }
   unmount() {
     this.history.clear();

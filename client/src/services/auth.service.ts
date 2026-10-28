@@ -106,8 +106,9 @@ export async function logout(): Promise<void> {
   } finally {
     removeUser();
     removeTokens();
-    const { app } = await import("@/app");
-    app.gotoPage_welcome();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth:logout"));
+    }
   }
 }
 
@@ -132,13 +133,7 @@ export async function handleCredential(response: {
   saveTokens(result.token, result.refreshToken);
   saveUser(result.user);
 
-  const { app } = await import("@/app");
-  const { renderHeader } = await import("@/components/header");
-  renderHeader();
-
-  if (result.isNew || !result.user.isRegistered) {
-    app.gotoPage_register();
-  } else {
-    app.gotoRedirectOrHome();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth:login", { detail: result }));
   }
 }

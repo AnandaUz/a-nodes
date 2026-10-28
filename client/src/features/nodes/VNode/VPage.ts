@@ -1,4 +1,4 @@
-import { app } from "@/app";
+import { router } from "@/router";
 import { core } from "@/features/core/core";
 import Tools from "@/features/core/Tools";
 import VTextEdit from "@/features/nodes/VNode/VTextEdit";
@@ -34,7 +34,7 @@ export class VPage extends VTextEdit {
       if (openInNewTab) {
         window.open(url, "_blank");
       } else {
-        app.router.navigate(url);
+        router.navigate(url);
       }
     };
 

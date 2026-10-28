@@ -4,6 +4,10 @@ import type { VNode } from "@features/nodes/VNode/VNode";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export const EVENTS = {
+  loader: {
+    show: "loader:show",
+    hide: "loader:hide",
+  },
   page: {
     loaded: "page:loaded",
   },
@@ -77,6 +81,8 @@ export type DeskEvents = {
   [EVENTS.vNode.pointer.down]: VNode;
   [EVENTS.vNode.pointer.move]: VNode;
   [EVENTS.vNode.pointer.up]: VNode;
+  [EVENTS.loader.show]: void;
+  [EVENTS.loader.hide]: void;
 };
 
 export class Store extends EventEmitter<DeskEvents> {}

@@ -1,6 +1,6 @@
 import { getToken, saveUser } from "@services/auth.service";
 import api from "@features/core/api";
-import { app } from "@/app";
+import { router } from "@/router";
 import { renderHeader } from "@/components/header";
 
 export async function authGuard(): Promise<void> {
@@ -17,12 +17,12 @@ export async function authGuard(): Promise<void> {
         path + window.location.search + window.location.hash,
       );
     }
-    app.gotoPage_welcome();
+    router.gotoPage_welcome();
     return;
   }
 
   if (token && path === "/welcome") {
-    app.gotoRedirectOrHome();
+    router.gotoRedirectOrHome();
     return;
   }
 
@@ -41,7 +41,7 @@ export async function authGuard(): Promise<void> {
                 path + window.location.search + window.location.hash,
               );
             }
-            app.gotoPage_register();
+            router.gotoPage_register();
             return;
           }
         }

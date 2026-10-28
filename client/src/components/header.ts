@@ -44,3 +44,8 @@ export function renderHeader(): void {
     }
   });
 }
+
+if (typeof window !== "undefined") {
+  window.addEventListener("auth:login", () => renderHeader());
+  window.addEventListener("auth:logout", () => renderHeader());
+}
