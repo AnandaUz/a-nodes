@@ -156,9 +156,12 @@ export class VNode {
     this.movingElement = this.body;
   }
   applyPosition() {
-    let x = this.node.x || 0;
-    let y = this.node.y || 0;
-    this.body.style.transform = `translate(${x}px, ${y}px)`;
+    const x = this.node.x || 0;
+    const y = this.node.y || 0;
+    const nextTransform = `translate(${x}px, ${y}px)`;
+    if (this.body.style.transform !== nextTransform) {
+      this.body.style.transform = nextTransform;
+    }
     this.renderSVG();
   }
   bodyInit() {
@@ -352,8 +355,17 @@ export class VNode {
         this.elSVG = null;
       }
       if (hasVisibleChildren) {
+        // Фаза чтения геометрии
         const lRect = this.node.getNodeRect();
-        this.body.style.width = `${Math.max(lRect.width, this.width)}px`;
+        const nextBodyWidth = `${Math.max(lRect.width, this.width)}px`;
+        const nextTransform = `translate(${lRect.x}px, ${lRect.y}px)`;
+        const nextW = `${lRect.width}px`;
+        const nextH = `${lRect.height}px`;
+
+        // Фаза записи стилей
+        if (this.body.style.width !== nextBodyWidth) {
+          this.body.style.width = nextBodyWidth;
+        }
         if (!this.elFrameBg) {
           this.elFrameBg = document.createElement("div");
           this.elFrameBg.className = "frame-bg";
@@ -375,11 +387,19 @@ export class VNode {
         ) {
           this.animateFrameBg(oldFrameRect, lRect);
         }
-        this.elFrameBg.style.transform = `translate(${lRect.x}px, ${lRect.y}px)`;
-        this.elFrameBg.style.width = `${lRect.width}px`;
-        this.elFrameBg.style.height = `${lRect.height}px`;
+        if (this.elFrameBg.style.transform !== nextTransform) {
+          this.elFrameBg.style.transform = nextTransform;
+        }
+        if (this.elFrameBg.style.width !== nextW) {
+          this.elFrameBg.style.width = nextW;
+        }
+        if (this.elFrameBg.style.height !== nextH) {
+          this.elFrameBg.style.height = nextH;
+        }
       } else {
-        this.body.style.width = "";
+        if (this.body.style.width !== "") {
+          this.body.style.width = "";
+        }
         if (this.elFrameBg) {
           this.elFrameBg.remove();
           this.elFrameBg = null;
@@ -395,7 +415,9 @@ export class VNode {
     }
     if (hasVisibleChildren) {
       const lRect = this.node.getNodeRect();
-      this.body.style.width = "";
+      if (this.body.style.width !== "") {
+        this.body.style.width = "";
+      }
       if (!this.elSVG) {
         this.elSVG = core.desk.svgLayer.drawRect(
           lRect.x,
@@ -414,7 +436,9 @@ export class VNode {
         );
       }
     } else {
-      this.body.style.width = "";
+      if (this.body.style.width !== "") {
+        this.body.style.width = "";
+      }
       if (this.elSVG) {
         core.desk.svgLayer.removeRect(this.elSVG);
         this.elSVG = null;

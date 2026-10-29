@@ -117,7 +117,7 @@ export class SelectManager {
         this.clearSelection();
         core.store?.emit(EVENTS.node.unselected, null);
       }
-      core.nodeManager.nodes.forEach((node) => {
+      core.nodeManager.searchInRect(realRect).forEach((node) => {
         if (node.vNode?.checkInRect(realRect)) {
           if (!node.isSelected) {
             this.selectedNodes.add(node);
@@ -139,7 +139,7 @@ export class SelectManager {
   }
 
   getNodeOverRect(rect: DOMRect) {
-    return [...core.nodeManager.nodes.values()].filter((node) => {
+    return core.nodeManager.searchInRect(rect).filter((node) => {
       const r = node.vNode?.bodyRect;
       if (!r) return false;
       return (

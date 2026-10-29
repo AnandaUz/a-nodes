@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { AuthRequest } from "../middleware/auth.middleware";
 import {
   bulkSaveNodes,
   createQuickNode,
@@ -11,8 +12,16 @@ import {
 export const getNodesByParentNodeId = async (req: Request, res: Response) => {
   try {
     const nodeId = req.params["nodeId"] as string;
-    const { nodes, pageNode } = await getNodesAndPageByNodeId(nodeId);
-    res.json({ nodes, pageNode });
+    const sinceParam = req.query["since"] as string | undefined;
+    const since = sinceParam ? new Date(sinceParam) : undefined;
+    const userId = (req as AuthRequest).user?.id;
+
+    const { nodes, pageNode, serverTime } = await getNodesAndPageByNodeId(
+      nodeId,
+      userId,
+      since,
+    );
+    res.json({ nodes, pageNode, serverTime });
   } catch (err: any) {
     console.error("[getNodesByParentNodeId Error]:", err);
     res
@@ -24,12 +33,13 @@ export const getNodesByParentNodeId = async (req: Request, res: Response) => {
 export const saveNodesController = async (req: Request, res: Response) => {
   try {
     const { nodes } = req.body;
+    const userId = (req as AuthRequest).user?.id;
 
     if (!Array.isArray(nodes)) {
       return res.status(400).json({ message: "Ожидался массив нод" });
     }
-    const ids = await bulkSaveNodes(nodes);
-    res.json({ ids });
+    const ids = await bulkSaveNodes(nodes, userId);
+    res.json({ ids, updatedAt: new Date() });
   } catch (err: any) {
     console.error("[saveNodes Error]:", err);
     res
@@ -43,10 +53,11 @@ export const saveNodes = bulkSaveNodes;
 export const deleteNodeController = async (req: Request, res: Response) => {
   try {
     const id = req.params["id"] as string;
+    const userId = (req as AuthRequest).user?.id;
     if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Невалидный id" });
     }
-    await deleteNodeById(id);
+    await deleteNodeById(id, userId);
     res.json({ success: true, id });
   } catch (err: any) {
     console.error("[deleteNode Error]:", err);

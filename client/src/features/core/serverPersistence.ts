@@ -73,16 +73,15 @@ export class ServerPersistence {
     if (this.isSaving || this.dirtyNodes.size === 0) return;
     this.isSaving = true;
 
-    const snapshot = Array.from(this.dirtyNodes)
-      .filter((n) => n._id !== "")
-      .map((node) => toDB(node));
+    const dirtyList = Array.from(this.dirtyNodes).filter((n) => n._id !== "");
+    const snapshot = dirtyList.map((node) => toDB(node));
 
     this.dirtyNodes.clear();
     try {
       await api.saveNodes(snapshot);
     } catch (err) {
       // при ошибке возвращаем ноды обратно в dirty
-      // snapshot.forEach((n) => this.dirtyNodes.add(n._id || ""));
+      dirtyList.forEach((n) => this.dirtyNodes.add(n));
       console.warn("[ServerPersistence] Ошибка сохранения:", err);
     } finally {
       this.isSaving = false;

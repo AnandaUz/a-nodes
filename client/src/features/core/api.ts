@@ -41,8 +41,15 @@ class API {
     return response;
   }
 
-  async loadNodes(parentId?: string) {
-    const res = await this.fetchWithAuth(`/nodes/${parentId ?? "root"}`);
+  async loadNodes(parentId?: string, since?: string | Date) {
+    let query = "";
+    if (since) {
+      const sinceStr = since instanceof Date ? since.toISOString() : since;
+      query = `?since=${encodeURIComponent(sinceStr)}`;
+    }
+    const res = await this.fetchWithAuth(
+      `/nodes/${parentId ?? "root"}${query}`,
+    );
     if (!res.ok) {
       console.warn("[ServerPersistence] Ошибка загрузки:", res.status);
       return;

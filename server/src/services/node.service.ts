@@ -25,71 +25,122 @@ export function isValidObjectId(id: string): boolean {
   return Boolean(id && mongoose.Types.ObjectId.isValid(id));
 }
 
-export async function getNodesAndPageByNodeId(nodeId: string) {
+export async function getNodesAndPageByNodeId(
+  nodeId: string,
+  userId?: string,
+  since?: Date,
+) {
   const isRoot = nodeId === "root";
   const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(nodeId);
-  const exStr = "-__v -inTrash -ok";
+  const userFilter = userId ? new mongoose.Types.ObjectId(userId) : undefined;
+
+  const nodeQuery: any = {
+    pageId: pageFilter,
+  };
+  if (userFilter) {
+    nodeQuery.userId = userFilter;
+  }
+
+  // Дельта-синхронизация: возвращаем только изменившиеся/удаленные после since
+  if (since && !isNaN(since.getTime())) {
+    nodeQuery.lastUpdate = { $gt: since };
+  } else {
+    nodeQuery.$or = [
+      { inTrash: { $ne: true }, ok: { $ne: true } },
+      { "exData.repeatDay": { $lt: new Date() } },
+    ];
+  }
+
+  const exStr = since ? "-__v" : "-__v -inTrash -ok";
+
+  const pageQuery: any = isRoot
+    ? null
+    : { _id: new mongoose.Types.ObjectId(nodeId) };
+  if (pageQuery && userFilter) {
+    pageQuery.userId = userFilter;
+  }
 
   const [nodes, pageNode] = await Promise.all([
-    Node.find({
-      pageId: pageFilter as any,
-      $or: [
-        { inTrash: { $ne: true }, ok: { $ne: true } },
-        { "exData.repeatDay": { $lt: new Date() } },
-      ],
-    })
-      .select(exStr)
-      .lean(),
-    isRoot ? null : Node.findById(nodeId).select(exStr).lean(),
+    Node.find(nodeQuery).select(exStr).lean(),
+    pageQuery ? Node.findOne(pageQuery).select("-__v").lean() : null,
   ]);
 
-  return { nodes, pageNode };
+  return { nodes, pageNode, serverTime: new Date() };
 }
 
-export async function bulkSaveNodes(nodes: any[]) {
-  try {
-    const operations = nodes.map((node: any) => {
-      const { _id, ...updateData } = node;
+export async function bulkSaveNodes(nodes: any[], userId?: string) {
+  if (!nodes || nodes.length === 0) return [];
 
-      const setFields: Record<string, any> = {};
-      const unsetFields: Record<string, ""> = {};
+  const now = new Date();
+  const userObjectId = userId ? new mongoose.Types.ObjectId(userId) : undefined;
 
-      for (const [key, value] of Object.entries(updateData)) {
-        if (value === null) {
-          unsetFields[key] = "";
-        } else {
-          setFields[key] = value;
-        }
+  const operations = nodes.map((node: any) => {
+    const { _id, ...updateData } = node;
+
+    const setFields: Record<string, any> = {};
+    const unsetFields: Record<string, ""> = {};
+
+    for (const [key, value] of Object.entries(updateData)) {
+      if (value === null) {
+        unsetFields[key] = "";
+      } else {
+        setFields[key] = value;
       }
+    }
 
-      const update: Record<string, any> = {};
-      if (Object.keys(setFields).length > 0) update.$set = setFields;
-      if (Object.keys(unsetFields).length > 0) update.$unset = unsetFields;
+    if (userObjectId) {
+      setFields.userId = userObjectId;
+    }
 
-      return {
-        updateOne: {
-          filter: { _id: _id || new mongoose.Types.ObjectId() },
-          update,
-          upsert: true,
-        },
-      };
-    });
+    // Дельта-синхронизация: проставляем временную метку обновления
+    if (!setFields.lastUpdate) {
+      setFields.lastUpdate = now;
+    } else {
+      setFields.lastUpdate = new Date(setFields.lastUpdate);
+    }
 
-    const result = await Node.bulkWrite(operations, { ordered: true });
+    const update: Record<string, any> = {};
+    if (Object.keys(setFields).length > 0) update.$set = setFields;
+    if (Object.keys(unsetFields).length > 0) update.$unset = unsetFields;
 
-    const ids = nodes.map((node: any, index: number) => {
-      const upsertedId = result.upsertedIds[index];
-      return upsertedId ? upsertedId.toString() : node._id;
-    });
+    const filter: any = {};
+    if (_id && isValidObjectId(_id)) {
+      filter._id = new mongoose.Types.ObjectId(_id);
+      if (userObjectId) {
+        filter.userId = userObjectId;
+      }
+    } else {
+      filter._id = new mongoose.Types.ObjectId();
+      if (userObjectId) {
+        filter.userId = userObjectId;
+      }
+    }
 
-    return ids;
-  } catch (err: any) {
-    return null;
-  }
+    return {
+      updateOne: {
+        filter,
+        update,
+        upsert: true,
+      },
+    };
+  });
+
+  const result = await Node.bulkWrite(operations, { ordered: true });
+
+  const ids = nodes.map((node: any, index: number) => {
+    const upsertedId = result.upsertedIds[index];
+    return upsertedId ? upsertedId.toString() : node._id;
+  });
+
+  return ids;
 }
 
-export async function deleteNodeById(id: string) {
-  return await Node.findByIdAndDelete(id);
+export async function deleteNodeById(id: string, userId?: string) {
+  const filter: any = { _id: new mongoose.Types.ObjectId(id) };
+  if (userId) {
+    filter.userId = new mongoose.Types.ObjectId(userId);
+  }
+  return await Node.findOneAndDelete(filter);
 }
 
 export async function findQuickTargets(

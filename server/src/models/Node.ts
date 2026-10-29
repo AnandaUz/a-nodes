@@ -54,8 +54,9 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   D: { type: Number }, //переменные для repeatMode и разных дат,
 });
 
-// Ключевой индекс — запрос "все ноды юзера на этом уровне" будет мгновенным
-nodeSchema.index({ ownerId: 1, pageId: 1 });
+// Ключевые индексы для выборок уровня и дельта-синхронизации
+nodeSchema.index({ userId: 1, pageId: 1, inTrash: 1 });
+nodeSchema.index({ userId: 1, pageId: 1, lastUpdate: 1 });
 
 export const Node: Model<INodeDocument> =
   mongoose.models["Nodes"] ||

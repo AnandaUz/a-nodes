@@ -21,21 +21,30 @@ import {
   setPositionForAllLinkedChildNodes,
 } from "./nodeHierarchy";
 import { loadDeskSnapshot } from "./nodeSerialization";
+import { SpatialIndex } from "./spatial/SpatialIndex";
 
 export class NodeManager {
   nodes = new Set<LNode>();
+  spatialIndex = new SpatialIndex<LNode>();
   pageNode: LNode_Page | undefined;
   private unsubscribers: (() => void)[] = [];
 
   unmount() {
     this.unsubscribers.forEach((fn) => fn());
     this.nodes.clear();
+    this.spatialIndex.clear();
   }
 
   init() {
     this.unsubscribers.push(
       core.store.on(EVENTS.node.selectedMoved, () => {
         this.onSelectedNodesMoved();
+      }),
+      core.store.on(EVENTS.node.updated, (node) => {
+        if (node) this.spatialIndex.update(node);
+      }),
+      core.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
+        this.rebuildSpatialIndex();
       }),
     );
   }
@@ -45,10 +54,14 @@ export class NodeManager {
 
   onSelectedNodesMoved() {
     handleSelectedNodesMoved(this);
+    core.selectManager?.selectedNodes.forEach((node) => {
+      this.spatialIndex.update(node);
+    });
   }
 
   loadSnapshot(snapshot: DeskSnapshot): void {
     loadDeskSnapshot(this, snapshot);
+    this.rebuildSpatialIndex();
   }
 
   getNodeByLID(lID: number) {
@@ -128,9 +141,11 @@ export class NodeManager {
       core.serverPersistence.createNode(node, (id: string) => {
         node._id = id;
         this.nodes.add(node);
+        this.spatialIndex.insert(node);
       });
     } else {
       this.nodes.add(node);
+      this.spatialIndex.insert(node);
     }
     core.store.emit(EVENTS.node.created, node);
     return node;
@@ -154,6 +169,7 @@ export class NodeManager {
       node.save();
       core.store.emit(EVENTS.node.inTrash, node);
       this.nodes.delete(node);
+      this.spatialIndex.remove(node);
       node.remove();
     }
 
@@ -173,6 +189,7 @@ export class NodeManager {
   restoreNodeFromTrash(node: LNode, withClones: boolean = false): void {
     node.inTrash = false;
     this.nodes.add(node);
+    this.spatialIndex.insert(node);
 
     if (node.hiddenBD) {
       node.hiddenBD = false;
@@ -286,6 +303,7 @@ export class NodeManager {
     core.serverPersistence.deleteNode(node);
     core.selectManager.unselectNode(node);
     this.nodes.delete(node);
+    this.spatialIndex.remove(node);
     node.remove();
 
     if (mainParent) {
@@ -482,5 +500,32 @@ export class NodeManager {
     }
 
     return null;
+  }
+
+  rebuildSpatialIndex(): void {
+    this.spatialIndex.load(this.nodes);
+  }
+
+  ensureSpatialIndexSynced(): void {
+    if (this.spatialIndex.size !== this.nodes.size) {
+      this.rebuildSpatialIndex();
+    }
+  }
+
+  searchInRect(
+    rect: { x: number; y: number; width: number; height: number } | DOMRect,
+  ): LNode[] {
+    this.ensureSpatialIndexSynced();
+    return this.spatialIndex.searchRect(rect);
+  }
+
+  searchAtPoint(x: number, y: number): LNode[] {
+    this.ensureSpatialIndexSynced();
+    return this.spatialIndex.searchPoint(x, y);
+  }
+
+  getNodeAtPoint(x: number, y: number): LNode | undefined {
+    const candidates = this.searchAtPoint(x, y);
+    return candidates.find((node) => node.vNode?.checkPointOver(x, y));
   }
 }

@@ -7,6 +7,8 @@ export class FrameLinkDrag {
   private source: LNode_TextEdit | null = null;
   private path: Ge_Path | null = null;
   private target: LNode_TextEdit | null = null;
+  private rafId: number | null = null;
+  private pendingPointer: { clientX: number; clientY: number } | null = null;
 
   start(source: LNode_TextEdit, e: PointerEvent) {
     if (this.source) return;
@@ -17,7 +19,8 @@ export class FrameLinkDrag {
     window.addEventListener("pointermove", this.onMove);
     window.addEventListener("pointerup", this.onUp);
     window.addEventListener("keydown", this.onKey, true);
-    this.onMove(e);
+    this.pendingPointer = { clientX: e.clientX, clientY: e.clientY };
+    this.renderDrag();
   }
 
   private findTarget(x: number, y: number): LNode_TextEdit | null {
@@ -35,12 +38,28 @@ export class FrameLinkDrag {
 
   private onMove = (e: PointerEvent) => {
     if (!this.source || !this.path) return;
-    const w = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
+    this.pendingPointer = { clientX: e.clientX, clientY: e.clientY };
+    if (this.rafId === null) {
+      this.rafId = requestAnimationFrame(this.renderDrag);
+    }
+  };
+
+  private renderDrag = () => {
+    this.rafId = null;
+    if (!this.pendingPointer || !this.source || !this.path) return;
+
+    // Фаза чтения геометрии
+    const w = core.desk.viewport.screenToWorld(
+      this.pendingPointer.clientX,
+      this.pendingPointer.clientY,
+    );
     this.target = this.findTarget(w.x, w.y);
     const sr = this.source.getNodeRect(true);
     const childPt = { x: sr.x, y: sr.y + 10 };
-    if (this.target) {
-      const tr = this.target.getNodeRect(true);
+    const tr = this.target ? this.target.getNodeRect(true) : null;
+
+    // Фаза записи стилей / SVG-элементов
+    if (this.target && tr) {
       this.path.setDotVisible(true);
       this.path.draw({ x: tr.x + tr.width, y: tr.y + 10 }, childPt);
     } else {
@@ -50,6 +69,17 @@ export class FrameLinkDrag {
   };
 
   private onUp = () => {
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    if (this.pendingPointer && this.source) {
+      const w = core.desk.viewport.screenToWorld(
+        this.pendingPointer.clientX,
+        this.pendingPointer.clientY,
+      );
+      this.target = this.findTarget(w.x, w.y);
+    }
     const source = this.source;
     const target = this.target;
     this.finish();
@@ -63,6 +93,11 @@ export class FrameLinkDrag {
   };
 
   private finish() {
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    this.pendingPointer = null;
     window.removeEventListener("pointermove", this.onMove);
     window.removeEventListener("pointerup", this.onUp);
     window.removeEventListener("keydown", this.onKey, true);
