@@ -29,10 +29,22 @@ export class NodeManager {
   pageNode: LNode_Page | undefined;
   private unsubscribers: (() => void)[] = [];
 
-  unmount() {
-    this.unsubscribers.forEach((fn) => fn());
+  clear(): void {
+    this.nodes.forEach((node) => {
+      (node as any).frame?.parents?.forEach((p: any) => p.path?.remove?.());
+      node.vNode?.remove();
+    });
     this.nodes.clear();
     this.spatialIndex.clear();
+    if (this.pageNode) {
+      this.pageNode.vNode?.remove();
+      this.pageNode = undefined;
+    }
+  }
+
+  unmount() {
+    this.unsubscribers.forEach((fn) => fn());
+    this.clear();
   }
 
   init() {

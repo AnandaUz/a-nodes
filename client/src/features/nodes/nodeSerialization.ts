@@ -12,7 +12,7 @@ export function loadDeskSnapshot(
   snapshot: DeskSnapshot,
 ): void {
   if (!snapshot || !Array.isArray(snapshot.nodes)) return;
-  manager.nodes.clear();
+  manager.clear();
 
   for (const nodeData of snapshot.nodes) {
     const { _id } = nodeData;

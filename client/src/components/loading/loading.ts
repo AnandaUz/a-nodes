@@ -31,6 +31,7 @@ export class CLoading extends HTMLElement {
   }
 
   start() {
+    if (this.animId !== null) return;
     const step = 2;
     const draw = () => {
       this.ctx.clearRect(0, 0, this.W, this.H);

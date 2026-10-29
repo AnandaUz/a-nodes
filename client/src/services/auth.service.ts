@@ -28,6 +28,13 @@ export function removeTokens(): void {
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   removeUser();
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("anodes_desk_cache_")) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch {}
 }
 
 // --- авторизация ---
@@ -136,4 +143,33 @@ export async function handleCredential(response: {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("auth:login", { detail: result }));
   }
+}
+
+export function loadGsi(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined") return resolve();
+    if ((window as any).google?.accounts?.id) return resolve();
+    const existing = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]',
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", reject);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+export async function initGoogleAuth(): Promise<void> {
+  await loadGsi();
+  (window as any).google?.accounts?.id?.initialize({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    callback: handleCredential,
+  });
 }

@@ -2,7 +2,6 @@ import "@styles/style.scss";
 import { renderHeader } from "./components/header";
 import { renderFooter } from "./components/footer";
 import { authGuard } from "@services/auth.guard";
-import { handleCredential } from "@services/auth.service";
 import { router } from "@/router";
 import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
@@ -20,6 +19,7 @@ class App {
   router = router;
   private loaderTimer: ReturnType<typeof setTimeout> | undefined;
   private loading: CLoading = new CLoading();
+  private loaderCount = 0;
 
   constructor() {
     document.body.appendChild(this.loading);
@@ -27,13 +27,22 @@ class App {
     window.addEventListener("loader:hide", () => this.hideLoader());
   }
   showLoader(): void {
-    this.loaderTimer = setTimeout(() => {
-      this.loading.show();
-    }, LOADER_DELAY_MS);
+    this.loaderCount++;
+    if (!this.loaderTimer) {
+      this.loaderTimer = setTimeout(() => {
+        this.loading.show();
+      }, LOADER_DELAY_MS);
+    }
   }
   hideLoader(): void {
-    clearTimeout(this.loaderTimer);
-    this.loading.hide();
+    this.loaderCount = Math.max(0, this.loaderCount - 1);
+    if (this.loaderCount === 0) {
+      if (this.loaderTimer) {
+        clearTimeout(this.loaderTimer);
+        this.loaderTimer = undefined;
+      }
+      this.loading.hide();
+    }
   }
   gotoPage_welcome() {
     this.router.gotoPage_welcome();
@@ -47,37 +56,16 @@ class App {
   gotoRedirectOrHome() {
     this.router.gotoRedirectOrHome();
   }
-  async initGoogleAuth() {
-    await loadGsi();
-    (window as any).google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      callback: handleCredential,
-    });
-  }
-
   async init() {
     this.showLoader();
     renderHeader();
     renderFooter();
 
-    await this.initGoogleAuth();
-    await authGuard();
+    authGuard();
 
     await this.router.init(routes, notFoundRoute);
     this.hideLoader();
   }
-}
-
-function loadGsi(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).google?.accounts?.id) return resolve();
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
 }
 
 export const app = new App();

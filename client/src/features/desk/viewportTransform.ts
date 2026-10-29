@@ -8,20 +8,13 @@ export interface ViewportState {
 
 export function applyViewportTransform(
   el: HTMLElement,
-  scene: HTMLElement,
+  _scene: HTMLElement,
   state: ViewportState,
-  gridSize: number,
+  _gridSize: number,
 ): void {
   const { x, y, scale } = state;
   core.mode.scale = scale;
   el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-
-  // Двигаем фоновую сетку синхронно с viewport
-  const bgSize = gridSize * scale;
-  const bgX = x % bgSize;
-  const bgY = y % bgSize;
-  scene.style.backgroundSize = `${bgSize}px ${bgSize}px`;
-  scene.style.backgroundPosition = `${bgX}px ${bgY}px`;
 }
 
 export function screenToWorld(

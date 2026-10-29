@@ -47,6 +47,9 @@ export class NodeRenderer {
   }
 
   renderAll() {
+    if (this.nodesEl) {
+      this.nodesEl.replaceChildren();
+    }
     core.nodeManager.nodes.forEach((node) => {
       if (node.hidden) return;
       this.createVNode(node);

@@ -30,13 +30,56 @@ export class ServerPersistence {
 
     window.addEventListener("beforeunload", this.onBeforeUnload);
   }
-  async init(): Promise<void> {
-    await this.load();
-    // this.bindStore();
+  private getCacheKey(): string {
+    return `anodes_desk_cache_${this.opts.deskId}`;
   }
-  private async load(): Promise<void> {
+
+  async init(): Promise<void> {
+    const cacheKey = this.getCacheKey();
+    let hasCache = false;
+    let cachedRaw: string | null = null;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        cachedRaw = cached;
+        const parsed = JSON.parse(cached);
+        if (parsed && Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
+          hasCache = true;
+          core.store.emit(EVENTS.server.loaded, parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("[ServerPersistence] Ошибка чтения кэша:", e);
+    }
+
+    if (hasCache) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("loader:hide"));
+      }
+      this.load(cachedRaw).catch((err) => {
+        console.warn("[ServerPersistence] Фоновая загрузка нод не удалась:", err);
+      });
+    } else {
+      await this.load().catch((err) => {
+        console.warn("[ServerPersistence] Загрузка нод не удалась:", err);
+      });
+    }
+  }
+
+  private async load(cachedRaw?: string | null): Promise<void> {
     const snapshot = await api.loadNodes(this.opts.deskId);
-    core.store.emit(EVENTS.server.loaded, snapshot);
+    if (snapshot) {
+      const serialized = JSON.stringify(snapshot);
+      try {
+        localStorage.setItem(this.getCacheKey(), serialized);
+      } catch {}
+      if (cachedRaw && cachedRaw === serialized) {
+        return;
+      }
+      if (this.dirtyNodes.size === 0) {
+        core.store.emit(EVENTS.server.loaded, snapshot);
+      }
+    }
   }
   createNode(node: LNode, onCreated?: (id: string) => void): void {
     if (this.opts.deskId !== "root") {
@@ -140,11 +183,21 @@ export class ServerPersistence {
     this.dirtyNodes.clear();
   }
 
+  private cacheCurrentNodes(): void {
+    try {
+      if (!core.nodeManager?.nodes) return;
+      const nodes = Array.from(core.nodeManager.nodes.values()).map((n) => toDB(n));
+      const pageNode = core.nodeManager.pageNode ? toDB(core.nodeManager.pageNode) : undefined;
+      localStorage.setItem(this.getCacheKey(), JSON.stringify({ nodes, pageNode }));
+    } catch {}
+  }
+
   private onBeforeUnload = () => {
     if (this.debounceTimer !== null) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
+    this.cacheCurrentNodes();
     this.flushSync();
   };
 

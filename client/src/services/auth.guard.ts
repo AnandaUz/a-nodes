@@ -3,7 +3,39 @@ import api from "@features/core/api";
 import { router } from "@/router";
 import { renderHeader } from "@/components/header";
 
-export async function authGuard(): Promise<void> {
+export function verifyTokenInBackground(): void {
+  const token = getToken();
+  if (!token) return;
+
+  api
+    .fetchWithAuth("/api/auth/verify")
+    .then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          saveUser(data.user);
+          renderHeader();
+          const path = window.location.pathname;
+          const publicRoutes = ["/welcome", "/register"];
+          const isPublic = publicRoutes.includes(path);
+          if (!data.user.isRegistered && path !== "/register") {
+            if (path !== "/" && !isPublic) {
+              sessionStorage.setItem(
+                "auth_redirect",
+                path + window.location.search + window.location.hash,
+              );
+            }
+            router.gotoPage_register();
+          }
+        }
+      }
+    })
+    .catch((e) => {
+      console.error("Ошибка проверки токена:", e);
+    });
+}
+
+export function authGuard(): void {
   const token = getToken();
   const path = window.location.pathname;
 
@@ -17,37 +49,22 @@ export async function authGuard(): Promise<void> {
         path + window.location.search + window.location.hash,
       );
     }
-    router.gotoPage_welcome();
+    history.replaceState({}, "", "/welcome");
     return;
   }
 
   if (token && path === "/welcome") {
-    router.gotoRedirectOrHome();
+    const redirectUrl = sessionStorage.getItem("auth_redirect");
+    if (redirectUrl) {
+      sessionStorage.removeItem("auth_redirect");
+      history.replaceState({}, "", redirectUrl);
+    } else {
+      history.replaceState({}, "", "/");
+    }
     return;
   }
 
   if (token) {
-    try {
-      const res = await api.fetchWithAuth("/api/auth/verify");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          saveUser(data.user);
-          renderHeader();
-          if (!data.user.isRegistered && path !== "/register") {
-            if (path !== "/" && !isPublic) {
-              sessionStorage.setItem(
-                "auth_redirect",
-                path + window.location.search + window.location.hash,
-              );
-            }
-            router.gotoPage_register();
-            return;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Ошибка проверки токена:", e);
-    }
+    verifyTokenInBackground();
   }
 }

@@ -38,7 +38,11 @@ export class Viewport {
       movePan: (clientX, clientY) => this.movePan(clientX, clientY),
       isPanning: () => this.isPanning,
       setIsPanning: (v) => {
-        this.isPanning = v;
+        if (!v) {
+          this.stopPan();
+        } else {
+          this.isPanning = true;
+        }
       },
       getCurrentScale: () => this.state.scale,
       onPinchZoom: (dist, startDist, startScale, center) => {
@@ -84,16 +88,59 @@ export class Viewport {
 
   // ─── Pan helpers ──────────────────────────────────────────────
 
+  private rafPanId: number | null = null;
+  private pendingPan: { clientX: number; clientY: number } | null = null;
+
   private startPan(clientX: number, clientY: number) {
+    if (this.rafPanId !== null) {
+      cancelAnimationFrame(this.rafPanId);
+      this.rafPanId = null;
+    }
     this.isPanning = true;
     this.panStart = { x: clientX, y: clientY };
     this.panOrigin = { x: this.state.x, y: this.state.y };
+    this.pendingPan = null;
+  }
+
+  private stopPan() {
+    this.flushPan();
+    this.isPanning = false;
   }
 
   private movePan(clientX: number, clientY: number) {
-    this.state.x = Math.round(this.panOrigin.x + (clientX - this.panStart.x));
-    this.state.y = Math.round(this.panOrigin.y + (clientY - this.panStart.y));
+    this.pendingPan = { clientX, clientY };
+    if (this.rafPanId === null) {
+      this.rafPanId = requestAnimationFrame(this.renderPanFrame);
+    }
+  }
+
+  private renderPanFrame = () => {
+    this.rafPanId = null;
+    if (!this.pendingPan || !this.isPanning) return;
+    this.state.x = Math.round(
+      this.panOrigin.x + (this.pendingPan.clientX - this.panStart.x),
+    );
+    this.state.y = Math.round(
+      this.panOrigin.y + (this.pendingPan.clientY - this.panStart.y),
+    );
     this.applyTransform();
+  };
+
+  private flushPan() {
+    if (this.rafPanId !== null) {
+      cancelAnimationFrame(this.rafPanId);
+      this.rafPanId = null;
+    }
+    if (this.pendingPan && this.isPanning) {
+      this.state.x = Math.round(
+        this.panOrigin.x + (this.pendingPan.clientX - this.panStart.x),
+      );
+      this.state.y = Math.round(
+        this.panOrigin.y + (this.pendingPan.clientY - this.panStart.y),
+      );
+      this.applyTransform();
+      this.pendingPan = null;
+    }
   }
 
   // ─── Pan (мышь / стилус) ──────────────────────────────────────
@@ -125,7 +172,7 @@ export class Viewport {
   private onPointerUp = (e: PointerEvent) => {
     if (e.pointerType === "touch") return;
     if (!this.isPanning) return;
-    this.isPanning = false;
+    this.stopPan();
     this.scene.style.cursor = this.isSpaceDown ? "grab" : "";
 
     localStorage.setItem(
@@ -205,6 +252,10 @@ export class Viewport {
   }
 
   destroy() {
+    if (this.rafPanId !== null) {
+      cancelAnimationFrame(this.rafPanId);
+      this.rafPanId = null;
+    }
     this.scene.removeEventListener("pointerdown", this.onPointerDown);
     this.scene.removeEventListener("pointermove", this.onPointerMove);
     this.scene.removeEventListener("pointerup", this.onPointerUp);

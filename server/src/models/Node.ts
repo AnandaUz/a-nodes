@@ -55,6 +55,8 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
 });
 
 // Ключевые индексы для выборок уровня и дельта-синхронизации
+nodeSchema.index({ pageId: 1, inTrash: 1 });
+nodeSchema.index({ pageId: 1, lastUpdate: 1 });
 nodeSchema.index({ userId: 1, pageId: 1, inTrash: 1 });
 nodeSchema.index({ userId: 1, pageId: 1, lastUpdate: 1 });
 

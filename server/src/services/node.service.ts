@@ -27,19 +27,15 @@ export function isValidObjectId(id: string): boolean {
 
 export async function getNodesAndPageByNodeId(
   nodeId: string,
-  userId?: string,
+  _userId?: string,
   since?: Date,
 ) {
   const isRoot = nodeId === "root";
   const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(nodeId);
-  const userFilter = userId ? new mongoose.Types.ObjectId(userId) : undefined;
 
   const nodeQuery: any = {
     pageId: pageFilter,
   };
-  if (userFilter) {
-    nodeQuery.userId = userFilter;
-  }
 
   // Дельта-синхронизация: возвращаем только изменившиеся/удаленные после since
   if (since && !isNaN(since.getTime())) {
@@ -56,9 +52,6 @@ export async function getNodesAndPageByNodeId(
   const pageQuery: any = isRoot
     ? null
     : { _id: new mongoose.Types.ObjectId(nodeId) };
-  if (pageQuery && userFilter) {
-    pageQuery.userId = userFilter;
-  }
 
   const [nodes, pageNode] = await Promise.all([
     Node.find(nodeQuery).select(exStr).lean(),
@@ -106,9 +99,6 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
     const filter: any = {};
     if (_id && isValidObjectId(_id)) {
       filter._id = new mongoose.Types.ObjectId(_id);
-      if (userObjectId) {
-        filter.userId = userObjectId;
-      }
     } else {
       filter._id = new mongoose.Types.ObjectId();
       if (userObjectId) {
@@ -135,11 +125,8 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
   return ids;
 }
 
-export async function deleteNodeById(id: string, userId?: string) {
+export async function deleteNodeById(id: string, _userId?: string) {
   const filter: any = { _id: new mongoose.Types.ObjectId(id) };
-  if (userId) {
-    filter.userId = new mongoose.Types.ObjectId(userId);
-  }
   return await Node.findOneAndDelete(filter);
 }
 

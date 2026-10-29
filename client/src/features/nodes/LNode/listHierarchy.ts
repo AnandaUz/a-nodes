@@ -223,7 +223,7 @@ export function setPositionForChildren(
   list: TList,
   owner: LNode,
   parentX: number | undefined = undefined,
-  totalTab = 0,
+  _totalTab = 0,
   totalIndex = 0,
   isRoot = true,
   isDrag = false,
@@ -245,39 +245,113 @@ export function setPositionForChildren(
     oldFrameRect = owner.getNodeRect();
   }
 
-  const m = [...list.children].sort(
+  const baseX = parentX ?? owner.x;
+  const isFrame = !!(
+    (owner as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame ||
+    (owner.list.mainParent as unknown as { frame?: { isFrame: boolean } })?.frame?.isFrame
+  );
+
+  if (isRoot) {
+    // Фаза 1: Топология, табы и классы фрейма (Top-Down)
+    propagateTabsAndFrameClass(owner, baseX, isFrame);
+
+    // Фаза 2: Пакетный замер размеров блоков (Batch Measurement)
+    measureSubtree(owner, isDrag);
+  }
+
+  // Фаза 3: Расчет координат списка и позиционирование (Vertical Layout)
+  const startY = owner.y + (owner.vNode?.height ?? 0);
+  const totalIndexRef = { count: totalIndex };
+  const h = layoutTree(owner, startY, animate, oldPositions, totalIndexRef);
+
+  // Фаза 4: Геометрия фона и связей (Bounding Box & Background)
+  if (isRoot) {
+    owner.vNode?.renderSVG(animate, oldFrameRect);
+  }
+  return h;
+}
+
+function propagateTabsAndFrameClass(
+  parent: LNode,
+  baseX: number,
+  isFrame: boolean,
+): void {
+  if (!parent.list.children?.size) return;
+  const m = [...parent.list.children].sort(
+    (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
+  );
+  for (const child of m) {
+    if (child.hidden) continue;
+    child.x = parent.x + GRID.x * (child.list.tab ?? 0);
+    const xx = Math.round((child.x - baseX) / GRID.x);
+    const strTab = xx.toString();
+    const chVNode = child.vNode;
+    if (chVNode?.body) {
+      if (chVNode.body.dataset && chVNode.body.dataset.totaltab !== strTab) {
+        chVNode.body.dataset.totaltab = strTab;
+        (chVNode as any)._tabChanged = true;
+      }
+      if (chVNode.body.classList) {
+        if (isFrame) {
+          if (!chVNode.body.classList.contains("in-frame")) {
+            chVNode.body.classList.add("in-frame");
+            (chVNode as any)._tabChanged = true;
+          }
+        } else {
+          if (chVNode.body.classList.contains("in-frame")) {
+            chVNode.body.classList.remove("in-frame");
+            (chVNode as any)._tabChanged = true;
+          }
+        }
+      }
+      if (chVNode.body.style && chVNode.body.style.width !== "") {
+        chVNode.body.style.width = "";
+      }
+    }
+    propagateTabsAndFrameClass(child, baseX, isFrame);
+  }
+}
+
+function measureSubtree(node: LNode, isDrag: boolean): void {
+  const vNode = node.vNode;
+  if (vNode && typeof (vNode as any).refreshBodyRect === "function") {
+    const tabChanged = Boolean((vNode as any)._tabChanged);
+    if (!isDrag || tabChanged || !vNode.height) {
+      (vNode as any).refreshBodyRect();
+      (vNode as any)._tabChanged = false;
+    }
+  }
+  if (!node.list.children?.size) return;
+  for (const child of node.list.children) {
+    if (child.hidden) continue;
+    measureSubtree(child, isDrag);
+  }
+}
+
+function layoutTree(
+  node: LNode,
+  startY: number,
+  animate: boolean,
+  oldPositions?: Map<LNode, { x: number; y: number }>,
+  totalIndexRef = { count: 0 },
+): number {
+  if (!node.list.children?.size) return 0;
+  const m = [...node.list.children].sort(
     (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
   );
   let h = 0;
-  const startY = owner.y + (owner.vNode?.height ?? 0);
-  const baseX = parentX ?? owner.x;
-
   for (const child of m) {
     if (child.hidden) continue;
     const prevPos = oldPositions?.get(child);
     const oldX = prevPos ? prevPos.x : child.x;
     const oldY = prevPos ? prevPos.y : child.y;
 
-    child.x = owner.x + GRID.x * (child.list.tab ?? 0);
     child.y = startY + h;
-    totalIndex++;
-    child.list.totalIndex = totalIndex;
+    totalIndexRef.count++;
+    child.list.totalIndex = totalIndexRef.count;
 
     const chVNode = child.vNode;
     if (chVNode) {
-      const xx = Math.round((child.x - baseX) / GRID.x);
-      const strTab = xx.toString();
-      const tabChanged = chVNode.body.dataset.totaltab !== strTab;
-      if (tabChanged) {
-        chVNode.body.dataset.totaltab = strTab;
-      }
-
-      // При драге геометрия нод не меняется (пропуск для 60/120 FPS).
-      // При обычной перестройке замеряем реальные размеры с учетом переноса текста.
-      if (!isDrag || tabChanged || !chVNode.height) {
-        chVNode.refreshBodyRect();
-      }
-
       if (
         animate &&
         (oldX !== child.x || oldY !== child.y) &&
@@ -285,23 +359,19 @@ export function setPositionForChildren(
       ) {
         (chVNode as any).animateMove(oldX, oldY, child.x, child.y);
       }
-
       chVNode.applyPosition();
       h += chVNode.height;
     }
 
-    h += child.list.setPositionForChildren(
-      baseX,
-      totalTab + Math.round((child.x - baseX) / GRID.x),
-      totalIndex,
-      false,
-      isDrag,
-      animate,
-      oldPositions,
-    );
-  }
-  if (isRoot) {
-    owner.vNode?.renderSVG(animate, oldFrameRect);
+    if (child.list.children?.size) {
+      h += layoutTree(
+        child,
+        child.y + (child.vNode?.height ?? 0),
+        animate,
+        oldPositions,
+        totalIndexRef,
+      );
+    }
   }
   return h;
 }

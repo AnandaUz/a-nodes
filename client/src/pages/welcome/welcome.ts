@@ -1,29 +1,24 @@
 import html from "./welcome.html?raw";
 import "./welcome.scss";
+import { initGoogleAuth } from "@services/auth.service";
 
 export function welcomePage() {
   return {
     html,
     title: "Добро пожаловать — Liner",
-    init() {
-      // document.querySelector(".google-btn")?.addEventListener("click", () => {
-      //   (window as any).google?.accounts?.id?.prompt((notification: any) => {
-      //     console.log("isNotDisplayed:", notification.isNotDisplayed());
-      //     console.log(
-      //       "getNotDisplayedReason:",
-      //       notification.getNotDisplayedReason(),
-      //     );
-      //     console.log("isSkippedMoment:", notification.isSkippedMoment());
-      //     console.log("getSkippedReason:", notification.getSkippedReason());
-      //     console.log("isDismissedMoment:", notification.isDismissedMoment());
-      //     console.log("getDismissedReason:", notification.getDismissedReason());
-      //   });
-      // });
-
-      (window as any).google?.accounts?.id?.renderButton(
-        document.querySelector(".for-google-btn"),
-        { theme: "outline", size: "large" },
-      );
+    async init() {
+      const container = document.querySelector(".for-google-btn");
+      if (container) {
+        try {
+          await initGoogleAuth();
+          (window as any).google?.accounts?.id?.renderButton(container, {
+            theme: "outline",
+            size: "large",
+          });
+        } catch (e) {
+          console.error("Ошибка инициализации Google Auth:", e);
+        }
+      }
     },
   };
 }
