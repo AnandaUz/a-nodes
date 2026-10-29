@@ -68,7 +68,7 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
   const userObjectId = userId ? new mongoose.Types.ObjectId(userId) : undefined;
 
   const operations = nodes.map((node: any) => {
-    const { _id, ...updateData } = node;
+    const { _id, userId: nodeUserId, ...updateData } = node;
 
     const setFields: Record<string, any> = {};
     const unsetFields: Record<string, ""> = {};
@@ -81,8 +81,14 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
       }
     }
 
-    if (userObjectId) {
-      setFields.userId = userObjectId;
+    const targetUserId =
+      userObjectId ||
+      (nodeUserId && isValidObjectId(nodeUserId)
+        ? new mongoose.Types.ObjectId(nodeUserId)
+        : undefined);
+
+    if (targetUserId) {
+      setFields.userId = targetUserId;
     }
 
     // Дельта-синхронизация: проставляем временную метку обновления
@@ -90,6 +96,10 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
       setFields.lastUpdate = now;
     } else {
       setFields.lastUpdate = new Date(setFields.lastUpdate);
+    }
+
+    for (const key of Object.keys(setFields)) {
+      delete unsetFields[key];
     }
 
     const update: Record<string, any> = {};

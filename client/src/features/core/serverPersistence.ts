@@ -2,6 +2,8 @@ import api from "@/features/core/api";
 import { core, EVENTS } from "./core";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 import { toDB } from "@shared/types/INodeDB";
+import type { DeskSnapshot } from "./interfaces";
+import { areSnapshotsEqual } from "@/features/nodes/snapshotUtils";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
@@ -37,14 +39,14 @@ export class ServerPersistence {
   async init(): Promise<void> {
     const cacheKey = this.getCacheKey();
     let hasCache = false;
-    let cachedRaw: string | null = null;
+    let cachedSnapshot: DeskSnapshot | null = null;
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
-        cachedRaw = cached;
-        const parsed = JSON.parse(cached);
+        const parsed = JSON.parse(cached) as DeskSnapshot;
         if (parsed && Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
           hasCache = true;
+          cachedSnapshot = parsed;
           core.store.emit(EVENTS.server.loaded, parsed);
         }
       }
@@ -56,7 +58,7 @@ export class ServerPersistence {
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("loader:hide"));
       }
-      this.load(cachedRaw).catch((err) => {
+      this.load(cachedSnapshot).catch((err) => {
         console.warn("[ServerPersistence] Фоновая загрузка нод не удалась:", err);
       });
     } else {
@@ -66,18 +68,23 @@ export class ServerPersistence {
     }
   }
 
-  private async load(cachedRaw?: string | null): Promise<void> {
-    const snapshot = await api.loadNodes(this.opts.deskId);
-    if (snapshot) {
-      const serialized = JSON.stringify(snapshot);
+  private async load(cachedSnapshot?: DeskSnapshot | null): Promise<void> {
+    const response = await api.loadNodes(this.opts.deskId);
+    if (response) {
+      const freshSnapshot: DeskSnapshot = {
+        nodes: response.nodes || [],
+        pageNode: response.pageNode || null,
+      };
+
       try {
-        localStorage.setItem(this.getCacheKey(), serialized);
+        localStorage.setItem(this.getCacheKey(), JSON.stringify(freshSnapshot));
       } catch {}
-      if (cachedRaw && cachedRaw === serialized) {
+
+      if (cachedSnapshot && areSnapshotsEqual(cachedSnapshot, freshSnapshot)) {
         return;
       }
       if (this.dirtyNodes.size === 0) {
-        core.store.emit(EVENTS.server.loaded, snapshot);
+        core.store.emit(EVENTS.server.loaded, freshSnapshot);
       }
     }
   }

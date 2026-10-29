@@ -63,22 +63,25 @@ export class Desk {
     window.addEventListener("pointerdown", () => this.selectPath(null), true);
 
     core.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
-      const title = core.nodeManager.pageNode?.title || "a-nodes";
-      this.h1El.innerHTML = title;
-
-      const [firstSegment] = new Intl.Segmenter(undefined, {
-        granularity: "grapheme",
-      }).segment(title);
-      const firstGrapheme = firstSegment?.segment || "";
-      const hasEmoji = /^\p{Extended_Pictographic}/u.test(firstGrapheme);
-      const titleWithoutEmoji = hasEmoji
-        ? title.slice(firstGrapheme.length).trimStart()
-        : title;
-
-      document.title = titleWithoutEmoji || title;
-
-      this.setEmojiFavicon(hasEmoji ? firstGrapheme : "🔥");
+      this.updateTitle();
     });
+  }
+  updateTitle() {
+    const title = core.nodeManager.pageNode?.title || "a-nodes";
+    if (this.h1El) this.h1El.innerHTML = title;
+
+    const [firstSegment] = new Intl.Segmenter(undefined, {
+      granularity: "grapheme",
+    }).segment(title);
+    const firstGrapheme = firstSegment?.segment || "";
+    const hasEmoji = /^\p{Extended_Pictographic}/u.test(firstGrapheme);
+    const titleWithoutEmoji = hasEmoji
+      ? title.slice(firstGrapheme.length).trimStart()
+      : title;
+
+    document.title = titleWithoutEmoji || title;
+
+    this.setEmojiFavicon(hasEmoji ? firstGrapheme : "🔥");
   }
   selectPath(p: Ge_Path | null) {
     if (this.selectedPath === p) return;

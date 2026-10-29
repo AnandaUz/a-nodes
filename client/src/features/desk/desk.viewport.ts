@@ -42,6 +42,7 @@ export class Viewport {
           this.stopPan();
         } else {
           this.isPanning = true;
+          this.el.classList.add("is-panning");
         }
       },
       getCurrentScale: () => this.state.scale,
@@ -97,6 +98,7 @@ export class Viewport {
       this.rafPanId = null;
     }
     this.isPanning = true;
+    this.el.classList.add("is-panning");
     this.panStart = { x: clientX, y: clientY };
     this.panOrigin = { x: this.state.x, y: this.state.y };
     this.pendingPan = null;
@@ -105,6 +107,7 @@ export class Viewport {
   private stopPan() {
     this.flushPan();
     this.isPanning = false;
+    this.el.classList.remove("is-panning");
   }
 
   private movePan(clientX: number, clientY: number) {
@@ -252,6 +255,7 @@ export class Viewport {
   }
 
   destroy() {
+    this.el.classList.remove("is-panning");
     if (this.rafPanId !== null) {
       cancelAnimationFrame(this.rafPanId);
       this.rafPanId = null;
