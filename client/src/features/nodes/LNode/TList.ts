@@ -111,6 +111,9 @@ export default class TList {
       if (!parentNode.list.children) {
         parentNode.list.children = new Set<LNode>();
       }
+      if (this.index === undefined) {
+        this.index = parentNode.list.children.size;
+      }
       parentNode.list.children.add(this.owner);
       this._parentNode = parentNode;
       this.parentLID = parentNode.lID;

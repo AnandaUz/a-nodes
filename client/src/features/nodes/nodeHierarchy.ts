@@ -73,7 +73,22 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
 
   const candidates = core.selectManager
     .getNodeOverRect(overRect)
-    .filter((node) => !movedNodes.has(node));
+    .filter((node) => {
+      if (movedNodes.has(node)) return false;
+      const candRect = node.vNode?.bodyRect || {
+        x: node.x,
+        y: node.y,
+        width: 100,
+        height: 30,
+      };
+      const overlapY =
+        Math.min(
+          movedNodeRect.y + movedNodeRect.height,
+          candRect.y + candRect.height,
+        ) - Math.max(movedNodeRect.y, candRect.y);
+      const minOverlap = Math.min(candRect.height, movedNodeRect.height) / 2;
+      return overlapY >= minOverlap;
+    });
 
   candidates.sort((a, b) => a.y - b.y);
 
@@ -117,12 +132,22 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   if (byNode) {
     const willRefParent: LNode[] = [];
     const baseIndex = byNode.list.index || 0;
+    const refNode = regularNodes[0] || selectedParentsNodes[0];
+    const isSiblingAfter =
+      byNode.list.parentNode && refNode && refNode.x <= byNode.x;
+
     regularNodes.forEach((node, i) => {
       if (overRect.y < byNode.y && byNode.list.parentNode) {
         const parentNode = byNode.list.parentNode;
         manager.ensureLID(parentNode);
         willRefParent.push(
           ...node.list.setParent(parentNode, baseIndex - 0.6 + i * 0.01),
+        );
+      } else if (isSiblingAfter && byNode.list.parentNode) {
+        const parentNode = byNode.list.parentNode;
+        manager.ensureLID(parentNode);
+        willRefParent.push(
+          ...node.list.setParent(parentNode, baseIndex + 0.5 + i),
         );
       } else {
         manager.ensureLID(byNode);
@@ -181,11 +206,46 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   } else {
     const willRefParent: LNode[] = [];
     regularNodes.forEach((node) => {
-      const mainParent = (node as LNode_TextEdit).clones.mainNode;
+      const parentNode = node.list.parentNode;
+      const mainParent = node.list.mainParent || parentNode;
       if (mainParent) {
+        const otherNodes = new Set<LNode>();
+        if (!movedNodes.has(mainParent)) {
+          otherNodes.add(mainParent);
+        }
+        mainParent.list.forEachChildren((ch) => {
+          if (!movedNodes.has(ch)) {
+            otherNodes.add(ch);
+          }
+        });
+
+        if (otherNodes.size > 0) {
+          const listRect = getRectForNodes(otherNodes);
+          const nodeRect = node.vNode?.bodyRect || {
+            x: node.x,
+            y: node.y,
+            width: 100,
+            height: 30,
+          };
+          const toleranceY = 5;
+          const isStillInList =
+            nodeRect.x < listRect.x + listRect.width + GRID.x &&
+            nodeRect.x + nodeRect.width > listRect.x - GRID.x &&
+            nodeRect.y <= listRect.y + listRect.height + toleranceY &&
+            nodeRect.y + nodeRect.height >= listRect.y - toleranceY;
+
+          if (isStillInList) {
+            willRefParent.push(mainParent);
+            return;
+          }
+        }
+      }
+
+      const cloneMain = (node as LNode_TextEdit).clones?.mainNode;
+      if (cloneMain) {
         const frameLID = node.list.mainParent?.lID || 0;
         node.list.totalIndex = -1;
-        (mainParent.vNode as VTextEdit).removePowerIndicators(frameLID);
+        (cloneMain.vNode as VTextEdit).removePowerIndicators(frameLID);
       }
 
       willRefParent.push(...node.list.clearParent());
