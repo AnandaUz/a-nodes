@@ -42,8 +42,18 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   if (node.list.parentLID && node.list.parentLID !== node.lID) {
     const parentNode = manager.getNodeByLID(node.list.parentLID);
     if (parentNode) {
-      node.list.initParent(parentNode);
+      if (node.list.parentNode !== parentNode) {
+        if (node.list.parentNode) {
+          node.list.parentNode.list.children?.delete(node);
+          (node.list.parentNode.vNode as any)?.refreshListBtns?.();
+        }
+        node.list.initParent(parentNode);
+      }
     }
+  } else if (node.list.parentNode) {
+    node.list.parentNode.list.children?.delete(node);
+    (node.list.parentNode.vNode as any)?.refreshListBtns?.();
+    node.list.parentNode = null;
   }
 }
 

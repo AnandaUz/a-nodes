@@ -48,3 +48,6 @@ dist-ssr
 .agentignore
 .git/
 
+
+# AI Agents, Skills & Glossary
+!.agents/

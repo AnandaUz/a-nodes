@@ -405,15 +405,17 @@
     .el-frame-btn {
         grid-column: end/s-end;
         grid-row: title;
-        width: 18px;
-        height: 18px;
+        --w: 16px;
+        width: var(--w);
+        height: var(--w);
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 3px;
 
         .btn {
-            width: 18px;
-            height: 18px;
+            width: var(--w);
+            height: var(--w);
             cursor: pointer;
             background: url(@assets/ico-plus.svg) no-repeat center / contain;
             opacity: 0.7;

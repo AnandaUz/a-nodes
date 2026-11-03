@@ -260,7 +260,13 @@ export function fromDB(db: INodeDB, node: ILNode) {
   node.title = db.title;
   // this.ok = db.ok;
   // распаковываем list
-  blockL.unpack(node, db.L);
+  if (db.L !== undefined && db.L !== null) {
+    blockL.unpack(node, db.L);
+  } else if (node.list) {
+    node.list.parentLID = undefined;
+    node.list.index = undefined;
+    node.list.tab = 0;
+  }
   if (db.exData) {
     node.exData = {
       ownerNodesIds: db.exData.ownerNodesIds,
