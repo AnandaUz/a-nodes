@@ -1,0 +1,52 @@
+c-network-status {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translate(-50%, -150%);
+  z-index: 10000;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+
+  &.is-visible {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .c-network-status__content {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    background: #fff;
+    user-select: none;
+  }
+
+  &.status-offline .c-network-status__content {
+    background: #ff4d4f;
+    color: #fff;
+    border: 1px solid #d9363e;
+  }
+
+  &.status-online .c-network-status__content {
+    background: #52c41a;
+    color: #fff;
+    border: 1px solid #389e0d;
+  }
+
+  .c-network-status__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      display: block;
+    }
+  }
+}
+

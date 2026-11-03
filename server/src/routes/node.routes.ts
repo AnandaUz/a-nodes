@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   deleteNodeController,
+  deskEventsController,
   getNodesByParentNodeId,
   getQuickTargetsController,
   quickAddNodeController,
@@ -17,6 +18,7 @@ router.post("/quick-add", quickAddNodeController);
 // Все остальные роуты требуют авторизации
 router.use(authenticate);
 
+router.get("/:nodeId/events", deskEventsController); // SSE поток событий деска
 router.get("/:nodeId", getNodesByParentNodeId); // вложенный desk
 router.put("/saveNodes", saveNodesController); // сохранить
 router.delete("/:id", deleteNodeController); // удалить

@@ -7,6 +7,10 @@ import type { INodeDB } from "@shared/types/INodeDB";
 
 class API {
   private API_URL = import.meta.env.VITE_API_URL;
+  readonly clientId: string =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
   async fetchWithAuth(
     path: string,
@@ -21,24 +25,44 @@ class API {
     if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);
     }
+    if (!headers.has("X-Client-Id")) {
+      headers.set("X-Client-Id", this.clientId);
+    }
 
     const config: RequestInit = { method: "GET", ...options, headers };
 
-    const response = await fetch(`${this.API_URL}${path}`, config);
+    try {
+      const response = await fetch(`${this.API_URL}${path}`, config);
 
-    if (response.status === 401) {
-      const newToken = await refreshAccessToken();
-      if (!newToken) {
-        removeTokens();
-        history.pushState({}, "", "/welcome");
-        // router.render();
-        throw new Error("Сессия истекла");
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (!newToken) {
+          removeTokens();
+          history.pushState({}, "", "/welcome");
+          // router.render();
+          throw new Error("Сессия истекла");
+        }
+        headers.set("Authorization", `Bearer ${newToken}`);
+        const retryResponse = await fetch(`${this.API_URL}${path}`, {
+          ...config,
+          headers,
+        });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("connection:online"));
+        }
+        return retryResponse;
       }
-      headers.set("Authorization", `Bearer ${newToken}`);
-      return fetch(`${this.API_URL}${path}`, { ...config, headers });
-    }
 
-    return response;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("connection:online"));
+      }
+      return response;
+    } catch (err) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("connection:offline"));
+      }
+      throw err;
+    }
   }
 
   async loadNodes(parentId?: string, since?: string | Date) {
