@@ -121,9 +121,7 @@ export class NodeManager {
       core.nodeRenderer.createVNode(newNode);
       newNode.select();
       core.selectManager.selectNode(newNode);
-      if (newNode.type === NODE_TYPES.TEXT_EDIT.id) {
-        (newNode as any).turnOn_EditTitleMode();
-      }
+      (newNode as any).turnOn_EditTitleMode?.();
     }
     this.onSelectedNodesMoved();
     return newNode;

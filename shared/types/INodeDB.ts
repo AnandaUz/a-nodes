@@ -185,9 +185,9 @@ const blockL = new TPackedData<ILNode>()
   )
   .add<number>(
     {
-      get: (node) => node.list?.index,
+      get: (node) => (node.list?.index !== undefined && node.list.index >= 0 ? node.list.index + 1 : undefined),
       set: (node, v) => {
-        if (node.list) node.list.index = v;
+        if (node.list && v > 0) node.list.index = v - 1;
       },
     },
     12,
