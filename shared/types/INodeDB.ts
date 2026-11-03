@@ -18,6 +18,8 @@ export interface INodeDB {
   exData?: IExData | undefined;
   f?: number[] | null | undefined;
   D?: number | undefined; //переменные для repeatMode и разных дат
+  i?: boolean | null | undefined;
+  o?: boolean | null | undefined;
 }
 const START_DATE = new Date("2026-10-13T00:00:00.000Z");
 
@@ -216,6 +218,8 @@ export function toDB(node: ILNode): INodeDB {
   // родители фреймов
   if (node.frame) {
     res.f = node.frame.parents.size > 0 ? node.frame.pack() : null;
+    res.i = node.frame.isFrameIn ? true : null;
+    res.o = node.frame.isFrameOut ? true : null;
   }
   // упаковываем данные в одну переменную listData
   if (node.list && node.list.parentLID !== undefined) {
@@ -286,6 +290,10 @@ export function fromDB(db: INodeDB, node: ILNode) {
   // родители фреймов
   if (db.f && node.frame) {
     node.frame.parentsLID = db.f;
+  }
+  if (node.frame) {
+    node.frame.isFrameIn = Boolean(db.i);
+    node.frame.isFrameOut = Boolean(db.o);
   }
   return node;
 }

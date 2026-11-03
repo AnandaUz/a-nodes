@@ -10,6 +10,8 @@ export interface ITList {
 }
 export interface IFrame {
   isFrame: boolean;
+  isFrameIn?: boolean;
+  isFrameOut?: boolean;
   parents: { size: number };
   pack(): number[];
   parentsLID?: number[];

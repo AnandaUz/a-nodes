@@ -12,6 +12,20 @@ export class LNode_TextEdit extends LNode {
   declare vNode?: VTextEdit;
 
   frame = new TFrame(this);
+
+  get isFrameIn(): boolean {
+    return this.frame.isFrameIn;
+  }
+  set isFrameIn(v: boolean) {
+    this.frame.isFrameIn = v;
+  }
+
+  get isFrameOut(): boolean {
+    return this.frame.isFrameOut;
+  }
+  set isFrameOut(v: boolean) {
+    this.frame.isFrameOut = v;
+  }
   getVNodeType() {
     return VTextEdit;
   }
