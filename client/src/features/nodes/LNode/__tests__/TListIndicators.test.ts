@@ -1,49 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { LNode_TextEdit } from "@/features/nodes/LNode/LNode_TextEdit";
-import VTextEdit from "@/features/nodes/VNode/VTextEdit";
-import { core } from "@/features/core/core";
-import { NodeManager } from "@/features/nodes/NodeManager";
-import { SelectManager } from "@/features/core/SelectManager/SelectManager";
-import { Store } from "@/features/core/store";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import {
+  setupNodeTestEnv,
+  createTestTextNode,
+  type NodeTestEnv,
+} from "./testHelpers";
 
 describe("TList (листГруппа - индикаторы)", () => {
+  let env: NodeTestEnv;
+
   beforeEach(() => {
-    core.store = new Store();
-    core.nodeManager = new NodeManager();
-    core.selectManager = new SelectManager();
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    core.desk = {
-      selectPath: vi.fn(),
-      svgLayer: {
-        svg,
-        drawRect: vi.fn(),
-        removeRect: vi.fn(),
-        updateRect: vi.fn(),
-      },
-    } as any;
+    env = setupNodeTestEnv();
+  });
+
+  afterEach(() => {
+    env.cleanup();
   });
 
   it("проверка на индикаторы дочерних элементов", () => {
-    const container = document.createElement("div");
-
     // 1. создаём ноду 1 2 3
-    const node1 = new LNode_TextEdit();
-    node1.lID = 1;
-    const vNode1 = new VTextEdit(node1, container);
-    vNode1.init();
-    node1.vNode = vNode1;
-
-    const node2 = new LNode_TextEdit();
-    node2.lID = 2;
-    const vNode2 = new VTextEdit(node2, container);
-    vNode2.init();
-    node2.vNode = vNode2;
-
-    const node3 = new LNode_TextEdit();
-    node3.lID = 3;
-    const vNode3 = new VTextEdit(node3, container);
-    vNode3.init();
-    node3.vNode = vNode3;
+    const node1 = createTestTextNode({ lID: 1, container: env.container });
+    const node2 = createTestTextNode({ lID: 2, container: env.container });
+    const node3 = createTestTextNode({ lID: 3, container: env.container });
 
     // 2. ноды 2 и 3 добавляем детьми к 1
     node2.list.setParent(node1, 1);
@@ -59,6 +36,7 @@ describe("TList (листГруппа - индикаторы)", () => {
     node3.hidden = true;
 
     // Обновляем состояние индикаторов
+    const vNode1 = node1.vNode!;
     vNode1.refreshListBtns();
 
     // 5. проверяем

@@ -1,28 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LNode } from "@/features/nodes/LNode/LNode";
 import { LNode_TextEdit } from "@/features/nodes/LNode/LNode_TextEdit";
 import VTextEdit from "@/features/nodes/VNode/VTextEdit";
 import { core } from "@/features/core/core";
-import { NodeManager } from "@/features/nodes/NodeManager";
-import { SelectManager } from "@/features/core/SelectManager/SelectManager";
-import { Store } from "@/features/core/store";
 import { GRID } from "@/features/core/CONST";
+import { setupNodeTestEnv, type NodeTestEnv } from "./testHelpers";
 
 describe("TList (листГруппа)", () => {
+  let env: NodeTestEnv;
+
   beforeEach(() => {
-    core.store = new Store();
-    core.nodeManager = new NodeManager();
-    core.selectManager = new SelectManager();
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    core.desk = {
-      selectPath: vi.fn(),
-      svgLayer: {
-        svg,
-        drawRect: vi.fn(),
-        removeRect: vi.fn(),
-        updateRect: vi.fn(),
-      },
-    } as any;
+    env = setupNodeTestEnv();
+  });
+
+  afterEach(() => {
+    env.cleanup();
   });
 
   it("hasChildren returns false initially and true when children are added", () => {

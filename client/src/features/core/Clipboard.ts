@@ -1,9 +1,43 @@
 import type { LNode } from "../nodes/LNode/LNode";
-import VTextEdit from "../nodes/VNode/VTextEdit";
-import VTextEditClone from "../nodes/VNode/VTextEditClone";
 import { toDB, type INodeDB } from "@shared/types/INodeDB";
 
 export class Clipboard {
+  nodesToPlainText(nodes: LNode[]): string {
+    const sortedNodes = [...nodes].sort(
+      (a, b) => (a.y ?? 0) - (b.y ?? 0) || (a.x ?? 0) - (b.x ?? 0),
+    );
+
+    const lines: string[] = [];
+    let prevBottom: number | null = null;
+
+    for (const node of sortedNodes) {
+      const rawTitle =
+        (node.clones?.sourceNode ? node.clones.sourceNode.title : node.title) ??
+        "";
+
+      const tab = node.list?.tab ?? 0;
+      const indent = tab > 0 ? " ".repeat(tab * 2) : "";
+      const line = `${indent}${rawTitle}`;
+
+      const nodeY = node.y ?? 0;
+      const nodeHeight = node.vNode?.height || 26;
+
+      if (
+        prevBottom !== null &&
+        nodeY - prevBottom > 20 &&
+        lines.length > 0 &&
+        lines[lines.length - 1] !== ""
+      ) {
+        lines.push("");
+      }
+
+      lines.push(line);
+      prevBottom = Math.max(prevBottom ?? nodeY, nodeY + nodeHeight);
+    }
+
+    return lines.join("\n");
+  }
+
   async copyVNode(nodes: LNode[]) {
     // Копируем только непосредственно переданные (выделенные) ноды
     const selectedNodes = nodes;
@@ -12,20 +46,8 @@ export class Clipboard {
       if (n.lID !== undefined) selectedLIDs.add(n.lID);
     });
 
-    // Человеко-читаемый вид — для вставки в блокнот/Word
-    const plainText = selectedNodes
-      .map((node) => {
-        if (node instanceof VTextEdit) {
-          if (node instanceof VTextEditClone) {
-            const mainNode = node.clones.sourceNode;
-            return mainNode?.title || "";
-          }
-          return node.title;
-        }
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n");
+    // Человеко-читаемый вид — для вставки в блокнот/Word/TG
+    const plainText = this.nodesToPlainText(selectedNodes);
 
     // Сериализуем ноды в формат INodeDB. Связи с родителем сохраняем ТОЛЬКО если родитель тоже скопирован.
     const nodesData: INodeDB[] = selectedNodes.map((n) => {
@@ -46,13 +68,24 @@ export class Clipboard {
       "text/plain": new Blob([plainText], { type: "text/plain" }),
       "text/html": new Blob(
         [
-          `<span data-a-nodes="${this.escapeHtml(appData)}">${plainText}</span>`,
+          `<span data-a-nodes="${this.escapeHtml(appData)}" style="white-space: pre-wrap;">${this.escapeHtmlText(plainText)}</span>`,
         ],
         { type: "text/html" },
       ),
     });
 
-    await navigator.clipboard.write([item]);
+    try {
+      await navigator.clipboard.write([item]);
+    } catch {
+      await navigator.clipboard.writeText(plainText);
+    }
+  }
+
+  private escapeHtmlText(str: string): string {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   private escapeHtml(str: string): string {

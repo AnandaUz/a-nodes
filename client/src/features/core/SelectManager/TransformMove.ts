@@ -112,6 +112,7 @@ export class TransformMove {
 
     this.active = false;
     core.mode.selectMoving = false;
+    core.mode.wasMoving = false;
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
   };

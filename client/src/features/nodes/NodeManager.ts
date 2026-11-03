@@ -48,6 +48,8 @@ export class NodeManager {
   }
 
   init() {
+    this.unsubscribers.forEach((fn) => fn());
+    this.unsubscribers = [];
     this.unsubscribers.push(
       core.store.on(EVENTS.node.selectedMoved, () => {
         this.onSelectedNodesMoved();

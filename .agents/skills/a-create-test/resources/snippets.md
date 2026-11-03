@@ -4,14 +4,11 @@
 
 ### 1. «создай ноду» / «создать ноду»
 ```ts
-const {{nodeName}} = new LNode_TextEdit();
-{{nodeName}}.x = {{x}};
-{{nodeName}}.y = {{y}};
-{{nodeName}}.vNode = new VTextEdit({{nodeName}}, container);
-{{nodeName}}.vNode.init();
-{{nodeName}}.vNode.width = 100;
-{{nodeName}}.vNode.height = 30;
-core.nodeManager.nodes.add({{nodeName}});
+const {{nodeName}} = createTestTextNode({
+  x: {{x}},
+  y: {{y}},
+  container: env.container,
+});
 ```
 
 ### 2. «сделай ребёнком» / «ребёнок»
@@ -26,57 +23,60 @@ core.selectManager.selectNode({{nodeName}}, { ctrlKey: {{ctrlKey}} });
 
 ### 4. «хватаю выделенное и несу к ноде ... отпускаю» / «перетащить к ноде»
 ```ts
-const grabNode = {{grabNode}};
-const targetNode = {{targetNode}};
-const targetX = targetNode.x;
-const targetY = targetNode.y + 10;
-
-core.desk.pointer = { x: grabNode.x, y: grabNode.y };
-grabNode.vNode?.onPointerDown(
-  new PointerEvent("pointerdown", {
-    clientX: grabNode.x,
-    clientY: grabNode.y,
-    button: 0,
-    pointerId: 1,
-  })
-);
-
-// Начало движения в точке захвата (стартует TransformMove)
-grabNode.vNode?.onPointerMove(
-  new PointerEvent("pointermove", {
-    clientX: grabNode.x + 1,
-    clientY: grabNode.y + 1,
-    button: 0,
-    pointerId: 1,
-  })
-);
-
-// Перемещение через TransformMove к цели
-core.desk.pointer = { x: targetX, y: targetY };
-window.dispatchEvent(
-  new PointerEvent("pointermove", {
-    clientX: targetX,
-    clientY: targetY,
-    button: 0,
-    pointerId: 1,
-  })
-);
-
-const upEvent = new PointerEvent("pointerup", {
-  clientX: targetX,
-  clientY: targetY,
-  button: 0,
-  pointerId: 1,
-});
-window.dispatchEvent(upEvent);
+dragNode({{grabNode}}, {{targetNode}}.x, {{targetNode}}.y + 10);
 ```
+
+### 5. «клик в пустое место» / «снять выделение»
+```ts
+clickEmptySpace();
+```
+
+### 6. «проверяем - стала ли ребёнком» / «ребёнок ноды»
+```ts
+expect({{childNode}}.list.parentNode).toBe({{parentNode}});
+expect({{parentNode}}.list.children?.has({{childNode}})).toBe(true);
+```
+
+### 7. «опускаем / тащим с наездом на N px»
+```ts
+// Сверху (наезд снизу вверх или сверху вниз на верх целевой ноды: target.y - grab.height + N):
+dragNode({{grabNode}}, {{targetNode}}.x, {{targetNode}}.y - 30 + {{N}});
+// Снизу (наезд на низ целевой ноды: target.y + target.height - N):
+dragNode({{grabNode}}, {{targetNode}}.x, {{targetNode}}.y + 30 - {{N}});
+```
+
+### 8. «отпускаю на N px выше/ниже ноды» / «сдвиг от ноды»
+```ts
+// На N px выше ноды (y - N):
+dragNode({{grabNode}}, {{targetNode}}.x, {{targetNode}}.y - {{N}});
+// На N px ниже ноды (y + N):
+dragNode({{grabNode}}, {{targetNode}}.x, {{targetNode}}.y + {{N}});
+```
+
+### 9. «проверка последовательности детей» / «порядок детей»
+```ts
+const order: number[] = [];
+{{parentNode}}.list.forEachChildren((ch) => order.push(ch.lID!));
+expect(order).toEqual([{{expectedIDs}}]);
+```
+
+### 10. «реализуй тест» / «!проверь»
+Запустить целевой тест:
+```bash
+npm --prefix client test -- <target.test.ts>
+```
+При наличии ошибки — отладить и исправить основную программу до прохождения теста.
 
 ---
 
 ### Необходимые импорты (подтягивать автоматически при первом использовании)
 ```ts
-import { LNode_TextEdit } from "@/features/nodes/LNode/LNode_TextEdit";
-import VTextEdit from "@/features/nodes/VNode/VTextEdit";
+import {
+  setupNodeTestEnv,
+  createTestTextNode,
+  dragNode,
+  clickEmptySpace,
+  type NodeTestEnv,
+} from "./testHelpers";
 import { GRID } from "@/features/core/CONST";
 ```
-

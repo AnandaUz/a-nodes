@@ -99,10 +99,8 @@ export class SelectManager {
 
     this.selectionRect = new SelectionRect(mainBlock, (rect, pointerEvent) => {
       if (!core.mode.selectMoving && (rect.width < 10 || rect.height < 10)) {
-        if (!core.mode.wasMoving) {
-          this.clearSelection();
-          core.store?.emit(EVENTS.node.unselected, null);
-        }
+        this.clearSelection();
+        core.store?.emit(EVENTS.node.unselected, null);
         core.mode.wasMoving = false;
         return;
       }

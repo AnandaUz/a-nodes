@@ -1,0 +1,169 @@
+import { vi } from "vitest";
+import { core } from "@/features/core/core";
+import { Store } from "@/features/core/store";
+import { NodeManager } from "@/features/nodes/NodeManager";
+import { SelectManager } from "@/features/core/SelectManager/SelectManager";
+import { LNode_TextEdit } from "@/features/nodes/LNode/LNode_TextEdit";
+import type { LNode } from "@/features/nodes/LNode/LNode";
+import VTextEdit from "@/features/nodes/VNode/VTextEdit";
+
+export interface NodeTestEnv {
+  container: HTMLElement;
+  svg: SVGSVGElement;
+  cleanup: () => void;
+}
+
+export function setupNodeTestEnv(): NodeTestEnv {
+  core.store = new Store();
+  core.nodeManager = new NodeManager();
+  core.nodeManager.init();
+  core.selectManager = new SelectManager();
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  core.desk = {
+    nodesEl: container,
+    selectPath: vi.fn(),
+    svgLayer: {
+      svg,
+      drawRect: vi.fn(() =>
+        document.createElementNS("http://www.w3.org/2000/svg", "rect"),
+      ),
+      removeRect: vi.fn(),
+      moveRect: vi.fn(),
+      updateRect: vi.fn(),
+    },
+    viewport: {
+      screenToWorld: (x: number, y: number) => ({ x, y }),
+      state: { x: 0, y: 0 },
+    },
+    pointer: { x: 0, y: 0 },
+  } as any;
+
+  core.history = { execute: vi.fn(), push: vi.fn() } as any;
+
+  core.nodeRenderer = {
+    createVNode: (node: any) => {
+      const body = document.createElement("div");
+      body.className = "vNode";
+      node.vNode = {
+        node,
+        body,
+        height: 30,
+        titleEl: document.createElement("div"),
+        select: vi.fn(),
+        unselect: vi.fn(),
+        onStop: vi.fn(),
+        refreshBodyRect: vi.fn(),
+        applyPosition: vi.fn(),
+        renderSVG: vi.fn(),
+      } as any;
+      return node.vNode;
+    },
+  } as any;
+
+  const cleanup = () => {
+    core.selectManager?.unmount();
+    container.remove();
+  };
+
+  return { container, svg, cleanup };
+}
+
+export interface CreateTestNodeOptions {
+  container?: HTMLElement;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  lID?: number;
+  title?: string;
+  isFrame?: boolean;
+}
+
+export function createTestTextNode(
+  options: CreateTestNodeOptions = {},
+): LNode_TextEdit {
+  const node = new LNode_TextEdit();
+  if (options.lID !== undefined) node.lID = options.lID;
+  if (options.x !== undefined) node.x = options.x;
+  if (options.y !== undefined) node.y = options.y;
+  if (options.title !== undefined) node.title = options.title;
+  if (options.isFrame) node.frame.isFrame = true;
+
+  const container =
+    options.container ?? (core.desk as any)?.nodesEl ?? document.body;
+  node.vNode = new VTextEdit(node, container);
+  node.vNode.init();
+  node.vNode.width = options.width ?? 100;
+  node.vNode.height = options.height ?? 30;
+
+  core.nodeManager?.nodes.add(node);
+  return node;
+}
+
+export function dragNode(
+  grabNode: LNode,
+  targetX: number,
+  targetY: number,
+): void {
+  core.desk.pointer = { x: grabNode.x, y: grabNode.y };
+  grabNode.vNode?.onPointerDown(
+    new PointerEvent("pointerdown", {
+      clientX: grabNode.x,
+      clientY: grabNode.y,
+      button: 0,
+      pointerId: 1,
+    }),
+  );
+
+  grabNode.vNode?.onPointerMove(
+    new PointerEvent("pointermove", {
+      clientX: grabNode.x + 1,
+      clientY: grabNode.y + 1,
+      button: 0,
+      pointerId: 1,
+    }),
+  );
+
+  core.desk.pointer = { x: targetX, y: targetY };
+  const moveTargetEvent = new PointerEvent("pointermove", {
+    clientX: targetX,
+    clientY: targetY,
+    button: 0,
+    pointerId: 1,
+  });
+  window.dispatchEvent(moveTargetEvent);
+  grabNode.vNode?.onPointerMove(moveTargetEvent);
+
+  const upEvent = new PointerEvent("pointerup", {
+    clientX: targetX,
+    clientY: targetY,
+    button: 0,
+    pointerId: 1,
+  });
+  window.dispatchEvent(upEvent);
+  grabNode.vNode?.onPointerUp(upEvent);
+}
+
+export function clickEmptySpace(x = 600, y = 600): void {
+  document.body.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      clientX: x,
+      clientY: y,
+      button: 0,
+      buttons: 1,
+      pointerType: "mouse",
+    }),
+  );
+  window.dispatchEvent(
+    new PointerEvent("pointerup", {
+      clientX: x,
+      clientY: y,
+      button: 0,
+      pointerType: "mouse",
+    }),
+  );
+}

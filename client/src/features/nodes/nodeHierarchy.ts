@@ -71,6 +71,28 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
     height: movedNodeRect.height + 1,
   } as DOMRect;
 
+  const selectedParentsNodes: LNode[] = [];
+  const refFunc = (node: LNode) => {
+    const parentNode = node.list.parentNode;
+    if (parentNode && selectedNodes.has(parentNode)) return;
+    selectedParentsNodes.push(node);
+  };
+  selectedNodes.forEach((node: LNode) => refFunc(node));
+  selectedParentsNodes.sort((a, b) => a.y - b.y);
+
+  const frameNodes: LNode_TextEdit[] = [];
+  const regularNodes: LNode[] = [];
+  selectedParentsNodes.forEach((node) => {
+    if ((node as any).frame?.isFrame) {
+      frameNodes.push(node as LNode_TextEdit);
+    } else {
+      regularNodes.push(node);
+    }
+  });
+
+  const refNode = regularNodes[0] || selectedParentsNodes[0];
+  const refRoot = refNode?.list?.mainParent;
+
   const candidates = core.selectManager
     .getNodeOverRect(overRect)
     .filter((node) => {
@@ -86,31 +108,16 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
           movedNodeRect.y + movedNodeRect.height,
           candRect.y + candRect.height,
         ) - Math.max(movedNodeRect.y, candRect.y);
-      const minOverlap = Math.min(candRect.height, movedNodeRect.height) / 2;
+      const candRoot =
+        node.list?.mainParent || (node.list?.children?.size ? node : null);
+      const isSameTree = Boolean(refRoot && candRoot && refRoot === candRoot);
+      const minOverlap = isSameTree
+        ? Math.min(candRect.height, movedNodeRect.height) / 2
+        : 1;
       return overlapY >= minOverlap;
     });
 
   candidates.sort((a, b) => a.y - b.y);
-
-  const selectedParentsNodes: LNode[] = [];
-  const refFunc = (node: LNode) => {
-    const parentNode = node.list.parentNode;
-    if (parentNode && selectedNodes.has(parentNode)) return;
-    selectedParentsNodes.push(node);
-  };
-  selectedNodes.forEach((node: LNode) => refFunc(node));
-
-  selectedParentsNodes.sort((a, b) => a.y - b.y);
-
-  const frameNodes: LNode_TextEdit[] = [];
-  const regularNodes: LNode[] = [];
-  selectedParentsNodes.forEach((node) => {
-    if ((node as any).frame?.isFrame) {
-      frameNodes.push(node as LNode_TextEdit);
-    } else {
-      regularNodes.push(node);
-    }
-  });
 
   const validCandidates = candidates.filter((cand) => {
     const candRoot = cand.list.mainParent || cand;
@@ -141,7 +148,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
         const parentNode = byNode.list.parentNode;
         manager.ensureLID(parentNode);
         willRefParent.push(
-          ...node.list.setParent(parentNode, baseIndex - 0.6 + i * 0.01),
+          ...node.list.setParent(parentNode, baseIndex + i * 0.01),
         );
       } else if (isSiblingAfter && byNode.list.parentNode) {
         const parentNode = byNode.list.parentNode;

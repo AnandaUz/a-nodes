@@ -1,43 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { LNode_TextEdit } from "@/features/nodes/LNode/LNode_TextEdit";
 import { core } from "@/features/core/core";
-import { NodeManager } from "@/features/nodes/NodeManager";
-import { Store } from "@/features/core/store";
-import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import { GRID } from "@/features/core/CONST";
 import { initCommands } from "@/features/core/comands";
+import { setupNodeTestEnv, type NodeTestEnv } from "./testHelpers";
 
 describe("TFrame (фрейм)", () => {
+  let env: NodeTestEnv;
+
   beforeEach(() => {
-    core.store = new Store();
-    core.nodeManager = new NodeManager();
-    core.selectManager = new SelectManager();
-    core.nodeRenderer = {
-      createVNode: (node: any) => {
-        const body = document.createElement("div");
-        body.className = "vNode";
-        node.vNode = {
-          node,
-          body,
-          height: 30,
-          titleEl: document.createElement("div"),
-          select: vi.fn(),
-          unselect: vi.fn(),
-          onStop: vi.fn(),
-          refreshBodyRect: vi.fn(),
-          applyPosition: vi.fn(),
-          renderSVG: vi.fn(),
-        } as any;
-        return node.vNode;
-      },
-    } as any;
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    core.desk = {
-      selectPath: vi.fn(),
-      svgLayer: {
-        svg,
-      },
-    } as any;
+    env = setupNodeTestEnv();
+  });
+
+  afterEach(() => {
+    env.cleanup();
   });
 
   describe("Флаги isFrame и isInFrame", () => {
