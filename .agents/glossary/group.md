@@ -13,6 +13,10 @@ A hierarchy of nodes connected via `TList` (`node.list`). If the root parent (`l
 - **Logic**:
   - `nodes/LNode/TList.ts` — Core tree management (parent, children, order, tabs).
   - `nodes/LNode/LNode.ts` — Holds `node.list = new TList(this)`.
+- **View / Interactions**:
+  - `SelectManager` / `DeskSVG` — Drag-and-drop hierarchy and group selection logic.
+- **Tests**:
+  - `client/src/features/nodes/LNode/__tests__/TListGroupSelection.test.ts`
 - **Managers / DB**:
   - `shared/types/ILNode.ts` — `ITList` interface (`parentLID`, `index`, `tab`).
   - `shared/types/INodeDB.ts` — DB mapping for hierarchy properties.

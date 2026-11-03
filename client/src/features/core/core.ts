@@ -108,15 +108,6 @@ export class Core {
           node.repeatMode.refreshIndicator();
         });
 
-        core.nodeManager.nodes.forEach((node) => {
-          node.vNode?.refreshBodyRect();
-
-          // if (node instanceof VFrame) {
-          //   // собираем все фреймы в ядко фреймов
-          //   this.frameCore.addFrame(node);
-          // }
-        });
-
         const frames = [...core.nodeManager.nodes.values()].filter(
           (node: any) => node?.frame?.isFrame,
         ) as LNode_TextEdit[];
@@ -132,6 +123,10 @@ export class Core {
           node.frame.setBtnsState();
         });
 
+        core.nodeManager.nodes.forEach((node) => {
+          node.vNode?.refreshBodyRect();
+        });
+
         this.nodeManager.setPositionForAllLinkedChildNodes();
         core.nodeManager.nodes.forEach((node) => {
           node.vNode?.renderSVG();
@@ -140,6 +135,15 @@ export class Core {
         frames.forEach((node) => {
           node.frame.bringToFront();
         });
+
+        if (typeof document !== "undefined" && "fonts" in document) {
+          document.fonts.ready.then(() => {
+            this.nodeManager.setPositionForAllLinkedChildNodes();
+            core.nodeManager.nodes.forEach((node) => {
+              node.vNode?.renderSVG();
+            });
+          });
+        }
 
         // core.desk.disconnectNodesEl(); //>
         // core.frameCore.refresh(); //пересчитывает все
@@ -178,6 +182,9 @@ export class Core {
       deskId: deskId,
       token: token,
     });
+    if (typeof document !== "undefined" && "fonts" in document) {
+      await document.fonts.ready;
+    }
     await this.serverPersistence.init();
 
     if (typeof window !== "undefined") {
