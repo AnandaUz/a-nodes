@@ -98,12 +98,28 @@ export class NodeManager {
   copyNode(node: LNode, options?: Partial<LNode>) {
     const newNode = this.createNode({
       type: options?.type || node.type,
+      x: options?.x ?? node.x,
+      y: options?.y ?? node.y,
     });
 
     if (!newNode) return null;
 
+    newNode.title = node.title;
     // то что нужно склонировать из родителя
-    newNode.exData = structuredClone(node.exData);
+    if (node.exData) {
+      newNode.exData = structuredClone(node.exData);
+    }
+
+    if (node.type === NODE_TYPES.TEXT_EDIT_CLONE.id) {
+      const cloneNode = newNode as LNode_TEClone;
+      const originalClone = node as LNode_TEClone;
+      const main = originalClone.clones.mainNode;
+      if (main) {
+        cloneNode.clones.mainNode = main;
+        main.clones.nodes.add(cloneNode);
+        cloneNode.clones.sourceNode = originalClone.clones.sourceNode || main;
+      }
+    }
 
     for (const [key, value] of Object.entries(options || {})) {
       (newNode as any)[key] = value;

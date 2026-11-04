@@ -49,6 +49,7 @@ export class Core {
       ctrl: false,
       alt: false,
     },
+    isShiftDrag: false,
   };
 
   constructor() {
@@ -57,24 +58,16 @@ export class Core {
     this.clipboard = new Clipboard();
 
     initCommands();
-    window.addEventListener(
-      "pointerdown",
-      (e: PointerEvent) => {
-        this.mode.mouseStatus.shift = e.shiftKey;
-        this.mode.mouseStatus.ctrl = e.ctrlKey;
-        this.mode.mouseStatus.alt = e.altKey;
-      },
-      true,
-    );
-    window.addEventListener(
-      "pointerup",
-      (e: PointerEvent) => {
-        this.mode.mouseStatus.shift = e.shiftKey;
-        this.mode.mouseStatus.ctrl = e.ctrlKey;
-        this.mode.mouseStatus.alt = e.altKey;
-      },
-      true,
-    );
+    const updateModifiers = (e: MouseEvent | KeyboardEvent) => {
+      this.mode.mouseStatus.shift = e.shiftKey;
+      this.mode.mouseStatus.ctrl = e.ctrlKey;
+      this.mode.mouseStatus.alt = e.altKey;
+    };
+    window.addEventListener("pointerdown", updateModifiers, true);
+    window.addEventListener("pointerup", updateModifiers, true);
+    window.addEventListener("pointermove", updateModifiers, true);
+    window.addEventListener("keydown", updateModifiers, true);
+    window.addEventListener("keyup", updateModifiers, true);
   }
 
   async init(_params: Record<string, string>) {

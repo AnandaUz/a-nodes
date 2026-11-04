@@ -108,7 +108,11 @@ export function dragNode(
   grabNode: LNode,
   targetX: number,
   targetY: number,
+  options?: { shiftKey?: boolean },
 ): void {
+  const shiftKey = options?.shiftKey ?? false;
+  core.mode.mouseStatus.shift = shiftKey;
+  core.mode.isShiftDrag = shiftKey;
   core.desk.pointer = { x: grabNode.x, y: grabNode.y };
   grabNode.vNode?.onPointerDown(
     new PointerEvent("pointerdown", {
@@ -116,6 +120,7 @@ export function dragNode(
       clientY: grabNode.y,
       button: 0,
       pointerId: 1,
+      shiftKey,
     }),
   );
 
@@ -125,6 +130,7 @@ export function dragNode(
       clientY: grabNode.y + 1,
       button: 0,
       pointerId: 1,
+      shiftKey,
     }),
   );
 
@@ -134,6 +140,7 @@ export function dragNode(
     clientY: targetY,
     button: 0,
     pointerId: 1,
+    shiftKey,
   });
   window.dispatchEvent(moveTargetEvent);
   grabNode.vNode?.onPointerMove(moveTargetEvent);
@@ -143,9 +150,12 @@ export function dragNode(
     clientY: targetY,
     button: 0,
     pointerId: 1,
+    shiftKey,
   });
   window.dispatchEvent(upEvent);
   grabNode.vNode?.onPointerUp(upEvent);
+  core.mode.mouseStatus.shift = false;
+  core.mode.isShiftDrag = false;
 }
 
 export function clickEmptySpace(x = 600, y = 600): void {

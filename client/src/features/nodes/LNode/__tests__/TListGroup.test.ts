@@ -145,4 +145,108 @@ describe("TList (листГруппа)", () => {
     expect(node3.list.parentNode).toBeNull();
     expect(node1.list.children?.has(node3)).toBe(false);
   });
+
+  it("перемещение ноды с зажатым Shift меняет таб без перемещения детей и перестраивает структуру", () => {
+    // у ноды 1 ребёнок 2 с отступом в один таб и 3 тоже отступ один таб
+    // у 3 есть ребёнок 4 с отступом таб
+    const node1 = createTestTextNode({
+      lID: 1,
+      x: 100,
+      y: 100,
+      container: env.container,
+    });
+    const node2 = createTestTextNode({
+      lID: 2,
+      x: 100 + GRID.x,
+      y: 130,
+      container: env.container,
+    });
+    const node3 = createTestTextNode({
+      lID: 3,
+      x: 100 + GRID.x,
+      y: 160,
+      container: env.container,
+    });
+    const node4 = createTestTextNode({
+      lID: 4,
+      x: 100 + 2 * GRID.x,
+      y: 190,
+      container: env.container,
+    });
+
+    node2.list.initParent(node1);
+    node2.list.tab = 1;
+
+    node3.list.initParent(node1);
+    node3.list.tab = 1;
+
+    node4.list.initParent(node3);
+    node4.list.tab = 1;
+
+    expect(node1.list.children?.has(node2)).toBe(true);
+    expect(node1.list.children?.has(node3)).toBe(true);
+    expect(node3.list.children?.has(node4)).toBe(true);
+    expect(node4.list.parentNode).toBe(node3);
+
+    // если я зажимаю шифт и двигаю 3 вправо на один таб
+    core.selectManager.selectNode(node3);
+    dragNode(node3, node3.x + GRID.x, node3.y, { shiftKey: true });
+
+    // теперь у ноды 2 два ребёнка 3 и 4
+    expect(node3.list.parentNode).toBe(node2);
+    expect(node4.list.parentNode).toBe(node2);
+    expect(node2.list.children?.has(node3)).toBe(true);
+    expect(node2.list.children?.has(node4)).toBe(true);
+    expect(node3.list.children?.size ?? 0).toBe(0);
+    expect(node3.list.index).toBe(0);
+    expect(node4.list.index).toBe(1);
+    expect(node3.x).toBe(100 + 2 * GRID.x);
+    expect(node4.x).toBe(100 + 2 * GRID.x);
+  });
+
+  it("перемещение ноды без Shift двигает её детей вместе с ней", () => {
+    const node1 = createTestTextNode({
+      lID: 1,
+      x: 100,
+      y: 100,
+      container: env.container,
+    });
+    const node2 = createTestTextNode({
+      lID: 2,
+      x: 100 + GRID.x,
+      y: 130,
+      container: env.container,
+    });
+    const node3 = createTestTextNode({
+      lID: 3,
+      x: 100 + GRID.x,
+      y: 160,
+      container: env.container,
+    });
+    const node4 = createTestTextNode({
+      lID: 4,
+      x: 100 + 2 * GRID.x,
+      y: 190,
+      container: env.container,
+    });
+
+    node2.list.initParent(node1);
+    node2.list.tab = 1;
+
+    node3.list.initParent(node1);
+    node3.list.tab = 1;
+
+    node4.list.initParent(node3);
+    node4.list.tab = 1;
+
+    // двигаем без шифта
+    core.selectManager.selectNode(node3);
+    dragNode(node3, node3.x + GRID.x, node3.y, { shiftKey: false });
+
+    // нода 4 должна остаться ребёнком ноды 3 и сдвинуться вместе с ней
+    expect(node3.list.parentNode).toBe(node2);
+    expect(node4.list.parentNode).toBe(node3);
+    expect(node3.list.children?.has(node4)).toBe(true);
+    expect(node4.x).toBe(100 + 3 * GRID.x);
+  });
 });

@@ -22,6 +22,7 @@ export class DndController {
   private targetPos: Position | null = null;
   private lastClickTime: number = 0;
   private lastClickPos: Position = { x: 0, y: 0 };
+  private lastPointerEvent: PointerEvent | null = null;
 
   constructor(vNode: VNode) {
     this.vNode = vNode;
@@ -56,6 +57,8 @@ export class DndController {
       this.dragRafId = null;
     }
     this.targetPos = null;
+    this.lastPointerEvent = null;
+    core.mode.isShiftDrag = false;
     this.vNode.body.classList.remove("is-dragging");
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
@@ -119,6 +122,8 @@ export class DndController {
 
     Tools.stopEvent(e);
 
+    this.lastPointerEvent = e;
+    core.mode.isShiftDrag = Boolean(e.shiftKey || core.mode.mouseStatus.shift);
     this.isDragging = true;
     if (this.dragRafId !== null) {
       cancelAnimationFrame(this.dragRafId);
@@ -158,8 +163,14 @@ export class DndController {
     this.vNode.applyPosition();
     core.store.emit(EVENTS.node.moving, this.vNode.node);
 
+    const isShift = Boolean(
+      this.lastPointerEvent?.shiftKey ||
+        core.mode.mouseStatus.shift ||
+        core.mode.isShiftDrag,
+    );
+
     // если у него есть дети
-    if (this.vNode.node.list.children?.size) {
+    if (this.vNode.node.list.children?.size && !isShift) {
       this.vNode.node.list.setPositionForChildren(undefined, 0, 0, true, true);
     }
   }
@@ -201,6 +212,10 @@ export class DndController {
       // this.select();
     }
 
+    this.lastPointerEvent = e;
+    if (e.shiftKey || core.mode.mouseStatus.shift) {
+      core.mode.isShiftDrag = true;
+    }
     this.isMoved = true;
     this.vNode.body.classList.add("is-dragging");
 
@@ -223,6 +238,10 @@ export class DndController {
 
   onPointerUp = (e: PointerEvent) => {
     if (!this.isDragging) return;
+    this.lastPointerEvent = e;
+    if (e.shiftKey || core.mode.mouseStatus.shift) {
+      core.mode.isShiftDrag = true;
+    }
     if (
       core.mode.isPinching ||
       Date.now() - core.mode.lastPinchEndTime < 300

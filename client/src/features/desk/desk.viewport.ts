@@ -1,5 +1,6 @@
 import { core } from "../core/core";
 import Tools from "../core/Tools";
+import { viewportStore } from "../../services/storage";
 import {
   applyViewportTransform,
   calculatePinchZoom,
@@ -66,9 +67,9 @@ export class Viewport {
     this.bindEvents();
     this.applyTransform();
 
-    const st = localStorage.getItem("viewport-state" + core.mode.deskId);
+    const st = viewportStore.getViewport(core.mode.deskId);
     if (st) {
-      this.state = JSON.parse(st);
+      this.state = st;
       this.applyTransform();
     }
   }
@@ -178,10 +179,7 @@ export class Viewport {
     this.stopPan();
     this.scene.style.cursor = this.isSpaceDown ? "grab" : "";
 
-    localStorage.setItem(
-      "viewport-state" + core.mode.deskId,
-      JSON.stringify(this.state),
-    );
+    viewportStore.saveViewport(core.mode.deskId, this.state);
   };
 
   private onWheel = (e: WheelEvent) => {
@@ -191,10 +189,7 @@ export class Viewport {
     const rect = this.scene.getBoundingClientRect();
     this.applyZoom(factor, e.clientX - rect.left, e.clientY - rect.top);
 
-    localStorage.setItem(
-      "viewport-state" + core.mode.deskId,
-      JSON.stringify(this.state),
-    );
+    viewportStore.saveViewport(core.mode.deskId, this.state);
   };
 
   private applyZoom(factor: number, originX: number, originY: number) {

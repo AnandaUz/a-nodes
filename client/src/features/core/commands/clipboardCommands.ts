@@ -255,25 +255,51 @@ export const clipboardCommands: UICommand[] = [
             );
           },
         });
+
+        core.selectManager.transformMove.start();
       }
     },
   },
   {
     label: "создать копию",
     shortcuts: ["ctrl+d", "cmd+d"],
-    execute: async (_e) => {
-      // Tools.stopEvent(e);
-      // const vNodes = Array.from(core.selectManager.selectedNodes.values());
-      // const newNodeEsses: INode[] = [];
-      // for (const vnode of vNodes) {
-      //   const newNodeEss = await core.nodeManager.copyNode(vnode.node);
-      //   if (newNodeEss) newNodeEsses.push(newNodeEss);
-      // }
-      // core.selectManager.clearSelection();
-      // newNodeEsses.forEach((newNodeEss) => {
-      //   core.selectManager.selectNode(newNodeEss, { ctrlKey: true });
-      // });
-      // core.selectManager.transformMove.start();
+    execute: async (e) => {
+      if (core.mode.textEditing) return;
+      Tools.stopEvent(e);
+      const nodes = Array.from(core.selectManager.selectedNodes.values());
+      if (nodes.length === 0) return;
+
+      const newNodes: LNode[] = [];
+      for (const node of nodes) {
+        const newNode = core.nodeManager.copyNode(node);
+        if (newNode) {
+          core.nodeRenderer.createVNode(newNode);
+          newNode.save();
+          newNodes.push(newNode);
+        }
+      }
+
+      if (newNodes.length === 0) return;
+
+      core.selectManager.clearSelection();
+      newNodes.forEach((newNode) => {
+        core.selectManager.selectNode(newNode, { ctrlKey: true });
+      });
+
+      core.history.push({
+        execute: () => {
+          newNodes.forEach((node) =>
+            core.nodeManager.restoreNodeFromTrash(node),
+          );
+        },
+        undo: () => {
+          newNodes.forEach((node) =>
+            core.nodeManager.putNodeInTrash(node),
+          );
+        },
+      });
+
+      core.selectManager.transformMove.start();
     },
   },
   {
