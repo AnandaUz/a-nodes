@@ -7,12 +7,18 @@ export interface AuthRequest extends Request {
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    } else if (typeof req.query?.['token'] === 'string') {
+        token = req.query['token'];
+    }
+
+    if (!token) {
         return res.status(401).json({ error: 'Не авторизован: отсутствует токен' });
     }
 
-    const token = authHeader.split(' ')[1] as string;
     const decoded = verifyToken(token);
 
     if (!decoded) {

@@ -20,7 +20,7 @@ import {
   initCloneLinks,
   setPositionForAllLinkedChildNodes,
 } from "./nodeHierarchy";
-import { loadDeskSnapshot } from "./nodeSerialization";
+import { diffDeskSnapshot, loadDeskSnapshot } from "./nodeSerialization";
 import { SpatialIndex } from "./spatial/SpatialIndex";
 
 export class NodeManager {
@@ -75,6 +75,11 @@ export class NodeManager {
 
   loadSnapshot(snapshot: DeskSnapshot): void {
     loadDeskSnapshot(this, snapshot);
+    this.rebuildSpatialIndex();
+  }
+
+  applyDeltaSnapshot(snapshot: DeskSnapshot, dirtyNodes?: Set<LNode>): void {
+    diffDeskSnapshot(this, snapshot, { isDelta: true, dirtyNodes });
     this.rebuildSpatialIndex();
   }
 

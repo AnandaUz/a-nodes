@@ -5,6 +5,7 @@ import { authGuard } from "@services/auth.guard";
 import { router } from "@/router";
 import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
+import { CNetworkStatus } from "./components/c-network-status/c-network-status";
 import { registerNodeType, NODE_TYPES } from "@features/nodes/node-registry";
 import { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
@@ -19,10 +20,12 @@ class App {
   router = router;
   private loaderTimer: ReturnType<typeof setTimeout> | undefined;
   private loading: CLoading = new CLoading();
+  private networkStatus: CNetworkStatus = new CNetworkStatus();
   private loaderCount = 0;
 
   constructor() {
     document.body.appendChild(this.loading);
+    document.body.appendChild(this.networkStatus);
     window.addEventListener("loader:show", () => this.showLoader());
     window.addEventListener("loader:hide", () => this.hideLoader());
   }

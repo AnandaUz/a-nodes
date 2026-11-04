@@ -42,12 +42,45 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   if (node.list.parentLID && node.list.parentLID !== node.lID) {
     const parentNode = manager.getNodeByLID(node.list.parentLID);
     if (parentNode) {
-      node.list.initParent(parentNode);
+      if (node.list.parentNode !== parentNode) {
+        if (node.list.parentNode) {
+          node.list.parentNode.list.children?.delete(node);
+          (node.list.parentNode.vNode as any)?.refreshListBtns?.();
+        }
+        node.list.initParent(parentNode);
+      }
     }
+  } else if (node.list.parentNode) {
+    node.list.parentNode.list.children?.delete(node);
+    (node.list.parentNode.vNode as any)?.refreshListBtns?.();
+    node.list.parentNode = null;
   }
 }
 
-function diffDeskSnapshot(manager: NodeManager, snapshot: DeskSnapshot): void {
+export interface DiffSnapshotOptions {
+  isDelta?: boolean | undefined;
+  dirtyNodes?: Set<LNode> | undefined;
+}
+
+function isNodeBeingEdited(node: LNode, dirtyNodes?: Set<LNode>): boolean {
+  if (dirtyNodes?.has(node)) return true;
+  if (
+    typeof document !== "undefined" &&
+    document.activeElement &&
+    node.vNode?.body?.contains(document.activeElement)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function diffDeskSnapshot(
+  manager: NodeManager,
+  snapshot: DeskSnapshot,
+  options?: DiffSnapshotOptions,
+): void {
+  const isDelta = options?.isDelta ?? false;
+  const dirtyNodes = options?.dirtyNodes;
   const snapshotNodes = snapshot.nodes || [];
   const snapshotMap = new Map<string, INodeDB>();
 
@@ -67,9 +100,20 @@ function diffDeskSnapshot(manager: NodeManager, snapshot: DeskSnapshot): void {
   for (const node of manager.nodes) {
     if (!node._id) continue;
     existingMap.set(node._id, node);
+
+    if (isNodeBeingEdited(node, dirtyNodes)) {
+      continue;
+    }
+
     const freshData = snapshotMap.get(node._id);
-    if (!freshData || freshData.inTrash || freshData.ok) {
-      toRemove.push(node);
+    if (isDelta) {
+      if (freshData && (freshData.inTrash || freshData.ok)) {
+        toRemove.push(node);
+      }
+    } else {
+      if (!freshData || freshData.inTrash || freshData.ok) {
+        toRemove.push(node);
+      }
     }
   }
 
@@ -90,6 +134,9 @@ function diffDeskSnapshot(manager: NodeManager, snapshot: DeskSnapshot): void {
     const existing = existingMap.get(id);
 
     if (existing) {
+      if (isNodeBeingEdited(existing, dirtyNodes)) {
+        continue;
+      }
       const currentDB = toDB(existing);
       if (!areNodesEqual(currentDB, nodeData)) {
         fromDB(nodeData, existing);
@@ -116,6 +163,18 @@ function diffDeskSnapshot(manager: NodeManager, snapshot: DeskSnapshot): void {
   for (const node of addedNodes) {
     core.nodeRenderer.createVNode(node);
     manager.spatialIndex.insert(node);
+  }
+
+  // Защита от коллизий lID при параллельном создании нод
+  const checkLID = new Set<number>();
+  for (const node of manager.nodes) {
+    if (!node.lID) continue;
+    if (checkLID.has(node.lID)) {
+      node.lID = manager.generateLID();
+      node.save();
+    } else {
+      checkLID.add(node.lID);
+    }
   }
 
   // Обновляем визуализацию изменившихся

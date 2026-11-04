@@ -4,6 +4,7 @@ import type { LNode } from "@/features/nodes/LNode/LNode";
 import { toDB } from "@shared/types/INodeDB";
 import type { DeskSnapshot } from "./interfaces";
 import { areSnapshotsEqual } from "@/features/nodes/snapshotUtils";
+import { getToken } from "@services/auth.service";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
@@ -21,6 +22,12 @@ export class ServerPersistence {
   private unsubscribers: Array<() => void> = [];
   private isSaving = false;
 
+  private eventSource: EventSource | null = null;
+  private lastServerTime: string | null = null;
+  private isFetchingDelta = false;
+  private hasPendingDelta = false;
+  private lastDeltaFetchTime = 0;
+
   constructor(opts: ServerPersistenceOptions) {
     this.opts = opts;
 
@@ -30,7 +37,14 @@ export class ServerPersistence {
       }),
     ];
 
-    window.addEventListener("beforeunload", this.onBeforeUnload);
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", this.onBeforeUnload);
+      window.addEventListener("focus", this.onVisibilityOrFocus);
+      window.addEventListener("online", this.onOnline);
+    }
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", this.onVisibilityOrFocus);
+    }
   }
   private getCacheKey(): string {
     return `anodes_desk_cache_${this.opts.deskId}`;
@@ -66,11 +80,16 @@ export class ServerPersistence {
         console.warn("[ServerPersistence] Загрузка нод не удалась:", err);
       });
     }
+
+    this.initSSE();
   }
 
   private async load(cachedSnapshot?: DeskSnapshot | null): Promise<void> {
     const response = await api.loadNodes(this.opts.deskId);
     if (response) {
+      if (response.serverTime) {
+        this.lastServerTime = response.serverTime;
+      }
       const freshSnapshot: DeskSnapshot = {
         nodes: response.nodes || [],
         pageNode: response.pageNode || null,
@@ -85,6 +104,8 @@ export class ServerPersistence {
       }
       if (this.dirtyNodes.size === 0) {
         core.store.emit(EVENTS.server.loaded, freshSnapshot);
+      } else if (core.nodeManager) {
+        core.nodeManager.applyDeltaSnapshot(freshSnapshot, this.dirtyNodes);
       }
     }
   }
@@ -180,6 +201,7 @@ export class ServerPersistence {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "X-Client-Id": api.clientId,
         },
         body: JSON.stringify({ nodes: prepared }),
       });
@@ -208,9 +230,119 @@ export class ServerPersistence {
     this.flushSync();
   };
 
+  private onOnline = () => {
+    if (this.dirtyNodes.size > 0) {
+      this.scheduleSave();
+    }
+    this.onVisibilityOrFocus();
+  };
+
+  private onVisibilityOrFocus = () => {
+    if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+
+    if (
+      this.eventSource &&
+      typeof EventSource !== "undefined" &&
+      this.eventSource.readyState === EventSource.CLOSED
+    ) {
+      this.initSSE();
+    }
+
+    const now = Date.now();
+    if (now - this.lastDeltaFetchTime < 1000) return;
+    this.lastDeltaFetchTime = now;
+
+    void this.applyDelta();
+  };
+
+  private async applyDelta(targetServerTime?: string): Promise<void> {
+    if (this.isFetchingDelta) {
+      this.hasPendingDelta = true;
+      return;
+    }
+    this.isFetchingDelta = true;
+    try {
+      do {
+        this.hasPendingDelta = false;
+        this.lastDeltaFetchTime = Date.now();
+        const since = this.lastServerTime ?? undefined;
+        const response = await api.loadNodes(this.opts.deskId, since);
+        if (response) {
+          if (response.serverTime) {
+            this.lastServerTime = response.serverTime;
+          } else if (targetServerTime) {
+            this.lastServerTime = targetServerTime;
+          }
+
+          const deltaSnapshot: DeskSnapshot = {
+            nodes: response.nodes || [],
+            pageNode: response.pageNode || null,
+          };
+
+          if (
+            core.nodeManager &&
+            (deltaSnapshot.nodes.length > 0 || deltaSnapshot.pageNode)
+          ) {
+            core.nodeManager.applyDeltaSnapshot(deltaSnapshot, this.dirtyNodes);
+          }
+          this.cacheCurrentNodes();
+        }
+      } while (this.hasPendingDelta);
+    } catch (err) {
+      console.warn("[ServerPersistence] Ошибка применения SSE-дельты:", err);
+    } finally {
+      this.isFetchingDelta = false;
+    }
+  }
+
+  private initSSE(): void {
+    if (typeof window === "undefined" || typeof EventSource === "undefined") return;
+    this.closeSSE();
+
+    const token = this.opts.token || getToken();
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
+    const clientIdParam = `clientId=${encodeURIComponent(api.clientId)}`;
+    const sseUrl = `${import.meta.env.VITE_API_URL}/nodes/${this.opts.deskId}/events?${clientIdParam}${tokenParam}`;
+
+    const es = new EventSource(sseUrl);
+    this.eventSource = es;
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.type === "nodes_updated") {
+          if (data.senderId && data.senderId === api.clientId) return;
+          void this.applyDelta(data.serverTime);
+        }
+      } catch {
+        // Пропускаем служебные SSE-сообщения (например ": ping")
+      }
+    };
+    es.onerror = () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("connection:offline"));
+      }
+    };
+  }
+
+  private closeSSE(): void {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+  }
+
   unmount() {
+    this.closeSSE();
     this.unsubscribers.forEach((fn) => fn());
     this.unsubscribers = [];
-    window.removeEventListener("beforeunload", this.onBeforeUnload);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("beforeunload", this.onBeforeUnload);
+      window.removeEventListener("focus", this.onVisibilityOrFocus);
+      window.removeEventListener("online", this.onOnline);
+    }
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.onVisibilityOrFocus);
+    }
   }
 }
