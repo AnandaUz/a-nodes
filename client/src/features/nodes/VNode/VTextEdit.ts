@@ -137,6 +137,7 @@ export default class VTextEdit extends VNode {
       }
     }
     this.refreshListBtns();
+    (this.node as LNode_TextEdit).frame?.updateIoClasses();
   }
 
   toggleListOpen() {

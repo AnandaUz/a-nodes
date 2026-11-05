@@ -52,11 +52,15 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   A: { type: Number }, //переменные для клонов LNode_TEClone,
   f: { type: [Number], default: undefined }, //родители фреймов
   D: { type: Number }, //переменные для repeatMode и разных дат,
+  i: { type: Boolean },
+  o: { type: Boolean },
 });
 
 // Ключевые индексы для выборок уровня и дельта-синхронизации
 nodeSchema.index({ pageId: 1, inTrash: 1 });
 nodeSchema.index({ pageId: 1, lastUpdate: 1 });
+nodeSchema.index({ pageId: 1, i: 1 });
+nodeSchema.index({ pageId: 1, o: 1 });
 nodeSchema.index({ userId: 1, pageId: 1, inTrash: 1 });
 nodeSchema.index({ userId: 1, pageId: 1, lastUpdate: 1 });
 

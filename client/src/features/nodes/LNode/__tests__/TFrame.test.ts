@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { toDB, fromDB } from "@shared/types/INodeDB";
 import { LNode_TextEdit } from "@/features/nodes/LNode/LNode_TextEdit";
 import { core } from "@/features/core/core";
 import { GRID } from "@/features/core/CONST";
 import { initCommands } from "@/features/core/comands";
-import { setupNodeTestEnv, type NodeTestEnv } from "./testHelpers";
+import { setupNodeTestEnv, createTestTextNode, type NodeTestEnv } from "./testHelpers";
 
 describe("TFrame (фрейм)", () => {
   let env: NodeTestEnv;
@@ -472,6 +473,83 @@ describe("TFrame (фрейм)", () => {
       expect(newNode).toBeDefined();
       expect(newNode?.list.tab).toBe(child.list.tab);
       expect(newNode?.x).toBe(child.x);
+    });
+  });
+
+
+  describe("Режимы фрейма IN и OUT (Входящие и Исходящие)", () => {
+    it("поддерживает переключение режимов через setIoMode и сброс turnOff_frameMode", () => {
+      const node = createTestTextNode();
+      expect(node.frame.isFrameIn).toBe(false);
+      expect(node.frame.isFrameOut).toBe(false);
+      expect(node.frame.ioMode).toBe("normal");
+
+      node.frame.setIoMode("in");
+      expect(node.frame.isFrame).toBe(true);
+      expect(node.frame.isFrameIn).toBe(true);
+      expect(node.frame.isFrameOut).toBe(false);
+      expect(node.frame.ioMode).toBe("in");
+      expect(node.vNode?.body.classList.contains("frame-in")).toBe(true);
+
+      node.frame.setIoMode("out");
+      expect(node.frame.isFrameIn).toBe(false);
+      expect(node.frame.isFrameOut).toBe(true);
+      expect(node.frame.ioMode).toBe("out");
+      expect(node.vNode?.body.classList.contains("frame-out")).toBe(true);
+      expect(node.vNode?.body.classList.contains("frame-in")).toBe(false);
+
+      node.frame.turnOff_frameMode();
+      expect(node.frame.isFrame).toBe(false);
+      expect(node.frame.isFrameIn).toBe(false);
+      expect(node.frame.isFrameOut).toBe(false);
+      expect(node.vNode?.body.classList.contains("frame-out")).toBe(false);
+    });
+
+    it("обеспечивает уникальность фрейма IN и фрейма OUT на доске", () => {
+      const frame1 = new LNode_TextEdit();
+      const frame2 = new LNode_TextEdit();
+      core.nodeManager.nodes.add(frame1);
+      core.nodeManager.nodes.add(frame2);
+
+      frame1.frame.setIoMode("in");
+      expect(frame1.frame.isFrameIn).toBe(true);
+
+      frame2.frame.setIoMode("in");
+      expect(frame2.frame.isFrameIn).toBe(true);
+      expect(frame1.frame.isFrameIn).toBe(false);
+
+      frame1.frame.setIoMode("out");
+      expect(frame1.frame.isFrameOut).toBe(true);
+
+      frame2.frame.setIoMode("out");
+      expect(frame2.frame.isFrameOut).toBe(true);
+      expect(frame1.frame.isFrameOut).toBe(false);
+    });
+
+    it("корректно сериализует и десериализует i и o через toDB и fromDB", () => {
+      const node = new LNode_TextEdit();
+      node.frame.isFrame = true;
+      node.frame.isFrameIn = true;
+
+      const dbDataIn = toDB(node);
+      expect(dbDataIn.i).toBe(true);
+      expect(dbDataIn.o).toBeNull();
+
+      const targetNode1 = new LNode_TextEdit();
+      fromDB(dbDataIn, targetNode1);
+      expect(targetNode1.frame.isFrameIn).toBe(true);
+      expect(targetNode1.frame.isFrameOut).toBe(false);
+
+      node.frame.setIoMode("out");
+      const dbDataOut = toDB(node);
+      expect(dbDataOut.i).toBeNull();
+      expect(dbDataOut.o).toBe(true);
+
+      const targetNode2 = new LNode_TextEdit();
+      fromDB(dbDataOut, targetNode2);
+      expect(targetNode2.frame.isFrameIn).toBe(false);
+      expect(targetNode2.frame.isFrameOut).toBe(true);
+
     });
   });
 });

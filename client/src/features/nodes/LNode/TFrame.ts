@@ -9,6 +9,8 @@ interface IParent {
   node: LNode_TextEdit;
   path: Ge_Path;
 }
+export type FrameIoMode = "in" | "normal" | "out";
+
 export default class TFrame {
   owner: LNode_TextEdit;
   parents: Set<IParent> = new Set();
@@ -17,6 +19,8 @@ export default class TFrame {
   // paths: Ge_Path[] = [];
 
   _isFrame = false;
+  private _isFrameIn = false;
+  private _isFrameOut = false;
   constructor(owner: LNode_TextEdit) {
     this.owner = owner;
   }
@@ -98,6 +102,7 @@ export default class TFrame {
   /** подключаем детей к родителям */
   init() {
     (this.owner.vNode as VTextEdit)?.turnOn_frameMode();
+    this.updateIoClasses();
     if (this.parentsLID.length === 0) return;
 
     this.parentsLID.forEach((id) => {
@@ -224,12 +229,85 @@ export default class TFrame {
   turnOn_frameMode() {
     this.isFrame = true;
     this.owner.vNode?.turnOn_frameMode();
+    this.updateIoClasses();
   }
   turnOff_frameMode() {
     this.isFrame = false;
+    this._isFrameIn = false;
+    this._isFrameOut = false;
+    this.updateIoClasses();
     this.owner.vNode?.turnOff_frameMode();
     // this.deinitBtns();
   }
+  get isFrameIn(): boolean {
+    return this._isFrameIn;
+  }
+  set isFrameIn(v: boolean) {
+    if (this._isFrameIn === v) return;
+    this._isFrameIn = v;
+    if (v) this._isFrameOut = false;
+    this.updateIoClasses();
+  }
+
+  get isFrameOut(): boolean {
+    return this._isFrameOut;
+  }
+  set isFrameOut(v: boolean) {
+    if (this._isFrameOut === v) return;
+    this._isFrameOut = v;
+    if (v) this._isFrameIn = false;
+    this.updateIoClasses();
+  }
+
+  get ioMode(): FrameIoMode {
+    if (this._isFrameIn) return "in";
+    if (this._isFrameOut) return "out";
+    return "normal";
+  }
+
+  setIoMode(mode: FrameIoMode): void {
+    if (mode === "in") {
+      if (!this.isFrame) this.turnOn_frameMode();
+      this.resetOtherIoFrames("in");
+      this._isFrameIn = true;
+      this._isFrameOut = false;
+    } else if (mode === "out") {
+      if (!this.isFrame) this.turnOn_frameMode();
+      this.resetOtherIoFrames("out");
+      this._isFrameIn = false;
+      this._isFrameOut = true;
+    } else {
+      this._isFrameIn = false;
+      this._isFrameOut = false;
+    }
+    this.updateIoClasses();
+    this.owner.save();
+  }
+
+  private resetOtherIoFrames(mode: "in" | "out"): void {
+    if (!core.nodeManager?.nodes) return;
+    for (const node of core.nodeManager.nodes) {
+      if (node === this.owner) continue;
+      const frame = (node as any).frame as TFrame | undefined;
+      if (!frame) continue;
+      if (mode === "in" && frame.isFrameIn) {
+        frame.isFrameIn = false;
+        node.save();
+      } else if (mode === "out" && frame.isFrameOut) {
+        frame.isFrameOut = false;
+        node.save();
+      }
+    }
+  }
+
+  updateIoClasses(): void {
+    const vNode = this.owner.vNode;
+    if (vNode?.body) {
+      vNode.body.classList.toggle("frame-in", Boolean(this._isFrameIn));
+      vNode.body.classList.toggle("frame-out", Boolean(this._isFrameOut));
+    }
+  }
+
   get frameLID() {
     return this.owner.list.mainParent?.lID || 0;
   }
