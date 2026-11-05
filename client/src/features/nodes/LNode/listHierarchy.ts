@@ -1,5 +1,6 @@
 import Tools from "@/features/core/Tools";
 import { GRID } from "@/features/core/CONST";
+import { core } from "@/features/core/core";
 import type { LNode } from "./LNode";
 import type TList from "./TList";
 
@@ -28,10 +29,13 @@ export function checkTree(owner: LNode): void {
     if (index === 0) return;
     if (!chNode) return;
 
-    const tabIndex = Math.round(
-      (Tools.getDiskPosition(chNode.x) - Tools.getDiskPosition(owner.x)) /
-        GRID.x,
-    );
+    const tabIndex =
+      chNode.hidden || chNode.hiddenBD
+        ? (chNode.list.tab ?? 0)
+        : Math.round(
+            (Tools.getDiskPosition(chNode.x) - Tools.getDiskPosition(owner.x)) /
+              GRID.x,
+          );
 
     const parentIsExcluded =
       chNode.list.parentNode && excluded.has(chNode.list.parentNode);
@@ -147,6 +151,9 @@ export function setParent(
   newIndex: number,
 ): LNode[] {
   const willRefParent: LNode[] = [];
+  if (parent && !parent.lID && core.nodeManager) {
+    core.nodeManager.ensureLID(parent);
+  }
   if ((owner as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame) {
     return willRefParent;
   }
@@ -281,8 +288,8 @@ function propagateTabsAndFrameClass(
     (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
   );
   for (const child of m) {
-    if (child.hidden) continue;
     child.x = parent.x + GRID.x * (child.list.tab ?? 0);
+    if (child.hidden) continue;
     const xx = Math.round((child.x - baseX) / GRID.x);
     const strTab = xx.toString();
     const chVNode = child.vNode;

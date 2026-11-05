@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   STORAGE_KEYS,
-  LEGACY_STORAGE_KEYS,
   viewportStore,
   deskSnapshotStore,
   cleanupLegacyStorage,
@@ -97,7 +96,7 @@ describe("Storage Optimization System", () => {
   describe("DeskSnapshotStore (Шаг 1: Хранилище снимков досок)", () => {
     it("сохраняет и извлекает снимок доски", async () => {
       const snapshot: DeskSnapshot = {
-        nodes: [{ id: "n1", type: "text", x: 10, y: 20 } as any],
+        nodes: [{ _id: "n1", type: 1, x: 10, y: 20 } as any],
         pageNode: null,
       };
 
@@ -106,12 +105,12 @@ describe("Storage Optimization System", () => {
 
       expect(loaded).toBeDefined();
       expect(loaded?.nodes.length).toBe(1);
-      expect(loaded?.nodes[0].id).toBe("n1");
+      expect(loaded?.nodes[0]?._id).toBe("n1");
     });
 
     it("мигрирует старый snapshot из localStorage anodes_desk_cache_*", async () => {
       const snapshot: DeskSnapshot = {
-        nodes: [{ id: "legacy_node", type: "list", x: 0, y: 0 } as any],
+        nodes: [{ _id: "legacy_node", type: 1, x: 0, y: 0 } as any],
         pageNode: null,
       };
       localStorage.setItem("anodes_desk_cache_desk_migr", JSON.stringify(snapshot));
@@ -119,7 +118,7 @@ describe("Storage Optimization System", () => {
       const loaded = await deskSnapshotStore.getSnapshot("desk_migr");
 
       expect(loaded).toBeDefined();
-      expect(loaded?.nodes[0].id).toBe("legacy_node");
+      expect(loaded?.nodes[0]?._id).toBe("legacy_node");
       // После миграции старый ключ удаляется из localStorage
       expect(localStorage.getItem("anodes_desk_cache_desk_migr")).toBeNull();
     });
