@@ -1,7 +1,9 @@
 import { core, EVENTS } from "@/features/core/core";
 import html from "./c-nodes-menu.html?raw";
 import "./c-nodes-menu.scss";
+import "@/components/c-tri-toggle";
 import { StyleSection } from "./StyleSection";
+import { FrameIoSection } from "./FrameIoSection";
 import { UrlSection } from "./UrlSection";
 import { RepeatSection } from "./RepeatSection";
 import type { OptionsBlock } from "./MenuControls";
@@ -9,12 +11,14 @@ import type { OptionsBlock } from "./MenuControls";
 export class CNodesMenu extends HTMLElement {
   private unsubscribes: (() => void)[] = [];
   private styleSection?: StyleSection;
+  private frameIoSection?: FrameIoSection;
   private urlSection?: UrlSection;
   private repeatSection?: RepeatSection;
 
   get optionsBlocks(): OptionsBlock[] {
     const blocks: OptionsBlock[] = [];
     if (this.styleSection) blocks.push(this.styleSection.block);
+    if (this.frameIoSection) blocks.push(this.frameIoSection.block);
     if (this.urlSection) blocks.push(this.urlSection.block);
     return blocks;
   }
@@ -26,22 +30,32 @@ export class CNodesMenu extends HTMLElement {
     this.innerHTML = html;
 
     this.styleSection = new StyleSection(this);
+    this.frameIoSection = new FrameIoSection(this);
     this.urlSection = new UrlSection(this);
     this.repeatSection = new RepeatSection(this);
 
     this.unsubscribes.push(
-      core.store.on(EVENTS.node.selected, (_node) => {
+      core.store.on(EVENTS.node.selected, (node) => {
         if (core.mode.selectedVNodeCount === 0) return;
         this.styleSection?.render();
+        this.frameIoSection?.render(node);
         this.urlSection?.render();
         this.repeatSection?.render();
       }),
       core.store.on(EVENTS.node.unselected, (_node) => {
         this.styleSection?.hide();
+        this.frameIoSection?.hide();
         this.urlSection?.hide();
         this.repeatSection?.hide();
       }),
     );
+
+    if (core.mode.selectedVNodeCount > 0) {
+      this.styleSection?.render();
+      this.frameIoSection?.render();
+      this.urlSection?.render();
+      this.repeatSection?.render();
+    }
   }
 
   disconnectedCallback() {
@@ -50,4 +64,10 @@ export class CNodesMenu extends HTMLElement {
   }
 }
 
-customElements.define("c-nodes-menu", CNodesMenu);
+if (!customElements.get("c-nodes-menu")) {
+  customElements.define("c-nodes-menu", CNodesMenu);
+}
+
+if (import.meta.hot) {
+  import.meta.hot.invalidate();
+}
