@@ -9,6 +9,7 @@ import { History } from "@features/core/history";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
+import { breadcrumbsService } from "@/features/breadcrumbs/breadcrumbsService";
 import Tools from "./Tools";
 import type { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
 
@@ -147,6 +148,16 @@ export class Core {
       }),
       core.store.on(EVENTS.server.loaded, (snapshot) => {
         this.nodeManager.loadSnapshot(snapshot);
+        if (snapshot.breadcrumbs) {
+          breadcrumbsService.setItems(snapshot.breadcrumbs);
+        } else if (this.mode.deskId === "root") {
+          breadcrumbsService.clear();
+        }
+      }),
+      core.store.on(EVENTS.node.updated, (node) => {
+        if (node && node._id && node._id === this.mode.deskId) {
+          breadcrumbsService.updateItemTitle(node._id, node.title || "");
+        }
       }),
     );
 

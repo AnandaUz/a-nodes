@@ -1,0 +1,114 @@
+:host {
+  display: inline-block;
+  box-sizing: border-box;
+  font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+:host([hidden]) {
+  display: none !important;
+}
+
+:host([disabled]) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.stepper-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 59px;
+  height: 22px;
+  background-color: var(--stepper-bg, #f3faff);
+  border: 1px solid var(--stepper-border, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: rgba(7, 58, 83, 0.4);
+    box-shadow: 0 0 0 1px rgba(7, 58, 83, 0.15);
+  }
+}
+
+.stepper-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 18px;
+  color: var(--stepper-color, #073a53);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.08s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(7, 58, 83, 0.08);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.92);
+    background-color: rgba(7, 58, 83, 0.14);
+  }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(7, 58, 83, 0.4);
+    outline-offset: 1px;
+  }
+}
+
+.chevron {
+  display: block;
+  pointer-events: none;
+}
+
+.stepper-value {
+  all: unset;
+  display: block;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--stepper-color, #073a53);
+  cursor: text;
+
+  &::selection {
+    background: rgba(7, 58, 83, 0.18);
+  }
+}
+
+.stepper-label {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--stepper-label-color, rgba(7, 58, 83, 0.92));
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:empty {
+    display: none;
+  }
+}
+

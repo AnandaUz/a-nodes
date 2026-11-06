@@ -86,6 +86,7 @@ export class ServerPersistence {
       const freshSnapshot: DeskSnapshot = {
         nodes: response.nodes || [],
         pageNode: response.pageNode || null,
+        breadcrumbs: response.breadcrumbs || [],
       };
 
       void deskSnapshotStore.setSnapshot(this.opts.deskId, freshSnapshot);

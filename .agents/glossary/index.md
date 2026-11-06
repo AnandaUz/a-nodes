@@ -14,3 +14,4 @@
 | `!отложенныеЗадачи`, `!отложенныЗадачи`, `!delayedTasks` | [.agents/glossary/delayed-tasks.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/delayed-tasks.md) |
 | `!тексЕдит`, `!текстЕдит`, `!textEdit` | [.agents/glossary/text-edit.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/text-edit.md) |
 | `!нодаСтраница`, `!pageNode` | [.agents/glossary/page-node.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/page-node.md) |
+| `!хлебныеКрошки`, `!breadcrumbs` | [.agents/glossary/breadcrumbs.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/breadcrumbs.md) |
