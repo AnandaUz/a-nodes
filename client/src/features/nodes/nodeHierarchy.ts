@@ -67,12 +67,33 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   const selectedNodes = core.selectManager.selectedNodes;
   if (selectedNodes.size < 1) return;
 
+  const isShift = Boolean(core.mode.isShiftDrag || core.mode.mouseStatus.shift);
+
   const movedNodes = new Set(selectedNodes.values());
   const visited = new Set<LNode>();
 
-  selectedNodes.forEach((node) => {
-    gatherSubtree(node, visited, movedNodes);
-  });
+  if (!isShift) {
+    selectedNodes.forEach((node) => {
+      gatherSubtree(node, visited, movedNodes);
+    });
+  }
+
+  const adoptChildren = (node: LNode) => {
+    if (!isShift || !node.list.children?.size) return;
+    const adoptParent = node.list.parentNode || node.list.mainParent;
+    if (adoptParent && adoptParent !== node) {
+      node.list.children.forEach((child) => {
+        child.list.parentNode = adoptParent;
+        if (!adoptParent.list.children) {
+          adoptParent.list.children = new Set();
+        }
+        adoptParent.list.children.add(child);
+      });
+      node.list.children.clear();
+      (node.vNode as any)?.refreshListBtns?.();
+      (adoptParent.vNode as any)?.refreshListBtns?.();
+    }
+  };
 
   const movedNodeRect = getRectForNodes(movedNodes);
 
@@ -165,6 +186,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
         }
       }
 
+      adoptChildren(node);
       if (overRect.y < byNode.y && byNode.list.parentNode) {
         const parentNode = byNode.list.parentNode;
         manager.ensureLID(parentNode);
@@ -271,10 +293,16 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
             nodeRect.y + nodeRect.height >= listRect.y - toleranceY;
 
           if (isStillInList) {
+            adoptChildren(node);
             willRefParent.push(mainParent);
             return;
           }
         }
+      }
+
+      adoptChildren(node);
+      if (node.list.mainParent) {
+        willRefParent.push(node.list.mainParent);
       }
 
       const cloneMain = (node as LNode_TextEdit).clones?.mainNode;
@@ -320,4 +348,5 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
       mainParent.save();
     });
   }
+  core.mode.isShiftDrag = false;
 }

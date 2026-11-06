@@ -1,4 +1,14 @@
 import type { IUser } from "@shared/types";
+import {
+  STORAGE_KEYS,
+  LEGACY_STORAGE_KEYS,
+  clearAllAppData,
+  cleanupLegacyStorage,
+} from "./storage";
+
+if (typeof window !== "undefined") {
+  cleanupLegacyStorage();
+}
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -12,29 +22,30 @@ export interface AuthResponse {
 // --- токены ---
 
 export function saveTokens(token: string, refreshToken: string): void {
-  localStorage.setItem("token", token);
-  localStorage.setItem("refreshToken", refreshToken);
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+  localStorage.setItem(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken);
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(LEGACY_STORAGE_KEYS.AUTH_REFRESH_TOKEN);
+  } catch {}
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem("token");
+  return (
+    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ??
+    localStorage.getItem(LEGACY_STORAGE_KEYS.AUTH_TOKEN)
+  );
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem("refreshToken");
+  return (
+    localStorage.getItem(STORAGE_KEYS.AUTH_REFRESH_TOKEN) ??
+    localStorage.getItem(LEGACY_STORAGE_KEYS.AUTH_REFRESH_TOKEN)
+  );
 }
 
 export function removeTokens(): void {
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  removeUser();
-  try {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith("anodes_desk_cache_")) {
-        localStorage.removeItem(key);
-      }
-    });
-  } catch {}
+  void clearAllAppData();
 }
 
 // --- авторизация ---
@@ -120,17 +131,25 @@ export async function logout(): Promise<void> {
 }
 
 export function saveUser(user: IUser): void {
-  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEYS.AUTH_USER);
+  } catch {}
 }
 
 export function getUser(): IUser | null {
-  const raw = localStorage.getItem("user");
+  const raw =
+    localStorage.getItem(STORAGE_KEYS.AUTH_USER) ??
+    localStorage.getItem(LEGACY_STORAGE_KEYS.AUTH_USER);
   if (!raw) return null;
   return JSON.parse(raw) as IUser;
 }
 
 export function removeUser(): void {
-  localStorage.removeItem("user");
+  localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEYS.AUTH_USER);
+  } catch {}
 }
 
 export async function handleCredential(response: {

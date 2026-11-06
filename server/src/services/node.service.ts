@@ -180,7 +180,56 @@ export async function getNodesAndPageByNodeId(
     }
   }
 
-  return { nodes, pageNode, serverTime: new Date() };
+  const breadcrumbs: { id: string; title: string }[] = [];
+
+  let targetPageNode: any = pageNode;
+  if (!targetPageNode && !isRoot && isValidObjectId(nodeId)) {
+    targetPageNode = await Node.findOne({
+      $or: [
+        { "exData.url": nodeId },
+        { "exData.url": `/desk/${nodeId}` },
+      ],
+    })
+      .select("_id title pageId")
+      .lean();
+  }
+
+  if (targetPageNode && !isRoot) {
+    breadcrumbs.unshift({
+      id: targetPageNode._id.toString(),
+      title: targetPageNode.title || "",
+    });
+
+    let currentParentId = targetPageNode.pageId;
+    const visited = new Set<string>([targetPageNode._id.toString()]);
+    let depth = 0;
+
+    while (
+      currentParentId &&
+      isValidObjectId(currentParentId.toString()) &&
+      depth < 20
+    ) {
+      depth++;
+      const parentIdStr = currentParentId.toString();
+      if (visited.has(parentIdStr)) break;
+      visited.add(parentIdStr);
+
+      const parentNode = await Node.findOne({ _id: currentParentId })
+        .select("_id title pageId")
+        .lean();
+
+      if (!parentNode) break;
+
+      breadcrumbs.unshift({
+        id: parentNode._id.toString(),
+        title: parentNode.title || "",
+      });
+
+      currentParentId = parentNode.pageId;
+    }
+  }
+
+  return { nodes, pageNode, serverTime: new Date(), breadcrumbs };
 }
 
 export async function bulkSaveNodes(nodes: any[], userId?: string) {

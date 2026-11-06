@@ -1,3 +1,4 @@
+import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "../../services/storage";
 import { Viewport } from "./desk.viewport";
 import "./desk.scss";
 import "@components/c-nodes-menu/c-nodes-menu";
@@ -126,8 +127,12 @@ export class Desk {
   }
 
   private initHint(container: HTMLElement) {
-    const HINT_KEY = "desk_nav_hint_seen";
-    if (localStorage.getItem(HINT_KEY)) return;
+    if (
+      localStorage.getItem(STORAGE_KEYS.HINT_SEEN) ||
+      localStorage.getItem(LEGACY_STORAGE_KEYS.HINT_SEEN)
+    ) {
+      return;
+    }
 
     const hintEl = document.createElement("div");
     hintEl.className = "desk-hint-popup";
@@ -173,7 +178,10 @@ export class Desk {
     `;
 
     const close = () => {
-      localStorage.setItem(HINT_KEY, "true");
+      localStorage.setItem(STORAGE_KEYS.HINT_SEEN, "true");
+      try {
+        localStorage.removeItem(LEGACY_STORAGE_KEYS.HINT_SEEN);
+      } catch {}
       hintEl.classList.add("desk-hint-popup--hide");
       setTimeout(() => hintEl.remove(), 250);
     };

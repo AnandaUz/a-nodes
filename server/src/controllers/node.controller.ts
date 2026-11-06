@@ -19,12 +19,12 @@ export const getNodesByParentNodeId = async (req: Request, res: Response) => {
     const since = sinceParam ? new Date(sinceParam) : undefined;
     const userId = (req as AuthRequest).user?.id;
 
-    const { nodes, pageNode, serverTime } = await getNodesAndPageByNodeId(
+    const { nodes, pageNode, serverTime, breadcrumbs } = await getNodesAndPageByNodeId(
       nodeId,
       userId,
       since,
     );
-    res.json({ nodes, pageNode, serverTime });
+    res.json({ nodes, pageNode, serverTime, breadcrumbs });
   } catch (err: any) {
     console.error("[getNodesByParentNodeId Error]:", err);
     res

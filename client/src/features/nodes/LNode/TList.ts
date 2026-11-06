@@ -1,3 +1,4 @@
+import { core } from "@/features/core/core";
 import type { LNode } from "./LNode";
 import {
   checkTree,
@@ -77,6 +78,9 @@ export default class TList {
     return this._parentNode || null;
   }
   set parentNode(node: LNode | null) {
+    if (node && !node.lID && core.nodeManager) {
+      core.nodeManager.ensureLID(node);
+    }
     this.parentLID = node ? node.lID : undefined;
     if (node === this._parentNode) return;
     this._parentNode = node;

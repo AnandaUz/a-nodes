@@ -2,6 +2,7 @@ import { router } from "@/router";
 import { core } from "@/features/core/core";
 import Tools from "@/features/core/Tools";
 import VTextEdit from "@/features/nodes/VNode/VTextEdit";
+import { breadcrumbsService } from "@/features/breadcrumbs/breadcrumbsService";
 
 export class VPage extends VTextEdit {
   init() {
@@ -33,6 +34,12 @@ export class VPage extends VTextEdit {
         if (openInNewTab) {
           window.open(url, "_blank");
         } else {
+          const deskTargetId =
+            essUrl && /^[a-f0-9]{24}$/i.test(essUrl) ? essUrl : _id;
+          breadcrumbsService.pushItem({
+            id: deskTargetId || _id || "",
+            title: this.node.title || "Доска",
+          });
           router.navigate(url);
         }
       };

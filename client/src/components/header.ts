@@ -1,5 +1,6 @@
 import { getToken, getUser, logout } from "@/services/auth.service";
 import "@components/c-user-menu/c-user-menu";
+import "@components/c-breadcrumbs";
 
 export function renderHeader(): void {
   const header = document.querySelector("#header");
@@ -8,12 +9,11 @@ export function renderHeader(): void {
   const isAuth = !!getToken();
   const user = getUser();
 
-  const path = window.location.pathname;
-
   header.innerHTML = `
     <nav>
       <div class="logo-bl">
-        ${path !== "/" ? `<a href="/" class="logo"></a>` : ""}
+        <a href="/" class="logo" title="На главную"></a>
+        <c-breadcrumbs></c-breadcrumbs>
       </div>
       
       ${

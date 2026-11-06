@@ -5,6 +5,7 @@ import { toDB } from "@shared/types/INodeDB";
 import type { DeskSnapshot } from "./interfaces";
 import { areSnapshotsEqual } from "@/features/nodes/snapshotUtils";
 import { getToken } from "@services/auth.service";
+import { deskSnapshotStore } from "@services/storage";
 
 interface ServerPersistenceOptions {
   apiUrl: string; // например '/api/desks'
@@ -46,23 +47,15 @@ export class ServerPersistence {
       document.addEventListener("visibilitychange", this.onVisibilityOrFocus);
     }
   }
-  private getCacheKey(): string {
-    return `anodes_desk_cache_${this.opts.deskId}`;
-  }
-
   async init(): Promise<void> {
-    const cacheKey = this.getCacheKey();
     let hasCache = false;
     let cachedSnapshot: DeskSnapshot | null = null;
     try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached) as DeskSnapshot;
-        if (parsed && Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
-          hasCache = true;
-          cachedSnapshot = parsed;
-          core.store.emit(EVENTS.server.loaded, parsed);
-        }
+      const cached = await deskSnapshotStore.getSnapshot(this.opts.deskId);
+      if (cached && Array.isArray(cached.nodes) && cached.nodes.length > 0) {
+        hasCache = true;
+        cachedSnapshot = cached;
+        core.store.emit(EVENTS.server.loaded, cached);
       }
     } catch (e) {
       console.warn("[ServerPersistence] Ошибка чтения кэша:", e);
@@ -93,11 +86,10 @@ export class ServerPersistence {
       const freshSnapshot: DeskSnapshot = {
         nodes: response.nodes || [],
         pageNode: response.pageNode || null,
+        breadcrumbs: response.breadcrumbs || [],
       };
 
-      try {
-        localStorage.setItem(this.getCacheKey(), JSON.stringify(freshSnapshot));
-      } catch {}
+      void deskSnapshotStore.setSnapshot(this.opts.deskId, freshSnapshot);
 
       if (cachedSnapshot && areSnapshotsEqual(cachedSnapshot, freshSnapshot)) {
         return;
@@ -183,10 +175,8 @@ export class ServerPersistence {
       ),
     );
 
-    const token = (
-      document.cookie.match(/token=([^;]+)/) ||
-      [null, localStorage.getItem("token")]
-    )[1];
+    const token =
+      (document.cookie.match(/token=([^;]+)/) || [])[1] || getToken();
 
     const blob = new Blob([JSON.stringify({ nodes: prepared })], {
       type: "application/json",
@@ -216,8 +206,8 @@ export class ServerPersistence {
     try {
       if (!core.nodeManager?.nodes) return;
       const nodes = Array.from(core.nodeManager.nodes.values()).map((n) => toDB(n));
-      const pageNode = core.nodeManager.pageNode ? toDB(core.nodeManager.pageNode) : undefined;
-      localStorage.setItem(this.getCacheKey(), JSON.stringify({ nodes, pageNode }));
+      const pageNode = core.nodeManager.pageNode ? toDB(core.nodeManager.pageNode) : null;
+      void deskSnapshotStore.setSnapshot(this.opts.deskId, { nodes, pageNode });
     } catch {}
   }
 

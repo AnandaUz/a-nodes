@@ -1,10 +1,21 @@
 import { Router } from "@base/client/features/router/router";
 import { getToken, getUser } from "@/services/auth.service";
 import api from "@/features/core/api";
+import { breadcrumbsService } from "@/features/breadcrumbs/breadcrumbsService";
 
 export class AppRouter extends Router {
   override async render(): Promise<void> {
     await super.render();
+    const path = window.location.pathname;
+    if (path === "/" || path === "/welcome" || path === "/register") {
+      breadcrumbsService.clear();
+    } else if (path === "/settings") {
+      breadcrumbsService.setItems([{ id: "settings", title: "Настройки" }]);
+    } else if (path === "/admin") {
+      breadcrumbsService.setItems([{ id: "admin", title: "Панель администратора" }]);
+    } else if (path === "/news") {
+      breadcrumbsService.setItems([{ id: "news", title: "Новости" }]);
+    }
     if (getToken()) {
       api.fetchWithAuth("/api/users/pageview", { method: "POST" }).catch(() => {});
     }

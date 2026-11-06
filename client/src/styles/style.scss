@@ -195,7 +195,43 @@ footer {
 
 header {
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 100000000;
+  pointer-events: none;
+
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+}
+
+.logo-bl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.logo {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: url('@assets/icon-a-nodes.svg') no-repeat center center;
+  background-size: contain;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
 }
 
 .right-bl {
@@ -205,6 +241,7 @@ header {
   position: fixed;
   right: 0;
   padding: 6px;
+  pointer-events: auto;
 }
 
 .btn-settings {
