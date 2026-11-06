@@ -10,6 +10,7 @@ import type { UICommand } from "./types";
 export const clipboardCommands: UICommand[] = [
   {
     label: "Копировать",
+    description: "Копировать выделенные ноды в буфер",
     shortcuts: ["ctrl+c", "cmd+c"],
     execute: () => {
       if (core.mode.textEditing) return;
@@ -22,6 +23,7 @@ export const clipboardCommands: UICommand[] = [
   },
   {
     label: "Вырезать",
+    description: "Вырезать выделенные ноды в буфер",
     shortcuts: ["ctrl+x", "cmd+x"],
     execute: () => {
       if (core.mode.textEditing) return;
@@ -44,6 +46,7 @@ export const clipboardCommands: UICommand[] = [
   },
   {
     label: "Вставить",
+    description: "Вставить ноды из буфера обмена",
     shortcuts: ["ctrl+v", "cmd+v"],
     execute: async () => {
       if (core.mode.textEditing) return;
@@ -265,6 +268,7 @@ export const clipboardCommands: UICommand[] = [
   },
   {
     label: "создать копию",
+    description: "Дублировать выделенные ноды со смещением",
     shortcuts: ["ctrl+d", "cmd+d"],
     execute: async (e) => {
       if (core.mode.textEditing) return;
@@ -307,6 +311,7 @@ export const clipboardCommands: UICommand[] = [
   },
   {
     label: "создать клона",
+    description: "Создать зависимый клон ноды (alt+d)",
     shortcuts: ["alt+d"],
     execute: async (e) => {
       Tools.stopEvent(e);

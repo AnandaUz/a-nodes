@@ -58,7 +58,6 @@ export class Core {
 
     this.clipboard = new Clipboard();
 
-    initCommands();
     const updateModifiers = (e: MouseEvent | KeyboardEvent) => {
       this.mode.mouseStatus.shift = e.shiftKey;
       this.mode.mouseStatus.ctrl = e.ctrlKey;
@@ -190,6 +189,7 @@ export class Core {
       await document.fonts.ready;
     }
     await this.serverPersistence.init();
+    initCommands();
 
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("loader:hide"));

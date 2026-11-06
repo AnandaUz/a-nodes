@@ -14,6 +14,7 @@ export const transformCommands: UICommand[] = [
     children: [
       {
         label: "Сдвиг по Tab",
+        description: "Сдвигает выделенную ноду вправо по сетке",
         shortcuts: ["tab"],
         execute: (e: KeyboardEvent) => {
           if (core.mode.selectedVNodeCount !== 1) return;
@@ -49,6 +50,7 @@ export const transformCommands: UICommand[] = [
       },
       {
         label: "Обратный сдвиг по Tab",
+        description: "Сдвигает выделенную ноду влево по сетке",
         shortcuts: ["shift+tab"],
         execute: (e: KeyboardEvent) => {
           if (core.mode.selectedVNodeCount !== 1) return;
@@ -84,6 +86,7 @@ export const transformCommands: UICommand[] = [
       },
       {
         label: "Включить выключить режим фрейма",
+        description: "Переключить отображение фрейма для ноды",
         shortcuts: ["f"],
         execute: (e: KeyboardEvent) => {
           if (core.mode.textEditing) return;
@@ -123,6 +126,7 @@ export const transformCommands: UICommand[] = [
       },
       {
         label: "Спрятать",
+        description: "Скрыть выделенные дочерние ноды",
         shortcuts: ["h"],
         execute: (e: KeyboardEvent) => {
           if (core.mode.textEditing) return;
@@ -143,6 +147,7 @@ export const transformCommands: UICommand[] = [
       },
       {
         label: "Показать",
+        description: "Показать скрытые ноды",
         shortcuts: ["ctrl+h"],
         execute: (e: KeyboardEvent) => {
           if (core.mode.textEditing) return;

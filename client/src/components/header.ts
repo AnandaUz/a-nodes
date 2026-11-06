@@ -1,6 +1,7 @@
 import { getToken, getUser, logout } from "@/services/auth.service";
 import "@components/c-user-menu/c-user-menu";
 import "@components/c-breadcrumbs";
+import "@components/c-main-menu";
 
 export function renderHeader(): void {
   const header = document.querySelector("#header");
@@ -14,6 +15,7 @@ export function renderHeader(): void {
       <div class="logo-bl">
         <a href="/" class="logo" title="На главную"></a>
         <c-breadcrumbs></c-breadcrumbs>
+        <c-main-menu></c-main-menu>
       </div>
       
       ${
