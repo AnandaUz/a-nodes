@@ -1,5 +1,6 @@
 import { LNode } from "./LNode";
 import { core } from "@/features/core/core";
+import { createTitleHistoryCommand } from "@/features/core/commands/historyCommands";
 import VTextEdit from "../VNode/VTextEdit";
 
 
@@ -46,7 +47,7 @@ export class LNode_TextEdit extends LNode {
       childNode.refresh();
     });
   }
-  private startTitle: string | undefined;
+  protected startTitle: string | undefined;
 
   turnOn_EditTitleMode() {
     if (core.mode.selectedVNodeCount > 1) {
@@ -54,6 +55,10 @@ export class LNode_TextEdit extends LNode {
     }
     // console.log("turnOn", this.title);
     this.startTitle = this.title;
+    const sourceNode = this.clones?.sourceNode as LNode_TextEdit | undefined;
+    if (sourceNode && sourceNode !== this) {
+      sourceNode.startTitle = sourceNode.title;
+    }
     core.mode.textEditing = true; // = DESK_MODE.TEXT_EDIT
     core.mode.textNode = true;
     this.isEditMode = true;
@@ -91,18 +96,9 @@ export class LNode_TextEdit extends LNode {
     const oldTitle = this.startTitle;
     const newTitle = this.title;
     if (oldTitle !== undefined && oldTitle !== newTitle && core.history) {
-      core.history.push({
-        execute: () => {
-          this.setTitleText(newTitle, true);
-          this.title = newTitle;
-          this.save();
-        },
-        undo: () => {
-          this.setTitleText(oldTitle, true);
-          this.title = oldTitle;
-          this.save();
-        },
-      });
+      core.history.push(
+        createTitleHistoryCommand(this, oldTitle, newTitle ?? ""),
+      );
     }
     this.startTitle = undefined;
   }

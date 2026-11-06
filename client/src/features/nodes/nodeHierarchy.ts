@@ -1,5 +1,9 @@
 import { core } from "../core/core";
 import { GRID } from "../core/CONST";
+import {
+  captureMoveHistoryNodes,
+  commitMoveHistoryTransaction,
+} from "../core/commands/historyCommands";
 import { NODE_TYPES } from "./node-registry";
 import type { LNode } from "./LNode/LNode";
 import type { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
@@ -168,6 +172,9 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   });
 
   const byNode = validCandidates?.[0];
+  if (byNode) {
+    captureMoveHistoryNodes([byNode]);
+  }
 
   frameNodes.forEach((fn) => {
     fn.save();
@@ -349,4 +356,5 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
     });
   }
   core.mode.isShiftDrag = false;
+  commitMoveHistoryTransaction(selectedNodes);
 }

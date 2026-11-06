@@ -1,8 +1,9 @@
-import { core, EVENTS } from "@features/core/core";
+import { core } from "@features/core/core";
+import { toDB, type INodeDB } from "@shared/types/INodeDB";
 import { NODE_TYPES } from "../../nodes/node-registry";
+import { instantiateSubgraph } from "../../nodes/nodeSerialization";
 import Tools from "../Tools";
 import type { LNode } from "../../nodes/LNode/LNode";
-import type { LNode_TEClone } from "../../nodes/LNode/LNode_TEClone";
 import type { LNode_TextEdit } from "../../nodes/LNode/LNode_TextEdit";
 import { BatchCommand } from "../history";
 import type { UICommand } from "./types";
@@ -14,9 +15,9 @@ export const clipboardCommands: UICommand[] = [
     shortcuts: ["ctrl+c", "cmd+c"],
     execute: () => {
       if (core.mode.textEditing) return;
-      const nodes = Array.from(
-        core.selectManager.selectedNodes.values(),
-      ).sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+      const nodes = Array.from(core.selectManager.selectedNodes.values()).sort(
+        (a, b) => (a.y ?? 0) - (b.y ?? 0),
+      );
 
       core.clipboard.copyVNode(nodes);
     },
@@ -27,9 +28,9 @@ export const clipboardCommands: UICommand[] = [
     shortcuts: ["ctrl+x", "cmd+x"],
     execute: () => {
       if (core.mode.textEditing) return;
-      const nodes = Array.from(
-        core.selectManager.selectedNodes.values(),
-      ).sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+      const nodes = Array.from(core.selectManager.selectedNodes.values()).sort(
+        (a, b) => (a.y ?? 0) - (b.y ?? 0),
+      );
 
       core.clipboard.copyVNode(nodes);
       const deleteCommands = nodes.map((node) =>
@@ -55,12 +56,6 @@ export const clipboardCommands: UICommand[] = [
 
       const rawNodes = clipboardData.nodes;
 
-      // Находим минимальные x, y среди корневых нод (у которых нет родителя в буфере)
-      const oldLIDsInBuffer = new Set<number>();
-      rawNodes.forEach((n) => {
-        if (n.s !== undefined) oldLIDsInBuffer.add(n.s);
-      });
-
       let minX = Infinity;
       let minY = Infinity;
       rawNodes.forEach((n) => {
@@ -75,173 +70,18 @@ export const clipboardCommands: UICommand[] = [
         core.desk.pointer.x,
         core.desk.pointer.y,
       );
-      const offsetX = pointerPos.x - minX;
-      const offsetY = pointerPos.y - minY;
-
-      // Выделяем новые уникальные lID для каждой ноды с lID
-      let maxLID = core.nodeManager.getMaxLID();
-      const lidMap = new Map<number, number>();
-      rawNodes.forEach((n) => {
-        const oldLID = (n.s ?? 0) & 0x1ffff;
-        if (oldLID) {
-          maxLID++;
-          lidMap.set(oldLID, maxLID);
-        }
-      });
+      const offset = {
+        x: pointerPos.x - minX,
+        y: pointerPos.y - minY,
+      };
 
       core.selectManager.clearSelection();
 
-      const createdNodes: any[] = [];
-      const topLevelNodes: any[] = [];
-
-      // Создаем и гидрируем ноды
-      rawNodes.forEach((nodeData) => {
-        const node = core.nodeManager.addNode(nodeData.type || 0);
-
-        // Распаковываем базовые данные
-        node.title = nodeData.title;
-        node.type = nodeData.type ?? 0;
-        node.pageId = core.mode.deskId;
-        node.inTrash = false;
-        node.hiddenBD = false;
-        node.hidden = false;
-
-        // Смещаем позицию
-        const originalX = nodeData.x ?? 0;
-        const originalY = nodeData.y ?? 0;
-        node.x = Tools.getDiskPosition(originalX + offsetX);
-        node.y = Math.round(originalY + offsetY);
-
-        // Переназначаем собственный lID
-        const ownOldLID = (nodeData.s ?? 0) & 0x1ffff;
-        if (ownOldLID && lidMap.has(ownOldLID)) {
-          node.lID = lidMap.get(ownOldLID);
-        }
-
-        // isFrame (бит 17 в s)
-        if (nodeData.s !== undefined && (nodeData.s >> 17) & 1) {
-          (node as LNode_TextEdit | LNode_TEClone).frame.isFrame = true;
-        }
-
-        // Распаковываем list / parentLID
-        if (nodeData.L !== undefined) {
-          const tab = nodeData.L & 0b111;
-          const index = (nodeData.L >> 3) & 0b111111111111;
-          const oldParentLID = (nodeData.L >> 15) & 0b11111111111111111;
-
-          node.list.tab = tab;
-          node.list.index = index;
-
-          if (oldParentLID && lidMap.has(oldParentLID)) {
-            node.list.parentLID = lidMap.get(oldParentLID);
-          } else {
-            node.list.parentLID = undefined;
-          }
-        }
-
-        // Распаковываем клоны (c / mainNodeLID)
-        if (nodeData.c) {
-          node.clones.sourceNodeId = nodeData.c;
-        }
-        if (nodeData.A !== undefined) {
-          const oldMainLID = nodeData.A & 0b11111111111111111;
-          if (oldMainLID && lidMap.has(oldMainLID)) {
-            node.clones.mainNodeLID = lidMap.get(oldMainLID)!;
-          } else if (oldMainLID) {
-            // Если исходная нода осталась на доске снаружи буфера
-            node.clones.mainNodeLID = oldMainLID;
-          }
-        }
-
-        // exData
-        if (nodeData.exData) {
-          node.exData = structuredClone(nodeData.exData);
-        }
-
-        // Добавляем в NodeManager синхронно сразу, чтобы getNodeByLID находил ноды
-        core.nodeManager.nodes.add(node);
-
-        // Сохраняем на сервере
-        core.serverPersistence.createNode(node, (id: string) => {
-          node._id = id;
-        });
-        core.store.emit(EVENTS.node.created, node);
-
-        createdNodes.push(node);
-
-        // Считаем ноду верхнеуровневой, если у нее нет родителя в созданной группе
-        if (!node.list.parentLID) {
-          topLevelNodes.push(node);
-        }
-      });
-
-      // Инициализируем родительские связи внутри дерева
-      createdNodes.forEach((node) => {
-        if (node.list.parentLID) {
-          const parentNode = core.nodeManager.getNodeByLID(
-            node.list.parentLID,
-          );
-          if (parentNode) {
-            if (!parentNode.list.children) {
-              parentNode.list.children = new Set();
-            }
-            parentNode.list.children.add(node);
-            node.list.parentNode = parentNode;
-          }
-        }
-      });
-
-      // Инициализируем связи клонов
-      core.nodeManager.initCloneLinks();
-
-      // Рендерим VNode для всех созданных нод
-      createdNodes.forEach((node) => {
-        core.nodeRenderer.createVNode(node);
-      });
-
-      // Восстанавливаем режим фрейма (бит isFrame в упакованном s)
-      createdNodes.forEach((node, i) => {
-        const s = rawNodes[i]?.s;
-        if (s !== undefined && (s >> 17) & 1 && node.frame) {
-          node.frame.turnOn_frameMode();
-          node.save();
-        }
-      });
-
-      // Связываем подфреймы с вставленными родительскими фреймами
-      createdNodes.forEach((node, i) => {
-        const oldParents = rawNodes[i]?.f;
-        if (!oldParents?.length || !node.frame) return;
-        const newParents = oldParents
-          .map((id) => lidMap.get(id))
-          .filter((id): id is number => id !== undefined);
-        if (!newParents.length) return;
-        node.frame.parentsLID = newParents;
-        node.frame.init();
-        node.save();
-      });
-
-      // как при загрузке: кнопки фрейма, размеры, затем позиционирование
-      const pastedFrames = createdNodes.filter(
-        (n) => n.frame?.isFrame,
-      ) as LNode_TextEdit[];
-      pastedFrames.forEach((n) => n.frame.initBtns());
-      pastedFrames.forEach((n) => n.frame.setBtnsState());
-      createdNodes.forEach((n) => n.vNode?.refreshBodyRect());
-      pastedFrames.forEach((n) => n.frame.redrawPaths());
-
-      // Выстраиваем правильные координаты и SVG-линии для всех корневых деревьев
-      const updatedRoots = new Set<any>();
-      createdNodes.forEach((node) => {
-        const root = node.list.mainParent || node;
-        if (!updatedRoots.has(root)) {
-          updatedRoots.add(root);
-          root.list.setPositionForChildren();
-          root.list.checkTree();
-          root.vNode?.renderSVG();
-          root.save();
-        }
-      });
+      const createdNodes = instantiateSubgraph(
+        core.nodeManager,
+        rawNodes,
+        offset,
+      );
 
       // Выделяем все вставленные ноды
       createdNodes.forEach((node) => {
@@ -276,19 +116,43 @@ export const clipboardCommands: UICommand[] = [
       const nodes = Array.from(core.selectManager.selectedNodes.values());
       if (nodes.length === 0) return;
 
-      const newNodes: LNode[] = [];
+      const subgraphNodes = new Set<LNode>();
       for (const node of nodes) {
-        const newNode = core.nodeManager.copyNode(node);
-        if (newNode) {
-          core.nodeRenderer.createVNode(newNode);
-          newNode.save();
-          newNodes.push(newNode);
+        subgraphNodes.add(node);
+        node.list.forEachChildren((child) => {
+          subgraphNodes.add(child);
+        });
+      }
+
+      const selectedLIDs = new Set<number>();
+      for (const n of subgraphNodes) {
+        if (n.list.children?.size || (n as LNode_TextEdit).frame?.isFrame) {
+          core.nodeManager.ensureLID(n);
+        }
+        if (n.lID !== undefined) {
+          selectedLIDs.add(n.lID);
         }
       }
 
-      if (newNodes.length === 0) return;
+      const rawNodes: INodeDB[] = Array.from(subgraphNodes).map((n) => {
+        const db = toDB(n);
+        if (n.list?.parentLID && !selectedLIDs.has(n.list.parentLID)) {
+          db.L = undefined;
+          db.x = n.x;
+          db.y = n.y;
+        }
+        return db;
+      });
 
       core.selectManager.clearSelection();
+
+      const newNodes = instantiateSubgraph(core.nodeManager, rawNodes, {
+        x: 0,
+        y: 0,
+      });
+
+      if (newNodes.length === 0) return;
+
       newNodes.forEach((newNode) => {
         core.selectManager.selectNode(newNode, { ctrlKey: true });
       });
@@ -300,9 +164,7 @@ export const clipboardCommands: UICommand[] = [
           );
         },
         undo: () => {
-          newNodes.forEach((node) =>
-            core.nodeManager.putNodeInTrash(node),
-          );
+          newNodes.forEach((node) => core.nodeManager.putNodeInTrash(node));
         },
       });
 
@@ -349,9 +211,7 @@ export const clipboardCommands: UICommand[] = [
             );
           },
           undo: () => {
-            newNodes.forEach((node) =>
-              core.nodeManager.putNodeInTrash(node),
-            );
+            newNodes.forEach((node) => core.nodeManager.putNodeInTrash(node));
           },
         });
       }

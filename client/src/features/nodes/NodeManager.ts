@@ -260,15 +260,20 @@ export class NodeManager {
 
     if (exData) node.exData = exData;
 
+    if (!node._id) {
+      node._id = Tools.generateObjectId();
+    }
+    this.registerNode(node);
+    this.spatialIndex.insert(node);
+
     if (core.serverPersistence) {
       core.serverPersistence.createNode(node, (id: string) => {
-        node._id = id;
-        this.registerNode(node);
-        this.spatialIndex.insert(node);
+        if (id && id !== node._id) {
+          this.unregisterNode(node);
+          node._id = id;
+          this.registerNode(node);
+        }
       });
-    } else {
-      this.registerNode(node);
-      this.spatialIndex.insert(node);
     }
     core.store.emit(EVENTS.node.created, node);
     return node;

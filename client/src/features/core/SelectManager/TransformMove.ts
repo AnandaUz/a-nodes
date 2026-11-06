@@ -1,8 +1,10 @@
 import { core, EVENTS } from "@/features/core/core";
 import type { SelectManager } from "./SelectManager";
 import Tools from "../Tools";
-import { BatchCommand } from "../history";
-import type { Command } from "../interfaces";
+import {
+  beginMoveHistoryTransaction,
+  commitMoveHistoryTransaction,
+} from "../commands/historyCommands";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export class TransformMove {
@@ -35,6 +37,7 @@ export class TransformMove {
         node.vNode.body.classList.add("is-dragging");
       }
     });
+    beginMoveHistoryTransaction(this.selectManager.selectedNodes);
 
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
@@ -106,30 +109,14 @@ export class TransformMove {
 
     Tools.stopEvent(e);
 
-    const commands: Command[] = [];
     const movedList: LNode[] = [];
-    this.startPositions.forEach((startPos, node) => {
+    this.startPositions.forEach((_startPos, node) => {
       node.vNode?.body.classList.remove("is-dragging");
       node.moveTo({ x: node.x, y: node.y });
       core.store.emit(EVENTS.node.moved, node);
       node.vNode?.onStop();
       movedList.push(node);
-
-      if (startPos.x !== node.x || startPos.y !== node.y) {
-        const endPos = { x: node.x, y: node.y };
-        commands.push({
-          execute: () => node.moveTo(endPos),
-          undo: () => node.moveTo(startPos),
-        });
-      }
     });
-    if (commands.length > 0 && core.history) {
-      if (core.history.push) {
-        core.history.push(new BatchCommand(commands));
-      } else if (core.history.execute) {
-        core.history.execute(new BatchCommand(commands));
-      }
-    }
     this.startPositions.clear();
 
     this.active = false;
@@ -141,5 +128,6 @@ export class TransformMove {
     if (movedList.length > 0) {
       core.store.emit(EVENTS.node.selectedMoved, movedList);
     }
+    commitMoveHistoryTransaction(movedList);
   };
 }

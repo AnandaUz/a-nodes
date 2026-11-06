@@ -1,4 +1,6 @@
 import { core } from "@/features/core/core";
+import { SnapshotDiffCommand } from "@/features/core/commands/historyCommands";
+import { toDB } from "@shared/types/INodeDB";
 import { LNode_TextEdit } from "./LNode_TextEdit";
 import { GRID } from "@/features/core/CONST";
 import Tools from "@/features/core/Tools";
@@ -165,10 +167,11 @@ export default class TFrame {
     return !this.hasDescendant(parent);
   }
   /** связать: parent становится родителем этого фрейма */
-  linkToParent(parent: LNode_TextEdit) {
+  linkToParent(parent: LNode_TextEdit, recordHistory = true) {
     if (!this.canLinkTo(parent)) return;
     core.nodeManager.ensureLID(parent);
     core.nodeManager.ensureLID(this.owner);
+    const before = recordHistory ? toDB(this.owner) : null;
     this.parents.add({ node: parent, path: this.makePath(parent) });
     parent.frame.children.add(this.owner);
     parent.frame.initBtns();
@@ -176,9 +179,17 @@ export default class TFrame {
     this.parentsLID = this.pack();
     this.owner.save();
     this.redrawPaths();
+    if (before && core.history) {
+      const cmd = new SnapshotDiffCommand(
+        new Map([[this.owner, before]]),
+        new Map([[this.owner, toDB(this.owner)]]),
+      );
+      if (cmd.hasChanges) core.history.push(cmd);
+    }
   }
   /** разорвать связь с родителем (клоны не трогаем) */
-  unlinkFromParent(parent: LNode_TextEdit) {
+  unlinkFromParent(parent: LNode_TextEdit, recordHistory = true) {
+    const before = recordHistory ? toDB(this.owner) : null;
     for (const p of Array.from(this.parents)) {
       if (p.node !== parent) continue;
       p.path.remove();
@@ -192,6 +203,13 @@ export default class TFrame {
       (child.vNode as VTextEdit | undefined)?.removeFramePowerBtnFor(lid);
     });
     this.owner.save();
+    if (before && core.history) {
+      const cmd = new SnapshotDiffCommand(
+        new Map([[this.owner, before]]),
+        new Map([[this.owner, toDB(this.owner)]]),
+      );
+      if (cmd.hasChanges) core.history.push(cmd);
+    }
   }
   pack(): number[] {
     return Array.from(this.parents).map((i) => i.node.lID || 0);
