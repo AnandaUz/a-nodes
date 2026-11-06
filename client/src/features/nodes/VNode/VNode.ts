@@ -377,6 +377,10 @@ export class VNode {
           });
           this.container.appendChild(this.elFrameBg);
         }
+        const frame = (this.node as unknown as { frame?: { isFrameIn?: boolean; isFrameOut?: boolean } }).frame;
+        this.elFrameBg.classList.toggle('frame-in', Boolean(frame?.isFrameIn));
+        this.elFrameBg.classList.toggle('frame-out', Boolean(frame?.isFrameOut));
+        this.elFrameBg.classList.toggle('frame-page', this.node.type === 3);
         if (
           animate &&
           oldFrameRect &&

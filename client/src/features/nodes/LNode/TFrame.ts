@@ -3,6 +3,7 @@ import { LNode_TextEdit } from "./LNode_TextEdit";
 import { GRID } from "@/features/core/CONST";
 import Tools from "@/features/core/Tools";
 import { Ge_Path } from "@/features/desk/DeskSVG/Ge_Path";
+import { NODE_TYPES } from "../node-registry";
 import type VTextEdit from "../VNode/VTextEdit";
 
 interface IParent {
@@ -36,6 +37,7 @@ export default class TFrame {
     core.nodeManager.ensureLID(this.owner);
     newNode.list.setParent(this.owner, 0);
     this.owner.list.setPositionForChildren();
+    newNode.vNode?.render();
     this.bringToFront();
   }
   setBtnsState() {
@@ -208,15 +210,26 @@ export default class TFrame {
 
     core.nodeManager.ensureLID(this.owner);
 
+    const exData = this.owner.exData
+      ? structuredClone(this.owner.exData)
+      : undefined;
+    if (exData) {
+      delete exData.url;
+      delete exData.ownerNodesIds;
+    }
+
     const newNode = core.nodeManager.copyNode(this.owner, {
+      type: NODE_TYPES.TEXT_EDIT.id,
       x: Tools.getDiskPosition(this.owner.x + rect.width + GRID.x),
       y: rect.y,
+      exData,
     }) as LNode_TextEdit;
 
     newNode.title = this.owner.title;
 
     const path = this.makePath(this.owner, newNode);
     newNode.frame.parents.add({ node: this.owner, path });
+    newNode.frame.parentsLID = newNode.frame.pack();
     this.owner.frame.children.add(newNode);
 
     core.nodeRenderer.createVNode(newNode);
@@ -305,6 +318,10 @@ export default class TFrame {
     if (vNode?.body) {
       vNode.body.classList.toggle("frame-in", Boolean(this._isFrameIn));
       vNode.body.classList.toggle("frame-out", Boolean(this._isFrameOut));
+    }
+    if (vNode?.elFrameBg) {
+      vNode.elFrameBg.classList.toggle("frame-in", Boolean(this._isFrameIn));
+      vNode.elFrameBg.classList.toggle("frame-out", Boolean(this._isFrameOut));
     }
   }
 

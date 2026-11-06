@@ -184,6 +184,11 @@ export function diffDeskSnapshot(
     node.vNode?.render();
     node.repeatMode.refreshIndicator();
     manager.spatialIndex.update(node);
+    if (node.clones?.nodes && node.clones.nodes.size > 0) {
+      node.clones.nodes.forEach((cloneNode) => {
+        cloneNode.vNode?.render();
+      });
+    }
   }
 
   for (const node of addedNodes) {
@@ -203,6 +208,9 @@ export function diffDeskSnapshot(
   manager.nodes.forEach((node) => {
     if (!node.list.parentNode) {
       applyTreeVisibility(node);
+    }
+    if (node.type === NODE_TYPES.PAGE.id) {
+      (node as LNode_Page).checkOutNodesMode();
     }
   });
 
@@ -264,6 +272,9 @@ export function loadDeskSnapshot(
   manager.nodes.forEach((node) => {
     if (!node.list.parentNode) {
       applyTreeVisibility(node);
+    }
+    if (node.type === NODE_TYPES.PAGE.id) {
+      (node as LNode_Page).checkOutNodesMode();
     }
   });
 

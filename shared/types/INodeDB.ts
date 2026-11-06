@@ -15,11 +15,14 @@ export interface INodeDB {
   L?: number | undefined; //list - разные переменные
   s?: number | undefined; //lID - разные переменные
   A?: number | undefined; //переменные для клонов LNode_TEClone,
+  c?: string | undefined; // ID оригинальной ноды для клона (sourceNodeId / clone of)
   exData?: IExData | undefined;
   f?: number[] | null | undefined;
   D?: number | undefined; //переменные для repeatMode и разных дат
   i?: boolean | null | undefined;
   o?: boolean | null | undefined;
+  isLockedInOutFrame?: boolean | undefined;
+  outFrameLID?: number | undefined;
 }
 const START_DATE = new Date("2026-10-13T00:00:00.000Z");
 
@@ -223,7 +226,14 @@ export function toDB(node: ILNode): INodeDB {
   }
   // упаковываем данные в одну переменную listData
   if (node.list && node.list.parentLID !== undefined) {
-    res.L = blockL.pack(node);
+    if (node.isLockedInOutFrame && node.outFrameLID && (node.list as any)?.parentNode?.type === 4) {
+      const origParentLID = node.list.parentLID;
+      node.list.parentLID = node.outFrameLID;
+      res.L = blockL.pack(node);
+      node.list.parentLID = origParentLID;
+    } else {
+      res.L = blockL.pack(node);
+    }
     res.x = undefined;
     res.y = undefined;
   } else {
@@ -235,6 +245,9 @@ export function toDB(node: ILNode): INodeDB {
   res.s = blockS.pack(node);
   // упаковка - TClones
   res.A = blockA.pack(node);
+  if (node.clones?.sourceNodeId) {
+    res.c = node.clones.sourceNodeId;
+  }
   // переменные для repeatMode и разных дат
   res.D = blockD.pack(node);
 
@@ -249,6 +262,10 @@ export function toDB(node: ILNode): INodeDB {
       h: node.exData.h ?? undefined,
       hh: node.exData.hh ?? undefined,
     };
+  }
+  if (node.isLockedInOutFrame) {
+    res.isLockedInOutFrame = true;
+    res.outFrameLID = node.outFrameLID;
   }
   return res;
 }
@@ -290,6 +307,9 @@ export function fromDB(db: INodeDB, node: ILNode) {
 
   // распаковываем TClones
   blockA.unpack(node, db.A);
+  if (db.c && node.clones) {
+    node.clones.sourceNodeId = String(db.c);
+  }
 
   // распаковываем repeatMode и разные дат
   blockD.unpack(node, db.D);
@@ -300,6 +320,10 @@ export function fromDB(db: INodeDB, node: ILNode) {
   if (node.frame) {
     node.frame.isFrameIn = Boolean(db.i);
     node.frame.isFrameOut = Boolean(db.o);
+  }
+  if (db.isLockedInOutFrame) {
+    node.isLockedInOutFrame = true;
+    node.outFrameLID = db.outFrameLID;
   }
   return node;
 }

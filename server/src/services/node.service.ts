@@ -58,6 +58,128 @@ export async function getNodesAndPageByNodeId(
     pageQuery ? Node.findOne(pageQuery).select("-__v").lean() : null,
   ]);
 
+  // Поиск страничных нод на текущей доске (type === 4) и подгрузка узлов их OUT-фреймов
+  const deskPageNodes = await Node.find({
+    pageId: pageFilter,
+    type: 4,
+    inTrash: { $ne: true },
+  }).lean();
+
+  if (deskPageNodes.length > 0) {
+    const pageIdsOnDesk = deskPageNodes.map((p: any) => p._id);
+    const outFrames = await Node.find({
+      pageId: { $in: pageIdsOnDesk },
+      o: true,
+      inTrash: { $ne: true },
+    }).lean();
+
+    if (outFrames.length > 0) {
+      const pageIdsWithOutFrames = outFrames.map((f: any) => f.pageId);
+      const subNodes = await Node.find({
+        pageId: { $in: pageIdsWithOutFrames },
+        inTrash: { $ne: true },
+        ok: { $ne: true },
+      })
+        .select(exStr)
+        .lean();
+
+      const pageNodeOnDeskById = new Map<string, any>();
+      for (const pn of deskPageNodes) {
+        pageNodeOnDeskById.set(String(pn._id), pn);
+      }
+
+      const outNodesToAdd: any[] = [];
+      const existingIds = new Set(nodes.map((n: any) => String(n._id)));
+
+      for (const frame of outFrames) {
+        const pIdStr = String(frame.pageId);
+        const deskPageNode = pageNodeOnDeskById.get(pIdStr);
+        if (!deskPageNode) continue;
+
+        const outFrameLID = (frame.s || 0) & 0x1ffff;
+        let pageDeskLID = (deskPageNode.s || 0) & 0x1ffff;
+        if (!pageDeskLID) {
+          const maxLID = Math.max(0, ...nodes.map((n: any) => (n.s || 0) & 0x1ffff));
+          pageDeskLID = maxLID + 1;
+          deskPageNode.s = pageDeskLID;
+          const nodeInDesk = nodes.find((n: any) => String(n._id) === pIdStr);
+          if (nodeInDesk) {
+            nodeInDesk.s = pageDeskLID;
+          }
+          await Node.updateOne({ _id: deskPageNode._id }, { $set: { s: pageDeskLID } });
+        }
+
+        const nodesOfPage = subNodes.filter(
+          (n: any) => String(n.pageId) === pIdStr,
+        );
+
+        const collectedLIDs = new Set<number>();
+        collectedLIDs.add(outFrameLID);
+
+        let added = true;
+        while (added) {
+          added = false;
+          for (const n of nodesOfPage) {
+            if (n.L === undefined || n.L === null) continue;
+            const parentLID = (n.L >> 15) & 0x1ffff;
+            const nodeLID = (n.s || 0) & 0x1ffff;
+            if (parentLID > 0 && collectedLIDs.has(parentLID)) {
+              if (nodeLID > 0 && !collectedLIDs.has(nodeLID)) {
+                collectedLIDs.add(nodeLID);
+                added = true;
+              }
+            }
+          }
+        }
+
+        for (const n of nodesOfPage) {
+          const nodeLID = (n.s || 0) & 0x1ffff;
+          const origParentLID = ((n.L || 0) >> 15) & 0x1ffff;
+          if (nodeLID !== outFrameLID && origParentLID > 0 && collectedLIDs.has(origParentLID)) {
+            const copy: any = { ...n };
+            copy.isLockedInOutFrame = true;
+            copy.outFrameLID = outFrameLID;
+
+            if (origParentLID === outFrameLID) {
+              const tab = (copy.L || 0) & 0x7;
+              const index = ((copy.L || 0) >> 3) & 0xfff;
+              copy.L = tab | (index << 3) | (pageDeskLID << 15);
+            }
+
+            if (!existingIds.has(String(copy._id))) {
+              existingIds.add(String(copy._id));
+              outNodesToAdd.push(copy);
+            }
+          }
+        }
+      }
+
+      nodes.push(...outNodesToAdd);
+    }
+  }
+
+  // Подгрузка оригиналов для клонов (поле `c`), если оригиналы находятся на других страницах
+  const loadedIds = new Set(nodes.map((n: any) => String(n._id)));
+  const missingSourceIds = nodes
+    .filter((n: any) => n.c && !loadedIds.has(String(n.c)))
+    .map((n: any) => new mongoose.Types.ObjectId(n.c));
+
+  if (missingSourceIds.length > 0) {
+    const missingSources = await Node.find({
+      _id: { $in: missingSourceIds },
+      inTrash: { $ne: true },
+    })
+      .select(exStr)
+      .lean();
+
+    for (const src of missingSources) {
+      if (!loadedIds.has(String(src._id))) {
+        loadedIds.add(String(src._id));
+        nodes.push(src);
+      }
+    }
+  }
+
   return { nodes, pageNode, serverTime: new Date() };
 }
 
@@ -89,6 +211,10 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
 
     if (targetUserId) {
       setFields.userId = targetUserId;
+    }
+
+    if (setFields.c && isValidObjectId(setFields.c)) {
+      setFields.c = new mongoose.Types.ObjectId(setFields.c);
     }
 
     // Дельта-синхронизация: проставляем временную метку обновления

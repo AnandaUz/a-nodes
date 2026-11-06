@@ -98,6 +98,9 @@ export function checkTree(owner: LNode): void {
 }
 
 export function clearParent(list: TList, owner: LNode): LNode[] {
+  if ((owner as any).isLockedInOutFrame) {
+    return list.parentNode ? [list.parentNode] : [];
+  }
   const willRefParent: LNode[] = [];
   const parentNode = list.parentNode;
   if (parentNode) {

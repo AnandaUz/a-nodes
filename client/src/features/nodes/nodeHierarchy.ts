@@ -12,18 +12,30 @@ export function initCloneLinks(
   nodes: Iterable<LNode>,
   getNodeByLID: (lID: number) => LNode | undefined,
 ): void {
-  const clones = [...nodes].filter(
+  const allNodes = [...nodes];
+  const clones = allNodes.filter(
     (node) => node.type === NODE_TYPES.TEXT_EDIT_CLONE.id,
   );
 
   const sourceNodes = new Set<LNode_TextEdit>();
 
   for (const node of clones as LNode_TEClone[]) {
-    const mainNode = getNodeByLID(
-      node.clones.mainNodeLID || 0,
-    ) as LNode_TextEdit;
+    let mainNode: LNode_TextEdit | undefined;
+    if (node.clones.sourceNodeId) {
+      mainNode = allNodes.find(
+        (n) => n._id === node.clones.sourceNodeId,
+      ) as LNode_TextEdit | undefined;
+    }
+    if (!mainNode) {
+      mainNode = getNodeByLID(
+        node.clones.mainNodeLID || 0,
+      ) as LNode_TextEdit;
+    }
     if (!mainNode) continue;
     node.clones.mainNode = mainNode;
+    if (mainNode._id) {
+      node.clones.sourceNodeId = mainNode._id;
+    }
     mainNode.clones.nodes.add(node);
     if (mainNode.type === NODE_TYPES.TEXT_EDIT.id) {
       sourceNodes.add(mainNode);
@@ -144,6 +156,15 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
       byNode.list.parentNode && refNode && refNode.x <= byNode.x;
 
     regularNodes.forEach((node, i) => {
+      if ((node as any).isLockedInOutFrame) {
+        const mainParent = node.list.mainParent || node.list.parentNode;
+        const byNodeRoot = byNode.list?.mainParent || byNode;
+        if (mainParent !== byNodeRoot) {
+          if (mainParent) willRefParent.push(mainParent);
+          return;
+        }
+      }
+
       if (overRect.y < byNode.y && byNode.list.parentNode) {
         const parentNode = byNode.list.parentNode;
         manager.ensureLID(parentNode);
@@ -213,6 +234,14 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   } else {
     const willRefParent: LNode[] = [];
     regularNodes.forEach((node) => {
+      if ((node as any).isLockedInOutFrame) {
+        const mainParent = node.list.mainParent || node.list.parentNode;
+        if (mainParent) {
+          willRefParent.push(mainParent);
+        }
+        return;
+      }
+
       const parentNode = node.list.parentNode;
       const mainParent = node.list.mainParent || parentNode;
       if (mainParent) {

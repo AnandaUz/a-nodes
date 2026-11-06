@@ -6,7 +6,8 @@ export default class TClones {
   /** нода родитель */
   protected _mainNode!: LNode;
   mainNodeLID = 0;
-  sourceNode: LNode | undefined;
+  sourceNodeId?: string;
+  protected _sourceNode: LNode | undefined;
 
   nodes = new Set<LNode>();
 
@@ -15,6 +16,15 @@ export default class TClones {
   }
   removeAllClones() {
     this.nodes.clear();
+  }
+  get sourceNode(): LNode | undefined {
+    return this._sourceNode;
+  }
+  set sourceNode(node: LNode | undefined) {
+    this._sourceNode = node;
+    if (node?._id) {
+      this.sourceNodeId = node._id;
+    }
   }
   doForAll(fn: (node: LNode) => void) {
     if (!this.sourceNode) return;
@@ -42,5 +52,8 @@ export default class TClones {
   set mainNode(mainNode: LNode) {
     this._mainNode = mainNode;
     this.mainNodeLID = mainNode.lID || 0;
+    if (mainNode._id) {
+      this.sourceNodeId = mainNode._id;
+    }
   }
 }

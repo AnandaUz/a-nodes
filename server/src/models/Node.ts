@@ -2,10 +2,11 @@ import mongoose, { Model, Document } from "mongoose";
 import type { INodeDB } from "../../../shared/types/INodeDB.js";
 
 export interface INodeDocument
-  extends Omit<INodeDB, "_id" | "userId" | "pageId">, Document {
+  extends Omit<INodeDB, "_id" | "userId" | "pageId" | "c">, Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   pageId?: mongoose.Types.ObjectId | null;
+  c?: mongoose.Types.ObjectId | null;
 }
 
 const exDataSchema = new mongoose.Schema(
@@ -50,6 +51,7 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
     default: undefined, // не записывать если пустой
   },
   A: { type: Number }, //переменные для клонов LNode_TEClone,
+  c: { type: mongoose.Schema.Types.ObjectId, ref: "Nodes" }, // ID оригинальной ноды для клона (sourceNodeId / clone of)
   f: { type: [Number], default: undefined }, //родители фреймов
   D: { type: Number }, //переменные для repeatMode и разных дат,
   i: { type: Boolean },
@@ -63,6 +65,7 @@ nodeSchema.index({ pageId: 1, i: 1 });
 nodeSchema.index({ pageId: 1, o: 1 });
 nodeSchema.index({ userId: 1, pageId: 1, inTrash: 1 });
 nodeSchema.index({ userId: 1, pageId: 1, lastUpdate: 1 });
+nodeSchema.index({ c: 1 });
 
 export const Node: Model<INodeDocument> =
   mongoose.models["Nodes"] ||

@@ -129,6 +129,9 @@ export function turnOn_frameMode(view: VTextEdit): void {
   view.body.classList.add("frame");
   const frameBlock = document.createElement("div");
   frameBlock.classList.add("el-frame-btn");
+  frameBlock.addEventListener("pointerdown", (e) => {
+    Tools.stopEvent(e);
+  });
   view.body.appendChild(frameBlock);
 
   const btnAdd = document.createElement("div");

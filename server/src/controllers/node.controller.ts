@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import mongoose from "mongoose";
+import { Node } from "../models/Node";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import {
   bulkSaveNodes,
@@ -83,10 +85,61 @@ export const saveNodesController = async (req: Request, res: Response) => {
     const serverTime = new Date();
 
     const affectedDesks = new Set<string>();
+    const nodeObjectIds: mongoose.Types.ObjectId[] = [];
+    const sourceObjectIds: mongoose.Types.ObjectId[] = [];
+    const pageObjectIds: mongoose.Types.ObjectId[] = [];
+
     for (const node of nodes) {
       affectedDesks.add(node.pageId ? String(node.pageId) : "root");
-      if (node._id) {
+      if (node._id && mongoose.isValidObjectId(node._id)) {
+        const oId = new mongoose.Types.ObjectId(node._id);
         affectedDesks.add(String(node._id));
+        nodeObjectIds.push(oId);
+      }
+      if (node.c && mongoose.isValidObjectId(node.c)) {
+        sourceObjectIds.push(new mongoose.Types.ObjectId(node.c));
+      }
+      if (node.pageId && mongoose.isValidObjectId(node.pageId)) {
+        pageObjectIds.push(new mongoose.Types.ObjectId(node.pageId));
+      }
+    }
+
+    if (nodeObjectIds.length > 0) {
+      const clones = await Node.find({
+        c: { $in: nodeObjectIds },
+        inTrash: { $ne: true },
+      })
+        .select("pageId")
+        .lean();
+
+      for (const cl of clones) {
+        affectedDesks.add(cl.pageId ? String(cl.pageId) : "root");
+      }
+    }
+
+    if (sourceObjectIds.length > 0) {
+      const sources = await Node.find({
+        _id: { $in: sourceObjectIds },
+        inTrash: { $ne: true },
+      })
+        .select("pageId")
+        .lean();
+
+      for (const src of sources) {
+        affectedDesks.add(src.pageId ? String(src.pageId) : "root");
+      }
+    }
+
+    if (pageObjectIds.length > 0) {
+      const parentPages = await Node.find({
+        _id: { $in: pageObjectIds },
+        inTrash: { $ne: true },
+      })
+        .select("pageId")
+        .lean();
+
+      for (const pp of parentPages) {
+        affectedDesks.add(pp.pageId ? String(pp.pageId) : "root");
       }
     }
 

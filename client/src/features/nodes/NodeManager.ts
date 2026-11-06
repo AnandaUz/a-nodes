@@ -346,6 +346,11 @@ export class NodeManager {
     } else {
       cloneNode.clones.sourceNode = mainNode;
     }
+    const resolvedSource = cloneNode.clones.sourceNode || mainNode;
+    if (resolvedSource._id) {
+      cloneNode.clones.sourceNodeId = resolvedSource._id;
+    }
+    cloneNode.title = resolvedSource.title;
 
     core.nodeRenderer.createVNode(cloneNode);
 

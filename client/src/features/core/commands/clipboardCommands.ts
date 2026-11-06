@@ -136,7 +136,10 @@ export const clipboardCommands: UICommand[] = [
           }
         }
 
-        // Распаковываем клоны (mainNodeLID)
+        // Распаковываем клоны (c / mainNodeLID)
+        if (nodeData.c) {
+          node.clones.sourceNodeId = nodeData.c;
+        }
         if (nodeData.A !== undefined) {
           const oldMainLID = nodeData.A & 0b11111111111111111;
           if (oldMainLID && lidMap.has(oldMainLID)) {

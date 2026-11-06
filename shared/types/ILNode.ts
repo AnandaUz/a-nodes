@@ -19,6 +19,7 @@ export interface IFrame {
 
 export interface IClones {
   mainNodeLID?: number | undefined;
+  sourceNodeId?: string | undefined;
 }
 export interface IRepeatMode {
   mode?: number;
@@ -43,4 +44,6 @@ export interface ILNode {
   exData?: IExData | undefined;
   clones?: IClones;
   repeatMode: IRepeatMode;
+  isLockedInOutFrame?: boolean;
+  outFrameLID?: number | undefined;
 }

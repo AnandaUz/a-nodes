@@ -8,69 +8,75 @@ export class VPage extends VTextEdit {
     super.init();
 
     const btnEl = this.body.querySelector(".btn-el") as HTMLElement;
-    if (!btnEl) return;
+    if (btnEl) {
+      btnEl.addEventListener("pointerdown", (e) => {
+        Tools.stopEvent(e);
+      });
+      btnEl.addEventListener("touchstart", (e) => {
+        e.stopPropagation();
+      });
 
-    btnEl.addEventListener("pointerdown", (e) => {
-      Tools.stopEvent(e);
-    });
-    btnEl.addEventListener("touchstart", (e) => {
-      e.stopPropagation();
-    });
-
-    const navigateToPage = (openInNewTab: boolean) => {
-      const _id = this.node._id;
-      let url = "";
-      const essUrl = this.node.exData?.url;
-      if (essUrl) {
-        if (/^[a-f0-9]{24}$/i.test(essUrl)) {
-          url = "/desk/" + essUrl;
+      const navigateToPage = (openInNewTab: boolean) => {
+        const _id = this.node._id;
+        let url = "";
+        const essUrl = this.node.exData?.url;
+        if (essUrl) {
+          if (/^[a-f0-9]{24}$/i.test(essUrl)) {
+            url = "/desk/" + essUrl;
+          } else {
+            url = essUrl;
+          }
         } else {
-          url = essUrl;
+          url = "/desk/" + _id;
         }
-      } else {
-        url = "/desk/" + _id;
-      }
 
-      if (openInNewTab) {
-        window.open(url, "_blank");
-      } else {
-        router.navigate(url);
-      }
-    };
+        if (openInNewTab) {
+          window.open(url, "_blank");
+        } else {
+          router.navigate(url);
+        }
+      };
 
-    btnEl.addEventListener("pointerup", (e) => {
-      Tools.stopEvent(e);
-      if (
-        core.mode.isPinching ||
-        Date.now() - core.mode.lastPinchEndTime < 300
-      ) {
-        return;
-      }
+      btnEl.addEventListener("pointerup", (e) => {
+        Tools.stopEvent(e);
+        if (
+          core.mode.isPinching ||
+          Date.now() - core.mode.lastPinchEndTime < 300
+        ) {
+          return;
+        }
 
-      switch (e.button) {
-        case 0:
-          navigateToPage(false);
-          break;
-        case 1:
-          navigateToPage(true);
-          break;
-      }
-    });
+        switch (e.button) {
+          case 0:
+            navigateToPage(false);
+            break;
+          case 1:
+            navigateToPage(true);
+            break;
+        }
+      });
 
-    btnEl.addEventListener("click", (e) => {
-      Tools.stopEvent(e);
-      if (
-        core.mode.isPinching ||
-        Date.now() - core.mode.lastPinchEndTime < 300
-      ) {
-        return;
-      }
-      navigateToPage(false);
-    });
-  }
-  initMovingElement(): void {
-    this.titleEl = this.body.querySelector(".el-title") as HTMLInputElement;
-    this.movingElement = this.titleEl;
+      btnEl.addEventListener("click", (e) => {
+        Tools.stopEvent(e);
+        if (
+          core.mode.isPinching ||
+          Date.now() - core.mode.lastPinchEndTime < 300
+        ) {
+          return;
+        }
+        navigateToPage(false);
+      });
+    }
+
+    const btnPutInto = this.body.querySelector(".btn-put-into") as HTMLElement;
+    if (btnPutInto) {
+      btnPutInto.addEventListener("pointerdown", (e) => {
+        Tools.stopEvent(e);
+      });
+      btnPutInto.addEventListener("touchstart", (e) => {
+        e.stopPropagation();
+      });
+    }
   }
   onSelectedDrop() {
     // for (const sNode of __selection.selectedNodes) {
@@ -86,6 +92,15 @@ export class VPage extends VTextEdit {
   bodyInit() {
     super.bodyInit();
     this.body.classList.add("v-n-page");
-    this.body.innerHTML += `<div class="btn-el btn">🔗</div>`;
+    this.body.innerHTML += `
+      <div class="page-btns">
+        <div class="btn-put-into btn" title="Перенести во входящие"></div>
+        <div class="btn-page-in btn btn-el" title="Войти в страницу"></div>
+      </div>
+    `;
+  }
+  render() {
+    (this.node as any).checkOutNodesMode?.();
+    super.render();
   }
 }

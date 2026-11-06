@@ -35,14 +35,73 @@ export class LNode_TEClone extends LNode_TextEdit {
 
     const mainNode = this.clones.mainNode;
     if (!mainNode) return;
+
+    const getTitle = (node: LNode): string => {
+      if (node instanceof LNode_TextEdit) {
+        return node.clones?.sourceNode?.title || node.title || "";
+      }
+      return node.title || "";
+    };
+
     const parentsTitles: string[] = [];
     let sNode: LNode = mainNode;
     let t = 10;
     while (sNode.list.parentNode) {
       sNode = sNode.list.parentNode;
-      parentsTitles.push(sNode.title || "");
+      const title = getTitle(sNode);
+      if (title && !parentsTitles.includes(title)) parentsTitles.push(title);
       if (t-- < 0) break;
     }
+
+    if (parentsTitles.length === 0) {
+      const mainParent = mainNode.list?.mainParent;
+      if (mainParent && mainParent !== mainNode) {
+        const title = getTitle(mainParent);
+        if (title && !parentsTitles.includes(title)) {
+          parentsTitles.push(title);
+        }
+      }
+    }
+
+    if (parentsTitles.length === 0) {
+      const frameNode = (mainNode as LNode_TextEdit).frame?.frameNode;
+      if (frameNode && frameNode !== mainNode) {
+        const title = getTitle(frameNode);
+        if (title && !parentsTitles.includes(title)) {
+          parentsTitles.push(title);
+        }
+      }
+    }
+
+    if (parentsTitles.length === 0) {
+      const subFrame = (this.list.parentNode ||
+        this.list.mainParent) as LNode_TextEdit | null;
+      if (subFrame?.frame) {
+        if (subFrame.frame.parents.size > 0) {
+          for (const p of subFrame.frame.parents) {
+            const title = getTitle(p.node);
+            if (title && !parentsTitles.includes(title)) {
+              parentsTitles.push(title);
+            }
+          }
+        }
+        if (
+          parentsTitles.length === 0 &&
+          subFrame.frame.parentsLID.length > 0
+        ) {
+          for (const lid of subFrame.frame.parentsLID) {
+            const pNode = core.nodeManager?.getNodeByLID(lid);
+            if (pNode) {
+              const title = getTitle(pNode);
+              if (title && !parentsTitles.includes(title)) {
+                parentsTitles.push(title);
+              }
+            }
+          }
+        }
+      }
+    }
+
     vNode.elLineOfParentsTitle.innerHTML = parentsTitles
       .map((s) => `<span>${s}</span>`)
       .join("");
@@ -77,10 +136,14 @@ export class LNode_TEClone extends LNode_TextEdit {
     const sourceNode = this.clones.sourceNode as LNode_TextEdit;
     sourceNode.turnOff_EditTitleMode();
   }
+  protected _cachedTitle: string | undefined;
+
   // перезаписываю родительские title getters/setters
-  set title(_v: string | undefined) {}
-  get title() {
-    return undefined;
+  set title(v: string | undefined) {
+    this._cachedTitle = v;
+  }
+  get title(): string | undefined {
+    return this.clones?.sourceNode?.title ?? this._cachedTitle;
   }
 
   selectPost() {
