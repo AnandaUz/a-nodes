@@ -11,7 +11,7 @@ import { Clipboard } from "@features/core/Clipboard";
 import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import { breadcrumbsService } from "@/features/breadcrumbs/breadcrumbsService";
 import Tools from "./Tools";
-import type { LNode_TextEdit } from "../nodes/LNode/LNode_TextEdit";
+import { reInitAllNodes } from "../nodes/nodeLifecycle";
 
 export { EVENTS };
 export class Core {
@@ -79,71 +79,7 @@ export class Core {
 
     this.unsubscribers.push(
       this.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
-        console.time("Перерендер всех нод страницы");
-        core.desk.disconnectNodesEl(); //>
-        core.nodeRenderer.renderAll();
-        core.desk.connectNodesEl(); //<
-
-        const checkLID = new Set<number>();
-        core.nodeManager.nodes.forEach((node) => {
-          /** проеверка на дублировани lID */
-          if (!node.lID) return;
-          if (!checkLID.has(node.lID)) {
-            checkLID.add(node.lID);
-          } else {
-            console.log("дубль LID", node.title);
-            node.lID = this.nodeManager.generateLID();
-            node.save();
-          }
-        });
-        // включаем индикаторы репитов
-        core.nodeManager.nodes.forEach((node) => {
-          node.repeatMode.refreshIndicator();
-        });
-
-        const frames = [...core.nodeManager.nodes.values()].filter(
-          (node: any) => node?.frame?.isFrame,
-        ) as LNode_TextEdit[];
-
-        /** подключаем детей к родителям */
-        frames.forEach((node) => {
-          node.frame.init();
-        });
-        frames.forEach((node) => {
-          node.frame.initBtns();
-        });
-        frames.forEach((node) => {
-          node.frame.setBtnsState();
-        });
-
-        core.nodeManager.nodes.forEach((node) => {
-          node.vNode?.refreshBodyRect();
-        });
-
-        this.nodeManager.setPositionForAllLinkedChildNodes();
-        core.nodeManager.nodes.forEach((node) => {
-          node.vNode?.renderSVG();
-        });
-
-        frames.forEach((node) => {
-          node.frame.bringToFront();
-        });
-
-        if (typeof document !== "undefined" && "fonts" in document) {
-          document.fonts.ready.then(() => {
-            this.nodeManager.setPositionForAllLinkedChildNodes();
-            core.nodeManager.nodes.forEach((node) => {
-              node.vNode?.renderSVG();
-            });
-          });
-        }
-
-        // core.desk.disconnectNodesEl(); //>
-        // core.frameCore.refresh(); //пересчитывает все
-
-        // core.desk.connectNodesEl(); //
-
-        console.timeEnd("Перерендер всех нод страницы");
+        reInitAllNodes(this.nodeManager);
       }),
       core.store.on(EVENTS.server.loaded, (snapshot) => {
         this.nodeManager.loadSnapshot(snapshot);

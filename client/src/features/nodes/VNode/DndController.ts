@@ -159,18 +159,20 @@ export class DndController {
     this.vNode.node.y = this.targetPos.y;
     this.targetPos = null;
 
-    this.vNode.node.onPointerMove();
-    this.vNode.applyPosition();
-    core.store.emit(EVENTS.node.moving, this.vNode.node);
-
     const isShift = Boolean(
       this.lastPointerEvent?.shiftKey ||
         core.mode.mouseStatus.shift ||
         core.mode.isShiftDrag,
     );
+    const hasMovingChildren = Boolean(
+      this.vNode.node.list.children?.size && !isShift,
+    );
+
+    this.vNode.applyPosition(hasMovingChildren);
+    core.store.emit(EVENTS.node.moving, this.vNode.node);
 
     // если у него есть дети
-    if (this.vNode.node.list.children?.size && !isShift) {
+    if (hasMovingChildren) {
       this.vNode.node.list.setPositionForChildren(undefined, 0, 0, true, true);
     }
   }
@@ -195,7 +197,10 @@ export class DndController {
       core.selectManager.selectedNodes.size > 1 &&
       !core.mode.selectMoving
     ) {
-      core.selectManager.transformMove.start(e); //если выбранно несколько
+      core.selectManager.transformMove.start(e, {
+        x: this.startPos.x + this.pointerOffset.x,
+        y: this.startPos.y + this.pointerOffset.y,
+      }); //если выбранно несколько
 
       return;
     }

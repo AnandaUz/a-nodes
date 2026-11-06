@@ -17,9 +17,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   if (node.exData?.ownerNodesIds) {
     const sourceNodeId = node.exData.ownerNodesIds[0];
     if (sourceNodeId) {
-      const mainNode = [...manager.nodes.values()].find(
-        (n) => n._id === sourceNodeId,
-      );
+      const mainNode = manager.getNodeById(sourceNodeId);
       if (mainNode) {
         manager.ensureLID(mainNode);
         node.clones.mainNode = mainNode;
@@ -45,6 +43,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
       if (node.list.parentNode !== parentNode) {
         if (node.list.parentNode) {
           node.list.parentNode.list.children?.delete(node);
+          node.list.parentNode.list.invalidateChildrenOrder();
           (node.list.parentNode.vNode as any)?.refreshListBtns?.();
         }
         node.list.initParent(parentNode);
@@ -52,6 +51,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
     }
   } else if (node.list.parentNode) {
     node.list.parentNode.list.children?.delete(node);
+    node.list.parentNode.list.invalidateChildrenOrder();
     (node.list.parentNode.vNode as any)?.refreshListBtns?.();
     node.list.parentNode = null;
   }
@@ -120,7 +120,7 @@ export function diffDeskSnapshot(
   // 1. Удаляем отсутствующие / помеченные в корзину
   for (const node of toRemove) {
     node.remove();
-    manager.nodes.delete(node);
+    manager.unregisterNode(node);
     manager.spatialIndex.remove(node);
     existingMap.delete(node._id!);
   }
@@ -140,6 +140,7 @@ export function diffDeskSnapshot(
       const currentDB = toDB(existing);
       if (!areNodesEqual(currentDB, nodeData)) {
         fromDB(nodeData, existing);
+        manager.registerNode(existing);
         updatedNodes.push(existing);
       }
     } else {
@@ -154,7 +155,7 @@ export function diffDeskSnapshot(
         (newNode as LNode_TextEdit).frame.isFrame = true;
         newNode.save();
       }
-      manager.nodes.add(newNode);
+      manager.registerNode(newNode);
       addedNodes.push(newNode);
     }
   }
@@ -171,6 +172,7 @@ export function diffDeskSnapshot(
     if (!node.lID) continue;
     if (checkLID.has(node.lID)) {
       node.lID = manager.generateLID();
+      manager.registerNode(node);
       node.save();
     } else {
       checkLID.add(node.lID);
@@ -251,7 +253,7 @@ export function loadDeskSnapshot(
     const node = manager.addNode(nodeData.type || 0);
     if (!node) continue;
     fromDB(nodeData, node);
-    manager.nodes.add(node);
+    manager.registerNode(node);
 
     // адаптация - переделываю тип фреймов, в ноду фрейм
     if (isFrameAdaptation) {

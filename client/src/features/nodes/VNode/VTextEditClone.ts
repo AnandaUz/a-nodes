@@ -12,7 +12,7 @@ export default class VTextEditClone extends VTextEdit {
       ".el-lineOfParentsTitle",
     ) as HTMLDivElement;
   }
-  render(): void {
+  render(measure = true): void {
     this.node.setLineOfParentsTitle();
 
     const title = this.node.clones.sourceNode?.title || "$$$$$$";
@@ -23,6 +23,9 @@ export default class VTextEditClone extends VTextEdit {
       }
     }
     this.refreshListBtns();
+    if (measure) {
+      this.refreshBodyRect();
+    }
   }
   bodyInit() {
     super.bodyInit();

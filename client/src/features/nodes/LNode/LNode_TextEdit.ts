@@ -169,7 +169,9 @@ export class LNode_TextEdit extends LNode {
     save = true,
   ) {
     super.moveTo(position, save);
-    this.frame.redrawPaths();
+    if (!this.vNode) {
+      this.frame.redrawPaths();
+    }
   }
   onPointerMove() {
     this.frame.redrawPaths();

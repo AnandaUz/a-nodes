@@ -17,3 +17,4 @@
 | `!строкаПредков`, `!lineOfParentsTitle` | [.agents/glossary/line-of-parents-title.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/line-of-parents-title.md) |
 | `!хлебныеКрошки`, `!breadcrumbs` | [.agents/glossary/breadcrumbs.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/breadcrumbs.md) |
 | `!главноеМеню`, `!mainMenu` | [.agents/glossary/main-menu.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/main-menu.md) |
+| `!ноды`, `!nodes`, `!nodeApi` | [.agents/glossary/nodes-api.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/nodes-api.md) |

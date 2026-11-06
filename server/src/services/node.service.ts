@@ -58,12 +58,16 @@ export async function getNodesAndPageByNodeId(
     pageQuery ? Node.findOne(pageQuery).select("-__v").lean() : null,
   ]);
 
+  const isDelta = Boolean(since && !isNaN(since.getTime()));
+
   // Поиск страничных нод на текущей доске (type === 4) и подгрузка узлов их OUT-фреймов
-  const deskPageNodes = await Node.find({
-    pageId: pageFilter,
-    type: 4,
-    inTrash: { $ne: true },
-  }).lean();
+  const deskPageNodes = isDelta
+    ? await Node.find({
+        pageId: pageFilter,
+        type: 4,
+        inTrash: { $ne: true },
+      }).lean()
+    : nodes.filter((n: any) => n.type === 4);
 
   if (deskPageNodes.length > 0) {
     const pageIdsOnDesk = deskPageNodes.map((p: any) => p._id);
@@ -88,6 +92,17 @@ export async function getNodesAndPageByNodeId(
         pageNodeOnDeskById.set(String(pn._id), pn);
       }
 
+      const nodesByPageId = new Map<string, any[]>();
+      for (const sn of subNodes) {
+        const key = String(sn.pageId);
+        let arr = nodesByPageId.get(key);
+        if (!arr) {
+          arr = [];
+          nodesByPageId.set(key, arr);
+        }
+        arr.push(sn);
+      }
+
       const outNodesToAdd: any[] = [];
       const existingIds = new Set(nodes.map((n: any) => String(n._id)));
 
@@ -109,25 +124,33 @@ export async function getNodesAndPageByNodeId(
           await Node.updateOne({ _id: deskPageNode._id }, { $set: { s: pageDeskLID } });
         }
 
-        const nodesOfPage = subNodes.filter(
-          (n: any) => String(n.pageId) === pIdStr,
-        );
+        const nodesOfPage = nodesByPageId.get(pIdStr) || [];
 
-        const collectedLIDs = new Set<number>();
-        collectedLIDs.add(outFrameLID);
+        const childrenByParentLID = new Map<number, any[]>();
+        for (const n of nodesOfPage) {
+          if (n.L === undefined || n.L === null) continue;
+          const parentLID = (n.L >> 15) & 0x1ffff;
+          if (parentLID > 0) {
+            let children = childrenByParentLID.get(parentLID);
+            if (!children) {
+              children = [];
+              childrenByParentLID.set(parentLID, children);
+            }
+            children.push(n);
+          }
+        }
 
-        let added = true;
-        while (added) {
-          added = false;
-          for (const n of nodesOfPage) {
-            if (n.L === undefined || n.L === null) continue;
-            const parentLID = (n.L >> 15) & 0x1ffff;
-            const nodeLID = (n.s || 0) & 0x1ffff;
-            if (parentLID > 0 && collectedLIDs.has(parentLID)) {
-              if (nodeLID > 0 && !collectedLIDs.has(nodeLID)) {
-                collectedLIDs.add(nodeLID);
-                added = true;
-              }
+        const collectedLIDs = new Set<number>([outFrameLID]);
+        const queue: number[] = [outFrameLID];
+        while (queue.length > 0) {
+          const currentLID = queue.shift()!;
+          const children = childrenByParentLID.get(currentLID);
+          if (!children) continue;
+          for (const child of children) {
+            const nodeLID = (child.s || 0) & 0x1ffff;
+            if (nodeLID > 0 && !collectedLIDs.has(nodeLID)) {
+              collectedLIDs.add(nodeLID);
+              queue.push(nodeLID);
             }
           }
         }
@@ -180,6 +203,10 @@ export async function getNodesAndPageByNodeId(
     }
   }
 
+  if (isDelta) {
+    return { nodes, pageNode, serverTime: new Date(), breadcrumbs: undefined };
+  }
+
   const breadcrumbs: { id: string; title: string }[] = [];
 
   let targetPageNode: any = pageNode;
@@ -200,32 +227,70 @@ export async function getNodesAndPageByNodeId(
       title: targetPageNode.title || "",
     });
 
-    let currentParentId = targetPageNode.pageId;
-    const visited = new Set<string>([targetPageNode._id.toString()]);
-    let depth = 0;
+    const firstParentId = targetPageNode.pageId;
+    if (firstParentId && isValidObjectId(firstParentId.toString())) {
+      const collectionName = Node.collection?.name || "nodes";
+      const aggResult = await Node.aggregate([
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(firstParentId.toString()),
+          },
+        },
+        {
+          $graphLookup: {
+            from: collectionName,
+            startWith: "$pageId",
+            connectFromField: "pageId",
+            connectToField: "_id",
+            as: "ancestors",
+            maxDepth: 19,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            title: 1,
+            pageId: 1,
+            "ancestors._id": 1,
+            "ancestors.title": 1,
+            "ancestors.pageId": 1,
+          },
+        },
+      ]);
 
-    while (
-      currentParentId &&
-      isValidObjectId(currentParentId.toString()) &&
-      depth < 20
-    ) {
-      depth++;
-      const parentIdStr = currentParentId.toString();
-      if (visited.has(parentIdStr)) break;
-      visited.add(parentIdStr);
+      const firstDoc = aggResult[0];
+      if (firstDoc) {
+        const ancestorsMap = new Map<string, any>();
+        ancestorsMap.set(firstDoc._id.toString(), firstDoc);
+        for (const anc of firstDoc.ancestors || []) {
+          ancestorsMap.set(anc._id.toString(), anc);
+        }
 
-      const parentNode = await Node.findOne({ _id: currentParentId })
-        .select("_id title pageId")
-        .lean();
+        let currentParentId: any = firstParentId;
+        const visited = new Set<string>([targetPageNode._id.toString()]);
+        let depth = 0;
 
-      if (!parentNode) break;
+        while (
+          currentParentId &&
+          isValidObjectId(currentParentId.toString()) &&
+          depth < 20
+        ) {
+          depth++;
+          const parentIdStr = currentParentId.toString();
+          if (visited.has(parentIdStr)) break;
+          visited.add(parentIdStr);
 
-      breadcrumbs.unshift({
-        id: parentNode._id.toString(),
-        title: parentNode.title || "",
-      });
+          const parentNode = ancestorsMap.get(parentIdStr);
+          if (!parentNode) break;
 
-      currentParentId = parentNode.pageId;
+          breadcrumbs.unshift({
+            id: parentNode._id.toString(),
+            title: parentNode.title || "",
+          });
+
+          currentParentId = parentNode.pageId;
+        }
+      }
     }
   }
 

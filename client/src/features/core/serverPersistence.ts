@@ -20,6 +20,7 @@ export class ServerPersistence {
   private dirtyNodes: Set<LNode> = new Set();
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private isScheduleMicrotaskQueued = false;
   private unsubscribers: Array<() => void> = [];
   private isSaving = false;
 
@@ -142,6 +143,7 @@ export class ServerPersistence {
     this.dirtyNodes.clear();
     try {
       await api.saveNodes(snapshot);
+      this.cacheCurrentNodes();
     } catch (err) {
       // при ошибке возвращаем ноды обратно в dirty
       dirtyList.forEach((n) => this.dirtyNodes.add(n));
@@ -152,11 +154,17 @@ export class ServerPersistence {
   }
 
   scheduleSave(): void {
-    if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => {
-      void this.save();
-      this.debounceTimer = null;
-    }, DEBOUNCE_MS);
+    if (this.isScheduleMicrotaskQueued) return;
+    this.isScheduleMicrotaskQueued = true;
+    queueMicrotask(() => {
+      this.isScheduleMicrotaskQueued = false;
+      if (this.dirtyNodes.size === 0) return;
+      if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        void this.save();
+        this.debounceTimer = null;
+      }, DEBOUNCE_MS);
+    });
   }
 
   /** Синхронный сброс грязных нод через sendBeacon (при закрытии/перезагрузке вкладки) */

@@ -127,8 +127,8 @@ export default class VTextEdit extends VNode {
     return this.node.title || "";
   }
 
-  render() {
-    super.render();
+  render(measure = true) {
+    super.render(false);
     const title = this.title;
     if (title) {
       const str = title.replace(/\n/g, "<br/>");
@@ -138,6 +138,9 @@ export default class VTextEdit extends VNode {
     }
     this.refreshListBtns();
     (this.node as LNode_TextEdit).frame?.updateIoClasses();
+    if (measure) {
+      this.refreshBodyRect();
+    }
   }
 
   toggleListOpen() {

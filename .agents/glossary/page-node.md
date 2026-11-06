@@ -4,7 +4,7 @@
 
 ### Term Mapping
 
-- **нодаСтраница**: Узел типа страница (`LNode_Page`, `VPage`, `type: 3`, CSS `.v-n-page`).
+- **нодаСтраница**: Узел типа страница (`LNode_Page`, `VPage`, `type: 4`, CSS `.v-n-page`).
 - **кнопка перехода**: `.btn-el` (`🔗`) — клик/тап осуществляет переход на целевую доску.
 - **адрес доски**: `url` в `node.exData?.url` или `/desk/<_id>`.
 
@@ -12,7 +12,7 @@
 
 - **Logic**:
   - `nodes/LNode/LNode_Page.ts` — Модель узла страницы, наследует `LNode_TextEdit`, возвращает `VPage`.
-  - `nodes/node-registry.ts` — Регистрация типа (`NODE_TYPES.PAGE.id = 3`).
+  - `nodes/node-registry.ts` — Регистрация типа (`NODE_TYPES.PAGE.id = 4`).
 - **View / CSS**:
   - `nodes/VNode/VPage.ts` — Представление узла, обработчики кнопки перехода `.btn-el`.
   - `nodes/VNode/vNode.scss` — Классы `.v-n-page`, `.btn-el`.

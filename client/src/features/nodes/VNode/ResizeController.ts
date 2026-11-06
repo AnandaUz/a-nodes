@@ -18,10 +18,23 @@ export class ResizeController {
     } as DOMRect;
   }
 
-  refreshBodyRect(): void {
+  prepareMeasure(): void {
     this.vNode.body.style.width = ""; // естественная ширина по тексту (заголовок фрейма растягивается в renderBgSVG)
+  }
+
+  readMeasure(): void {
+    const prevW = this.width;
+    const prevH = this.height;
     this.width = this.vNode.body.offsetWidth || this.width || 0;
     this.height = this.vNode.body.offsetHeight || this.height || 0;
+    if (prevW !== this.width || prevH !== this.height) {
+      this.vNode.node.list?.invalidateRectCache();
+    }
+  }
+
+  refreshBodyRect(): void {
+    this.prepareMeasure();
+    this.readMeasure();
   }
 
   /** проверяем точка над нодой */
