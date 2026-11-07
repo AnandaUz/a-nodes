@@ -27,8 +27,24 @@ export class LNode implements ILNode {
   isSelected = false;
   list = new TList(this);
 
-  x: number = 0;
-  y: number = 0;
+  private _x: number = 0;
+  private _y: number = 0;
+  get x(): number {
+    return this._x;
+  }
+  set x(v: number) {
+    if (this._x === v) return;
+    this._x = v;
+    this.list?.invalidateRectCache();
+  }
+  get y(): number {
+    return this._y;
+  }
+  set y(v: number) {
+    if (this._y === v) return;
+    this._y = v;
+    this.list?.invalidateRectCache();
+  }
 
   exData?: IExData | undefined;
 
@@ -37,7 +53,15 @@ export class LNode implements ILNode {
   /** поле которое я сохраняю в базе */
   hiddenBD: boolean = false;
   /** поле которое показывает видна нода или нет */
-  hidden: boolean = false;
+  private _hidden: boolean = false;
+  get hidden(): boolean {
+    return this._hidden;
+  }
+  set hidden(v: boolean) {
+    if (this._hidden === v) return;
+    this._hidden = v;
+    this.list?.invalidateRectCache();
+  }
   isLockedInOutFrame?: boolean;
   outFrameLID?: number | undefined;
   outOrigParentLID?: number | undefined;
@@ -91,6 +115,8 @@ export class LNode implements ILNode {
     if (this.list.parentNode) {
       const parentNode = this.list.parentNode;
       parentNode.list.children?.delete(this);
+      parentNode.list.invalidateChildrenOrder();
+      parentNode.list.invalidateRectCache();
       (parentNode.vNode as any)?.refreshListBtns?.();
       const mainParent = this.list.mainParent;
       if (mainParent) {
@@ -164,6 +190,9 @@ export class LNode implements ILNode {
 
   /** возращает прямоугольник в который входит и родитель и все его дети */
   getNodeRect(withChildren = true): DOMRect {
+    if (withChildren && this.list._cachedRect) {
+      return this.list._cachedRect;
+    }
     let x0 = this.x,
       y0 = this.y,
       x1 = this.x + (this.vNode?.width ?? 0),
@@ -179,12 +208,16 @@ export class LNode implements ILNode {
         y1 = Math.max(y1, childRect.y + childRect.height);
       }
     }
-    return {
+    const rect = {
       x: x0,
       y: y0,
       width: x1 - x0,
       height: y1 - y0,
     } as DOMRect;
+    if (withChildren) {
+      this.list._cachedRect = rect;
+    }
+    return rect;
   }
   /** выделить ноду */
   select() {

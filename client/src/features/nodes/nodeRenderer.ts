@@ -29,16 +29,14 @@ export class NodeRenderer {
     // );
   }
 
-  createVNode(node: LNode): VNode | null {
+  createVNode(node: LNode, measure = true): VNode | null {
     const NodeClass = node.getVNodeType();
     if (!NodeClass) return null;
     try {
       const vNode = new NodeClass(node, this.nodesEl);
       node.vNode = vNode;
       vNode.init();
-      vNode.render();
-      vNode.refreshBodyRect();
-      // this.vNodes.set(node._id || "", vNode);
+      vNode.render(measure);
       return vNode;
     } catch (e) {
       console.error("Ошибка рендеринга ноды:", node, e);
@@ -52,7 +50,7 @@ export class NodeRenderer {
     }
     core.nodeManager.nodes.forEach((node) => {
       if (node.hidden) return;
-      this.createVNode(node);
+      this.createVNode(node, false);
     });
     console.log("количество нод", core.nodeManager.nodes.size);
 

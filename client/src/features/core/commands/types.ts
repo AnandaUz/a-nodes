@@ -1,6 +1,8 @@
 export interface UICommand {
   label: string;
+  description?: string;
   shortcuts?: string[];
-  execute?: (e: KeyboardEvent) => void | Promise<void>;
+  execute?: (e?: any) => void | Promise<void>;
   children?: UICommand[];
+  divider?: boolean;
 }

@@ -1,9 +1,7 @@
 import { LNode } from "@/features/nodes/LNode/LNode";
 import { core, EVENTS } from "../core/core";
-import { GRID } from "../core/CONST";
 import type { DeskSnapshot, Command } from "../core/interfaces";
 import Tools from "../core/Tools";
-import type VTextEdit from "@features/nodes/VNode/VTextEdit";
 import { NODE_REGISTRY, NODE_TYPES } from "./node-registry";
 import type { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import type { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
@@ -11,9 +9,6 @@ import type { LNode_Page } from "./LNode/LNode_Page";
 import {
   getRectForNodes,
   findNodeByLID,
-  getMaxLID,
-  generateLID,
-  ensureLID,
 } from "./nodeTreeUtils";
 import {
   handleSelectedNodesMoved,
@@ -21,14 +16,72 @@ import {
   setPositionForAllLinkedChildNodes,
 } from "./nodeHierarchy";
 import { diffDeskSnapshot, loadDeskSnapshot } from "./nodeSerialization";
+import {
+  addTextEditNodeByEnter,
+  addTextEditNodeUnderSelected,
+} from "./nodeTextCreation";
 import { SpatialIndex } from "./spatial/SpatialIndex";
 import { toDB, type IOutFrameData, type IOutNodeItem } from "@shared/types/INodeDB";
 
 export class NodeManager {
   nodes = new Set<LNode>();
+  nodesByLID = new Map<number, LNode>();
+  nodesById = new Map<string, LNode>();
+  private maxLID = 1;
+  pendingUpdatedNodes = new Set<LNode>();
+  private isFlushScheduled = false;
   spatialIndex = new SpatialIndex<LNode>();
   pageNode: LNode_Page | undefined;
   private unsubscribers: (() => void)[] = [];
+
+  registerNode(node: LNode): void {
+    this.nodes.add(node);
+    if (node.lID) {
+      this.nodesByLID.set(node.lID, node);
+      if (node.lID > this.maxLID) {
+        this.maxLID = node.lID;
+      }
+    }
+    if (node._id) {
+      this.nodesById.set(node._id, node);
+    }
+  }
+
+  unregisterNode(node: LNode): void {
+    this.nodes.delete(node);
+    this.pendingUpdatedNodes.delete(node);
+    if (node.lID && this.nodesByLID.get(node.lID) === node) {
+      this.nodesByLID.delete(node.lID);
+    }
+    if (node._id && this.nodesById.get(node._id) === node) {
+      this.nodesById.delete(node._id);
+    }
+  }
+
+  scheduleNodeUpdate(node: LNode): void {
+    this.pendingUpdatedNodes.add(node);
+    this.scheduleFlushUpdates();
+  }
+
+  private scheduleFlushUpdates(): void {
+    if (this.isFlushScheduled) return;
+    this.isFlushScheduled = true;
+    queueMicrotask(() => {
+      this.flushPendingUpdates();
+    });
+  }
+
+  flushPendingUpdates(): void {
+    this.isFlushScheduled = false;
+    if (this.pendingUpdatedNodes.size === 0) return;
+    const batch = Array.from(this.pendingUpdatedNodes);
+    this.pendingUpdatedNodes.clear();
+    for (const node of batch) {
+      if (this.nodes.has(node)) {
+        this.spatialIndex.update(node);
+      }
+    }
+  }
 
   clear(): void {
     this.nodes.forEach((node) => {
@@ -36,6 +89,10 @@ export class NodeManager {
       node.vNode?.remove();
     });
     this.nodes.clear();
+    this.nodesByLID.clear();
+    this.nodesById.clear();
+    this.maxLID = 1;
+    this.pendingUpdatedNodes.clear();
     this.spatialIndex.clear();
     if (this.pageNode) {
       this.pageNode.vNode?.remove();
@@ -57,7 +114,7 @@ export class NodeManager {
       }),
       core.store.on(EVENTS.node.updated, (node) => {
         if (!node) return;
-        this.spatialIndex.update(node);
+        this.scheduleNodeUpdate(node);
         if (node.isLockedInOutFrame && !node.isOutGroupHeader) {
           const mainPage = node.list.mainParent as LNode_Page | null;
           if (mainPage && mainPage.type === NODE_TYPES.PAGE.id && Array.isArray(mainPage.out)) {
@@ -155,12 +212,43 @@ export class NodeManager {
     this.rebuildSpatialIndex();
   }
 
-  getNodeByLID(lID: number) {
-    return findNodeByLID(this.nodes, lID);
+  getNodeByLID(lID: number): LNode | undefined {
+    if (!lID) return undefined;
+    const cached = this.nodesByLID.get(lID);
+    if (cached && cached.lID === lID && this.nodes.has(cached)) {
+      return cached;
+    }
+    const found = findNodeByLID(this.nodes, lID);
+    if (found) {
+      this.nodesByLID.set(lID, found);
+      if (found.lID && found.lID > this.maxLID) {
+        this.maxLID = found.lID;
+      }
+    }
+    return found;
+  }
+
+  getNodeById(id: string): LNode | undefined {
+    if (!id) return undefined;
+    const cached = this.nodesById.get(id);
+    if (cached && cached._id === id && this.nodes.has(cached)) {
+      return cached;
+    }
+    for (const node of this.nodes) {
+      if (node._id === id) {
+        this.nodesById.set(id, node);
+        return node;
+      }
+    }
+    return undefined;
   }
 
   initCloneLinks() {
-    initCloneLinks(this.nodes, (id) => this.getNodeByLID(id));
+    initCloneLinks(
+      this.nodes,
+      (id) => this.getNodeByLID(id),
+      (id) => this.getNodeById(id),
+    );
   }
 
   setPositionForAllLinkedChildNodes() {
@@ -242,15 +330,20 @@ export class NodeManager {
 
     if (exData) node.exData = exData;
 
+    if (!node._id) {
+      node._id = Tools.generateObjectId();
+    }
+    this.registerNode(node);
+    this.spatialIndex.insert(node);
+
     if (core.serverPersistence) {
       core.serverPersistence.createNode(node, (id: string) => {
-        node._id = id;
-        this.nodes.add(node);
-        this.spatialIndex.insert(node);
+        if (id && id !== node._id) {
+          this.unregisterNode(node);
+          node._id = id;
+          this.registerNode(node);
+        }
       });
-    } else {
-      this.nodes.add(node);
-      this.spatialIndex.insert(node);
     }
     core.store.emit(EVENTS.node.created, node);
     return node;
@@ -273,7 +366,7 @@ export class NodeManager {
       node.inTrash = true;
       node.save();
       core.store.emit(EVENTS.node.inTrash, node);
-      this.nodes.delete(node);
+      this.unregisterNode(node);
       this.spatialIndex.remove(node);
       node.remove();
     }
@@ -293,7 +386,7 @@ export class NodeManager {
 
   restoreNodeFromTrash(node: LNode, withClones: boolean = false): void {
     node.inTrash = false;
-    this.nodes.add(node);
+    this.registerNode(node);
     this.spatialIndex.insert(node);
 
     if (node.hiddenBD) {
@@ -407,7 +500,7 @@ export class NodeManager {
 
     core.serverPersistence.deleteNode(node);
     core.selectManager.unselectNode(node);
-    this.nodes.delete(node);
+    this.unregisterNode(node);
     this.spatialIndex.remove(node);
     node.remove();
 
@@ -445,171 +538,42 @@ export class NodeManager {
     cloneNode.save();
     return cloneNode;
   }
-  getMaxLID() {
-    return getMaxLID(this.nodes);
+  getMaxLID(): number {
+    for (const node of this.nodes) {
+      if (node.lID && node.lID > this.maxLID) {
+        this.maxLID = node.lID;
+      }
+    }
+    return this.maxLID;
   }
 
   generateLID(): number {
-    return generateLID(this.nodes);
+    this.getMaxLID();
+    return ++this.maxLID;
   }
 
   ensureLID(node: LNode): number {
-    return ensureLID(this.nodes, node);
+    if (!node.lID) {
+      node.lID = this.generateLID();
+      this.nodesByLID.set(node.lID, node);
+      node.save();
+    } else {
+      if (node.lID > this.maxLID) {
+        this.maxLID = node.lID;
+      }
+      this.nodesByLID.set(node.lID, node);
+    }
+    return node.lID;
   }
 
   async addTextEditNode_byEnter(e: KeyboardEvent) {
-    Tools.stopEvent(e);
-
-    if (core.mode.selectedVNodeCount !== 1) return;
-    if (!core.mode.textEditing) return;
-
-    const node = core.selectManager.selectedNodes.values().next()
-      .value as LNode_TextEdit;
-    const title = node.title || "";
-    const vNode = node.vNode as VTextEdit;
-
-    // пустая нода — просто сдвигаем вниз
-    if (!title) {
-      vNode.moveAniTo(null, (node.y ?? 0) + 25);
-      return;
-    }
-
-    // позиция курсора
-    const selection = window.getSelection();
-    if (!selection?.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
-    const cursorIndex = Tools.getCursorIndex(vNode.titleEl, range);
-
-    // делим текст по курсору
-    const leftText = title.slice(0, cursorIndex).trimEnd();
-    const rightText = title.slice(cursorIndex).trimStart();
-
-    vNode.title = leftText;
-    vNode.refreshBodyRect();
-    vNode.render();
-    // добавляем lID
-    this.ensureLID(node);
-
-    node.turnOff_EditTitleMode();
-    core.selectManager.clearSelection();
-
-    const options = {
-      x: node.x,
-      y: node.y + vNode.height,
-      title: rightText,
-    } as Partial<LNode>;
-    if (node.type === NODE_TYPES.TEXT_EDIT_CLONE.id) {
-      options.type = NODE_TYPES.TEXT_EDIT.id;
-    }
-    // создаём новую ноду с правым текстом
-    const newNode = this.copyNode(node, options) as LNode_TextEdit;
-    if (newNode) {
-      core.nodeRenderer.createVNode(newNode);
-
-      newNode.list.setParent(node, 0);
-
-      const mainNode = node.list.mainParent as LNode_TextEdit;
-      if (mainNode?.frame?.isFrame) {
-        newNode.vNode?.body.classList.add("in-frame");
-        newNode.frame.addPowerBtns();
-        mainNode.list.setPositionForChildren();
-        mainNode.vNode?.renderSVG();
-        mainNode.frame.bringToFront();
-      } else if (mainNode) {
-        mainNode.list.setPositionForChildren();
-        mainNode.vNode?.renderSVG();
-      }
-      (node.vNode as any)?.refreshListBtns?.();
-
-      core.selectManager.selectNode(newNode);
-      // newVnode?.onStop();
-      (newNode as any).isCreatedByEnter = true;
-      (newNode as any).turnOn_EditTitleMode?.();
-
-      if (core.history) {
-        core.history.push({
-          execute: () => {
-            node.title = leftText;
-            vNode.title = leftText;
-            vNode.refreshBodyRect();
-            vNode.render();
-            node.save();
-            this.restoreNodeFromTrash(newNode);
-          },
-          undo: () => {
-            node.title = title;
-            vNode.title = title;
-            vNode.refreshBodyRect();
-            vNode.render();
-            node.save();
-            this.putNodeInTrash(newNode);
-          },
-        });
-      }
-    }
+    return addTextEditNodeByEnter(this, e);
   }
 
   addTextEditNode_underSelected(
     selectedNode: LNode_TextEdit,
   ): LNode_TextEdit | null {
-    let parent: LNode;
-    let targetIndex: number;
-
-    if (selectedNode.list?.parentNode) {
-      parent = selectedNode.list.parentNode;
-      targetIndex = (selectedNode.list.index ?? 0) + 1.1;
-    } else {
-      parent = selectedNode;
-      targetIndex = (selectedNode.list?.children?.size ?? 0) + 0.6;
-    }
-
-    const newX = selectedNode.list?.parentNode
-      ? selectedNode.x
-      : selectedNode.x + GRID.x;
-    const newY =
-      (selectedNode.y ?? 0) + ((selectedNode.vNode as any)?.height || 25);
-
-    this.ensureLID(parent);
-
-    const newNode = this.createNode({
-      x: newX,
-      y: newY,
-      type: NODE_TYPES.TEXT_EDIT.id,
-    }) as LNode_TextEdit;
-
-    if (newNode) {
-      if (core.nodeRenderer) {
-        core.nodeRenderer.createVNode(newNode);
-      }
-
-      newNode.list.setParent(parent, targetIndex);
-      newNode.save();
-
-      const mainNode = (selectedNode.list?.mainParent ||
-        parent.list?.mainParent ||
-        parent) as LNode_TextEdit;
-      if (mainNode?.frame?.isFrame) {
-        newNode.vNode?.body?.classList.add("in-frame");
-        newNode.frame?.addPowerBtns();
-        mainNode.list.setPositionForChildren();
-        mainNode.vNode?.renderSVG();
-        mainNode.frame?.bringToFront();
-      } else if (mainNode) {
-        mainNode.list.setPositionForChildren();
-        mainNode.vNode?.renderSVG();
-      }
-
-      (selectedNode.vNode as any)?.refreshListBtns?.();
-      (parent.vNode as any)?.refreshListBtns?.();
-
-      core.selectManager.clearSelection();
-      core.selectManager.selectNode(newNode);
-      newNode.turnOn_EditTitleMode?.();
-      return newNode;
-    }
-
-    return null;
+    return addTextEditNodeUnderSelected(this, selectedNode);
   }
 
   rebuildSpatialIndex(): void {
@@ -617,6 +581,9 @@ export class NodeManager {
   }
 
   ensureSpatialIndexSynced(): void {
+    if (this.pendingUpdatedNodes.size > 0) {
+      this.flushPendingUpdates();
+    }
     if (this.spatialIndex.size !== this.nodes.size) {
       this.rebuildSpatialIndex();
     }

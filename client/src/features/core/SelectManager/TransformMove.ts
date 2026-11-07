@@ -1,8 +1,10 @@
-import { core } from "@/features/core/core";
+import { core, EVENTS } from "@/features/core/core";
 import type { SelectManager } from "./SelectManager";
 import Tools from "../Tools";
-import { BatchCommand } from "../history";
-import type { Command } from "../interfaces";
+import {
+  beginMoveHistoryTransaction,
+  commitMoveHistoryTransaction,
+} from "../commands/historyCommands";
 import type { LNode } from "@/features/nodes/LNode/LNode";
 
 export class TransformMove {
@@ -10,43 +12,41 @@ export class TransformMove {
   private selectManager: SelectManager;
   private rafId: number | null = null;
   private lastPointerEvent: PointerEvent | null = null;
+  private startWorld = { x: 0, y: 0 };
   private startPositions = new Map<LNode, { x: number; y: number }>();
 
   constructor(selectManager: SelectManager) {
     this.selectManager = selectManager;
   }
 
-  start(e?: PointerEvent) {
+  start(e?: PointerEvent, initialWorld?: { x: number; y: number }) {
     if (this.selectManager.selectedNodes.size === 0) return;
     this.active = true;
     this.startPositions.clear();
-    this.selectManager.selectedNodes.forEach((node) => {
-      this.startPositions.set(node, { x: node.x, y: node.y });
-    });
-
-    window.addEventListener("pointermove", this.onPointerMove);
-    window.addEventListener("pointerup", this.onPointerUp);
 
     const clientX = e?.clientX ?? core.desk.pointer.x;
     const clientY = e?.clientY ?? core.desk.pointer.y;
-    const pointerId = e?.pointerId ?? 1;
+    this.startWorld =
+      initialWorld ?? core.desk.viewport.screenToWorld(clientX, clientY);
 
-    const pEvent = new PointerEvent("pointerdown", {
-      clientX,
-      clientY,
-      pointerId,
-      pointerType: "mouse",
-      isPrimary: true,
-    });
     this.selectManager.selectedNodes.forEach((node) => {
-      try {
-        node.vNode?.onPointerDown(pEvent);
-        if (node.vNode) {
-          node.vNode.isMoved = true;
-        }
-      } catch {}
+      this.startPositions.set(node, { x: node.x, y: node.y });
+      if (node.vNode) {
+        node.vNode.cancelDrag();
+        node.vNode.isMoved = true;
+        node.vNode.body.classList.add("is-dragging");
+      }
     });
+    beginMoveHistoryTransaction(this.selectManager.selectedNodes);
+
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
     core.mode.selectMoving = true;
+
+    if (e) {
+      this.lastPointerEvent = e;
+      this.applyMove(e);
+    }
   }
 
   private onPointerMove = (e: PointerEvent) => {
@@ -60,14 +60,37 @@ export class TransformMove {
     }
   };
 
+  private applyMove(e: PointerEvent) {
+    if (e.shiftKey || core.mode.mouseStatus.shift) {
+      core.mode.isShiftDrag = true;
+    }
+    const currentWorld = core.desk.viewport.screenToWorld(e.clientX, e.clientY);
+    const dx = currentWorld.x - this.startWorld.x;
+    const dy = currentWorld.y - this.startWorld.y;
+    const isShift = Boolean(
+      e.shiftKey || core.mode.mouseStatus.shift || core.mode.isShiftDrag,
+    );
+
+    this.selectManager.selectedNodes.forEach((node) => {
+      const startPos = this.startPositions.get(node);
+      if (!startPos) return;
+      node.x = Tools.getDiskPosition(Math.round(startPos.x + dx));
+      node.y = Math.round(startPos.y + dy);
+
+      const hasMovingChildren = Boolean(node.list.children?.size && !isShift);
+      node.vNode?.applyPosition(hasMovingChildren);
+      core.store.emit(EVENTS.node.moving, node);
+
+      if (hasMovingChildren) {
+        node.list.setPositionForChildren(undefined, 0, 0, true, true);
+      }
+    });
+  }
+
   private renderMove = () => {
     this.rafId = null;
     if (!this.active || !this.lastPointerEvent) return;
-
-    const e = this.lastPointerEvent;
-    this.selectManager.selectedNodes.forEach((node) => {
-      node.vNode?.onPointerMove(e, true);
-    });
+    this.applyMove(this.lastPointerEvent);
   };
 
   private onPointerUp = (e: PointerEvent) => {
@@ -81,33 +104,19 @@ export class TransformMove {
     if (this.lastPointerEvent) {
       const lastEvent = this.lastPointerEvent;
       this.lastPointerEvent = null;
-      this.selectManager.selectedNodes.forEach((node) => {
-        node.vNode?.onPointerMove(lastEvent, true);
-      });
+      this.applyMove(lastEvent);
     }
 
-    this.selectManager.selectedNodes.forEach((node) => {
-      node.vNode?.onPointerUp(e);
-    });
     Tools.stopEvent(e);
 
-    const commands: Command[] = [];
-    this.startPositions.forEach((startPos, node) => {
-      if (startPos.x !== node.x || startPos.y !== node.y) {
-        const endPos = { x: node.x, y: node.y };
-        commands.push({
-          execute: () => node.moveTo(endPos),
-          undo: () => node.moveTo(startPos),
-        });
-      }
+    const movedList: LNode[] = [];
+    this.startPositions.forEach((_startPos, node) => {
+      node.vNode?.body.classList.remove("is-dragging");
+      node.moveTo({ x: node.x, y: node.y });
+      core.store.emit(EVENTS.node.moved, node);
+      node.vNode?.onStop();
+      movedList.push(node);
     });
-    if (commands.length > 0 && core.history) {
-      if (core.history.push) {
-        core.history.push(new BatchCommand(commands));
-      } else if (core.history.execute) {
-        core.history.execute(new BatchCommand(commands));
-      }
-    }
     this.startPositions.clear();
 
     this.active = false;
@@ -115,5 +124,10 @@ export class TransformMove {
     core.mode.wasMoving = false;
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
+
+    if (movedList.length > 0) {
+      core.store.emit(EVENTS.node.selectedMoved, movedList);
+    }
+    commitMoveHistoryTransaction(movedList);
   };
 }

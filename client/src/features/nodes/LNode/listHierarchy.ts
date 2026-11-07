@@ -66,10 +66,14 @@ export function checkTree(owner: LNode): void {
     if (chNode.list && chNode.list.parentNode !== mParent?.node) {
       const oldParent = chNode.list.parentNode;
       chNode.list.parentNode?.list.children?.delete(chNode);
+      oldParent?.list.invalidateChildrenOrder();
+      oldParent?.list.invalidateRectCache();
       (oldParent?.vNode as any)?.refreshListBtns?.();
       const s = mParent?.node.list;
       if (s && !s.children) s.children = new Set();
       s?.children?.add(chNode);
+      s?.invalidateChildrenOrder();
+      s?.invalidateRectCache();
       (mParent?.node.vNode as any)?.refreshListBtns?.();
       chNode.list.parentNode = mParent?.node || null;
       isChanged = true;
@@ -110,6 +114,8 @@ export function clearParent(list: TList, owner: LNode): LNode[] {
   const parentNode = list.parentNode;
   if (parentNode) {
     parentNode.list.children?.delete(owner);
+    parentNode.list.invalidateChildrenOrder();
+    parentNode.list.invalidateRectCache();
     (parentNode.vNode as any)?.refreshListBtns?.();
     willRefParent.push(parentNode);
 
@@ -198,6 +204,8 @@ export function setParent(
   if (list.parentNode) {
     const oldParent = list.parentNode;
     oldParent.list.children?.delete(owner);
+    oldParent.list.invalidateChildrenOrder();
+    oldParent.list.invalidateRectCache();
     (oldParent.vNode as any)?.refreshListBtns?.();
     willRefParent.push(oldParent);
   }
@@ -213,10 +221,10 @@ export function setParent(
 
   if (!parent.list.children) parent.list.children = new Set();
   parent.list.children.add(owner);
+  parent.list.invalidateChildrenOrder();
+  parent.list.invalidateRectCache();
   (parent.vNode as any)?.refreshListBtns?.();
-  const m = [...parent.list.children].sort(
-    (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
-  );
+  const m = parent.list.getSortedChildren();
   m.forEach((node, index) => {
     if (node.list) {
       if (node.list.index != index) {
@@ -225,6 +233,7 @@ export function setParent(
       }
     }
   });
+  parent.list.invalidateChildrenOrder();
 
   willRefParent.push(owner);
   return willRefParent;
@@ -282,15 +291,33 @@ export function setPositionForChildren(
   return h;
 }
 
+export function syncChildrenCoordinates(
+  node: LNode,
+  startY: number = node.y + (node.vNode?.height ?? 0),
+): number {
+  if (!node.list.children?.size) return 0;
+  const m = node.list.getSortedChildren();
+  let h = 0;
+  for (const child of m) {
+    child.x = node.x + GRID.x * (child.list.tab ?? 0);
+    if (child.hidden) continue;
+    child.y = startY + h;
+    const chH = child.vNode?.height || 0;
+    h += chH;
+    if (child.list.children?.size) {
+      h += syncChildrenCoordinates(child, child.y + chH);
+    }
+  }
+  return h;
+}
+
 function propagateTabsAndFrameClass(
   parent: LNode,
   baseX: number,
   isFrame: boolean,
 ): void {
   if (!parent.list.children?.size) return;
-  const m = [...parent.list.children].sort(
-    (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
-  );
+  const m = parent.list.getSortedChildren();
   for (const child of m) {
     child.x = parent.x + GRID.x * (child.list.tab ?? 0);
     if (child.hidden) continue;
@@ -346,11 +373,15 @@ function layoutTree(
   oldPositions?: Map<LNode, { x: number; y: number }>,
   totalIndexRef = { count: 0 },
 ): number {
+  node.list._cachedRect = null;
   if (!node.list.children?.size) return 0;
-  const m = [...node.list.children].sort(
-    (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
-  );
+  const m = node.list.getSortedChildren();
   let h = 0;
+  let x0 = node.x;
+  let y0 = node.y;
+  let x1 = node.x + (node.vNode?.width ?? 0);
+  let y1 = node.y + (node.vNode?.height ?? 0);
+
   for (const child of m) {
     if (child.hidden) continue;
     const prevPos = oldPositions?.get(child);
@@ -370,7 +401,8 @@ function layoutTree(
       ) {
         (chVNode as any).animateMove(oldX, oldY, child.x, child.y);
       }
-      chVNode.applyPosition();
+      const skipChildSVG = !((chVNode as any).elSVG || chVNode.elFrameBg);
+      chVNode.applyPosition(skipChildSVG);
       h += chVNode.height;
     }
 
@@ -382,7 +414,33 @@ function layoutTree(
         oldPositions,
         totalIndexRef,
       );
+      const childRect = child.list._cachedRect ?? child.getNodeRect(true);
+      x0 = Math.min(x0, childRect.x);
+      y0 = Math.min(y0, childRect.y);
+      x1 = Math.max(x1, childRect.x + childRect.width);
+      y1 = Math.max(y1, childRect.y + childRect.height);
+    } else {
+      const chW = chVNode?.width ?? 0;
+      const chH = chVNode?.height ?? 0;
+      child.list._cachedRect = {
+        x: child.x,
+        y: child.y,
+        width: chW,
+        height: chH,
+      } as DOMRect;
+      x0 = Math.min(x0, child.x);
+      y0 = Math.min(y0, child.y);
+      x1 = Math.max(x1, child.x + chW);
+      y1 = Math.max(y1, child.y + chH);
     }
   }
+
+  node.list._cachedRect = {
+    x: x0,
+    y: y0,
+    width: x1 - x0,
+    height: y1 - y0,
+  } as DOMRect;
+
   return h;
 }

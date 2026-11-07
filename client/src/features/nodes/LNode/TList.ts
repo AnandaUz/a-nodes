@@ -5,18 +5,58 @@ import {
   clearParent,
   setParent,
   setPositionForChildren,
+  syncChildrenCoordinates,
 } from "./listHierarchy";
 
 export default class TList {
   private owner: LNode;
   parentLID?: number | undefined;
   _parentNode?: LNode | null;
-  index?: number | undefined;
+  private _index?: number | undefined;
   _tab?: number;
   children?: Set<LNode>;
+  private _sortedChildren: LNode[] | null = null;
+  _cachedRect: DOMRect | null = null;
   isListOpen: boolean = true;
   isRepeatsOpen: boolean = false;
   isHiddenOpen: boolean = false;
+
+  get index(): number | undefined {
+    return this._index;
+  }
+  set index(v: number | undefined) {
+    if (this._index === v) return;
+    this._index = v;
+    this._parentNode?.list.invalidateChildrenOrder();
+  }
+
+  invalidateChildrenOrder(): void {
+    this._sortedChildren = null;
+  }
+
+  invalidateRectCache(): void {
+    let curr: LNode | null = this.owner;
+    const seen = new Set<LNode>();
+    while (curr && !seen.has(curr)) {
+      seen.add(curr);
+      curr.list._cachedRect = null;
+      curr = curr.list._parentNode || null;
+    }
+  }
+
+  getSortedChildren(): readonly LNode[] {
+    if (!this.children || this.children.size === 0) return [];
+    if (
+      !this._sortedChildren ||
+      this._sortedChildren.length !== this.children.size ||
+      this._sortedChildren.some((ch) => !this.children!.has(ch))
+    ) {
+      this._sortedChildren = [...this.children].sort(
+        (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
+      );
+    }
+    return this._sortedChildren;
+  }
 
   get hasChildren(): boolean {
     return (this.children?.size ?? 0) > 0;
@@ -83,7 +123,11 @@ export default class TList {
     }
     this.parentLID = node ? node.lID : undefined;
     if (node === this._parentNode) return;
+    this._parentNode?.list.invalidateChildrenOrder();
+    this._parentNode?.list.invalidateRectCache();
     this._parentNode = node;
+    node?.list.invalidateChildrenOrder();
+    node?.list.invalidateRectCache();
     this._onChangeListeners.forEach((fn) => fn());
   }
   get tab() {
@@ -101,9 +145,7 @@ export default class TList {
   }
   forEachChildren(fn: (node: LNode, index: number) => void) {
     if (this.children?.size) {
-      const m = [...this.children].sort(
-        (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
-      );
+      const m = this.getSortedChildren();
       for (const [index, child] of m.entries()) {
         fn(child, index);
         child.list.forEachChildren(fn);
@@ -119,9 +161,14 @@ export default class TList {
         this.index = parentNode.list.children.size;
       }
       parentNode.list.children.add(this.owner);
+      parentNode.list.invalidateChildrenOrder();
+      parentNode.list.invalidateRectCache();
       this._parentNode = parentNode;
       this.parentLID = parentNode.lID;
     }
+  }
+  syncChildrenCoordinates() {
+    return syncChildrenCoordinates(this.owner);
   }
   /** проверяем дерево выстроенно верно или случились ошибки */
   checkTree() {

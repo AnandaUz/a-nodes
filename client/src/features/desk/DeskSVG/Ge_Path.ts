@@ -8,6 +8,8 @@ export class Ge_Path extends GElement {
   /** кружок на конце у родителя */
   dot: SVGCircleElement;
   private baseStroke = "rgba(255, 171, 16, 0.5)";
+  private lastP1: { x: number; y: number } | null = null;
+  private lastP2: { x: number; y: number } | null = null;
 
   createElement(): SVGElement {
     return document.createElementNS(
@@ -65,6 +67,20 @@ export class Ge_Path extends GElement {
     const y1 = from.y;
     const x2 = to.x;
     const y2 = to.y;
+
+    if (
+      this.lastP1 &&
+      this.lastP2 &&
+      x1 === this.lastP1.x &&
+      y1 === this.lastP1.y &&
+      x2 === this.lastP2.x &&
+      y2 === this.lastP2.y
+    ) {
+      return;
+    }
+
+    this.lastP1 = { x: x1, y: y1 };
+    this.lastP2 = { x: x2, y: y2 };
 
     const cx = (x1 + x2) / 2; // контрольные точки посередине
     const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`;

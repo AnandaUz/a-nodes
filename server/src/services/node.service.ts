@@ -165,6 +165,8 @@ export async function getNodesAndPageByNodeId(
     pageQuery ? Node.findOne(pageQuery).select("-__v").lean() : null,
   ]);
 
+  const isDelta = Boolean(since && !isNaN(since.getTime()));
+
   // Однократная миграция `out` только для старых нод-страниц (type === 4), где `out` ещё не сохранён
   for (const n of nodes as any[]) {
     if (n.type === 4 && n.out === undefined && n._id) {
@@ -209,6 +211,10 @@ export async function getNodesAndPageByNodeId(
     }
   }
 
+  if (isDelta) {
+    return { nodes, pageNode, serverTime: new Date(), breadcrumbs: undefined };
+  }
+
   const breadcrumbs: { id: string; title: string }[] = [];
 
   let targetPageNode: any = pageNode;
@@ -229,32 +235,70 @@ export async function getNodesAndPageByNodeId(
       title: targetPageNode.title || "",
     });
 
-    let currentParentId = targetPageNode.pageId;
-    const visited = new Set<string>([targetPageNode._id.toString()]);
-    let depth = 0;
+    const firstParentId = targetPageNode.pageId;
+    if (firstParentId && isValidObjectId(firstParentId.toString())) {
+      const collectionName = Node.collection?.name || "nodes";
+      const aggResult = await Node.aggregate([
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(firstParentId.toString()),
+          },
+        },
+        {
+          $graphLookup: {
+            from: collectionName,
+            startWith: "$pageId",
+            connectFromField: "pageId",
+            connectToField: "_id",
+            as: "ancestors",
+            maxDepth: 19,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            title: 1,
+            pageId: 1,
+            "ancestors._id": 1,
+            "ancestors.title": 1,
+            "ancestors.pageId": 1,
+          },
+        },
+      ]);
 
-    while (
-      currentParentId &&
-      isValidObjectId(currentParentId.toString()) &&
-      depth < 20
-    ) {
-      depth++;
-      const parentIdStr = currentParentId.toString();
-      if (visited.has(parentIdStr)) break;
-      visited.add(parentIdStr);
+      const firstDoc = aggResult[0];
+      if (firstDoc) {
+        const ancestorsMap = new Map<string, any>();
+        ancestorsMap.set(firstDoc._id.toString(), firstDoc);
+        for (const anc of firstDoc.ancestors || []) {
+          ancestorsMap.set(anc._id.toString(), anc);
+        }
 
-      const parentNode = await Node.findOne({ _id: currentParentId })
-        .select("_id title pageId")
-        .lean();
+        let currentParentId: any = firstParentId;
+        const visited = new Set<string>([targetPageNode._id.toString()]);
+        let depth = 0;
 
-      if (!parentNode) break;
+        while (
+          currentParentId &&
+          isValidObjectId(currentParentId.toString()) &&
+          depth < 20
+        ) {
+          depth++;
+          const parentIdStr = currentParentId.toString();
+          if (visited.has(parentIdStr)) break;
+          visited.add(parentIdStr);
 
-      breadcrumbs.unshift({
-        id: parentNode._id.toString(),
-        title: parentNode.title || "",
-      });
+          const parentNode = ancestorsMap.get(parentIdStr);
+          if (!parentNode) break;
 
-      currentParentId = parentNode.pageId;
+          breadcrumbs.unshift({
+            id: parentNode._id.toString(),
+            title: parentNode.title || "",
+          });
+
+          currentParentId = parentNode.pageId;
+        }
+      }
     }
   }
 
@@ -357,6 +401,16 @@ export async function deleteNodeById(id: string, _userId?: string) {
     await syncPageOutSnapshot(String(deleted.pageId));
   }
   return deleted;
+}
+
+export async function deleteNodesByIds(ids: string[], _userId?: string) {
+  const objectIds = ids
+    .filter((id) => isValidObjectId(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+  if (objectIds.length === 0) {
+    return { deletedCount: 0 };
+  }
+  return await Node.deleteMany({ _id: { $in: objectIds } });
 }
 
 export async function findQuickTargets(

@@ -6,6 +6,7 @@ import {
   bulkSaveNodes,
   createQuickNode,
   deleteNodeById,
+  deleteNodesByIds,
   findQuickTargets,
   getNodesAndPageByNodeId,
   isValidObjectId,
@@ -168,9 +169,43 @@ export const saveNodes = bulkSaveNodes;
 
 export const deleteNodeController = async (req: Request, res: Response) => {
   try {
-    const id = req.params["id"] as string;
     const userId = (req as AuthRequest).user?.id;
     const senderId = (req.headers["x-client-id"] as string) || undefined;
+    const bodyIds = Array.isArray(req.body?.ids) ? (req.body.ids as string[]) : null;
+
+    if (bodyIds) {
+      const validIds = bodyIds.filter(
+        (id) => typeof id === "string" && isValidObjectId(id),
+      );
+      if (validIds.length === 0) {
+        return res.status(400).json({ message: "Невалидный список ids" });
+      }
+      const objectIds = validIds.map((id) => new mongoose.Types.ObjectId(id));
+      const existingNodes = await Node.find({ _id: { $in: objectIds } })
+        .select("pageId")
+        .lean();
+      await deleteNodesByIds(validIds, userId);
+
+      const affectedDesks = new Set<string>();
+      for (const n of existingNodes) {
+        affectedDesks.add(n.pageId ? String(n.pageId) : "root");
+      }
+      const serverTime = new Date().toISOString();
+      for (const deskId of affectedDesks) {
+        sseService.broadcastToDesk(
+          deskId,
+          {
+            type: "nodes_updated",
+            senderId,
+            serverTime,
+          },
+          senderId,
+        );
+      }
+      return res.json({ success: true, ids: validIds });
+    }
+
+    const id = req.params["id"] as string;
     if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Невалидный id" });
     }

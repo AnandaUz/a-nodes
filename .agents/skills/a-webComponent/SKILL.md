@@ -65,13 +65,14 @@ description: Создает нативный веб-компонент на Cust
 > **Правило:** без parameter properties в конструкторе и без `enum` (согласно правилам `erasableSyntaxOnly`).
 
 ```typescript
+import { DisposableComponent } from '@components/base/DisposableComponent';
 import htmlContent from './<kebab-name>.html?raw';
 import styleContent from './<kebab-name>.scss?inline';
 
 const template = document.createElement('template');
 template.innerHTML = `<style>${styleContent}</style>${htmlContent}`;
 
-export class CustomComponent extends HTMLElement {
+export class CustomComponent extends DisposableComponent {
   static get observedAttributes(): string[] {
     return ['title'];
   }
@@ -88,10 +89,12 @@ export class CustomComponent extends HTMLElement {
       this.render();
       this.isInitialized = true;
     }
+    // Подписки через this.onStore(event, handler) и this.listen(target, event, handler)
+    // автоматически очищаются в super.disconnectedCallback()
   }
 
-  disconnectedCallback(): void {
-    // Очистка слушателей и ресурсов при удалении из DOM
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {

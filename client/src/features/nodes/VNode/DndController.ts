@@ -1,5 +1,9 @@
 import { core, EVENTS } from "../../core/core";
-import type { Command } from "../../core/interfaces";
+import {
+  beginMoveHistoryTransaction,
+  cancelMoveHistoryTransaction,
+  commitMoveHistoryTransaction,
+} from "../../core/commands/historyCommands";
 import Tools from "../../core/Tools";
 import type { VNode } from "./VNode";
 
@@ -59,6 +63,9 @@ export class DndController {
     this.targetPos = null;
     this.lastPointerEvent = null;
     core.mode.isShiftDrag = false;
+    if (!core.mode.selectMoving) {
+      cancelMoveHistoryTransaction();
+    }
     this.vNode.body.classList.remove("is-dragging");
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
@@ -140,6 +147,10 @@ export class DndController {
     };
 
     this.startPos = { x: this.vNode.node.x, y: this.vNode.node.y };
+    beginMoveHistoryTransaction([
+      this.vNode.node,
+      ...(core.selectManager?.selectedNodes ?? []),
+    ]);
 
     const targetElement =
       this.movingElement || this.vNode.movingElement || this.vNode.body;
@@ -159,18 +170,20 @@ export class DndController {
     this.vNode.node.y = this.targetPos.y;
     this.targetPos = null;
 
-    this.vNode.node.onPointerMove();
-    this.vNode.applyPosition();
-    core.store.emit(EVENTS.node.moving, this.vNode.node);
-
     const isShift = Boolean(
       this.lastPointerEvent?.shiftKey ||
         core.mode.mouseStatus.shift ||
         core.mode.isShiftDrag,
     );
+    const hasMovingChildren = Boolean(
+      this.vNode.node.list.children?.size && !isShift,
+    );
+
+    this.vNode.applyPosition(hasMovingChildren);
+    core.store.emit(EVENTS.node.moving, this.vNode.node);
 
     // если у него есть дети
-    if (this.vNode.node.list.children?.size && !isShift) {
+    if (hasMovingChildren) {
       this.vNode.node.list.setPositionForChildren(undefined, 0, 0, true, true);
     }
   }
@@ -195,7 +208,10 @@ export class DndController {
       core.selectManager.selectedNodes.size > 1 &&
       !core.mode.selectMoving
     ) {
-      core.selectManager.transformMove.start(e); //если выбранно несколько
+      core.selectManager.transformMove.start(e, {
+        x: this.startPos.x + this.pointerOffset.x,
+        y: this.startPos.y + this.pointerOffset.y,
+      }); //если выбранно несколько
 
       return;
     }
@@ -253,32 +269,17 @@ export class DndController {
     this.vNode.body.classList.remove("is-dragging");
     this.isDragging = false;
     if (!this.isMoved && !core.mode.selectMoving) {
+      cancelMoveHistoryTransaction();
       this.vNode.toggleSelect();
       core.selectManager.onVNodeClick(e, this.vNode);
       return;
     }
     this.vNode.node.moveTo({ x: this.vNode.node.x, y: this.vNode.node.y });
 
-    if (!core.mode.selectMoving && (this.startPos.x !== this.vNode.node.x || this.startPos.y !== this.vNode.node.y)) {
-      const moveCommand = (from: Position, to: Position): Command => ({
-        execute: () => this.vNode.node.moveTo(to),
-        undo: () => this.vNode.node.moveTo(from),
-      });
-
-      if (core.history?.push) {
-        core.history.push(
-          moveCommand(this.startPos, { x: this.vNode.node.x, y: this.vNode.node.y }),
-        );
-      } else if (core.history?.execute) {
-        core.history.execute(
-          moveCommand(this.startPos, { x: this.vNode.node.x, y: this.vNode.node.y }),
-        );
-      }
-    }
-
     core.store.emit(EVENTS.node.moved, this.vNode.node);
 
     core.selectManager.onNodeMoveEnd(this.vNode);
+    commitMoveHistoryTransaction([this.vNode.node]);
 
     if (core.selectManager.selectedNodes.size <= 1) {
       core.mode.selectMoving = false;

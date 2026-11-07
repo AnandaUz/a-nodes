@@ -14,7 +14,7 @@
 
 - **Logic**:
   - `nodes/LNode/LNode_Page.ts` — Модель узла страницы, наследует `LNode_TextEdit`, возвращает `VPage`.
-  - `nodes/node-registry.ts` — Регистрация типа (`NODE_TYPES.PAGE.id = 3`).
+  - `nodes/node-registry.ts` — Регистрация типа (`NODE_TYPES.PAGE.id = 4`).
 - **View / CSS**:
   - `nodes/VNode/VPage.ts` — Представление узла, обработчики кнопки перехода `.btn-el`.
   - `nodes/VNode/vNode.scss` — Классы `.v-n-page`, `.btn-el`.

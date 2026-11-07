@@ -102,6 +102,14 @@ class API {
     });
     return response.ok;
   }
+  async deleteNodesBatch(ids: string[]) {
+    if (!ids || ids.length === 0) return;
+    const response = await this.fetchWithAuth("/nodes", {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
+    });
+    return response.ok;
+  }
 }
 
 const api = new API();

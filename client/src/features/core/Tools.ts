@@ -68,4 +68,22 @@ export default {
   getDiskPosition(x: number) {
     return Math.round(x / GRID.x) * GRID.x;
   },
+  generateObjectId(): string {
+    const timestamp = Math.floor(Date.now() / 1000)
+      .toString(16)
+      .padStart(8, "0");
+    const randomBytes = new Uint8Array(8);
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      crypto.getRandomValues(randomBytes);
+    } else {
+      for (let i = 0; i < 8; i++) {
+        randomBytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    let randomHex = "";
+    for (let i = 0; i < 8; i++) {
+      randomHex += randomBytes[i]!.toString(16).padStart(2, "0");
+    }
+    return timestamp + randomHex;
+  },
 };

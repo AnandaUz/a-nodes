@@ -1,5 +1,6 @@
 import { core, EVENTS } from "../../core/core";
 import type { LNode } from "@/features/nodes/LNode/LNode";
+import { NODE_TYPES } from "../node-registry";
 import { DndController } from "./DndController";
 import { ResizeController } from "./ResizeController";
 
@@ -29,7 +30,7 @@ export class VNode {
     this.resizeController = new ResizeController(this);
     this.body = document.createElement("div");
     this.body.className = "vNode";
-    this.applyPosition();
+    this.applyPosition(true);
     this.container.appendChild(this.body);
   }
 
@@ -49,6 +50,14 @@ export class VNode {
 
   get bodyRect(): DOMRect {
     return this.resizeController.bodyRect;
+  }
+
+  prepareMeasure(): void {
+    this.resizeController.prepareMeasure();
+  }
+
+  readMeasure(): void {
+    this.resizeController.readMeasure();
   }
 
   refreshBodyRect(): void {
@@ -80,13 +89,6 @@ export class VNode {
     this.bodyInit();
     this.initMovingElement();
     this.movingElement?.classList.add("moving-element");
-
-    this.unsubscribers.push(
-      core.store.on(EVENTS.node.updated, (node) => {
-        if (node._id !== this.node._id) return;
-        this.applyPosition();
-      }),
-    );
     this.bind();
   }
   refreshIndicators() {
@@ -155,14 +157,16 @@ export class VNode {
   initMovingElement() {
     this.movingElement = this.body;
   }
-  applyPosition() {
+  applyPosition(skipSVG = false) {
     const x = this.node.x || 0;
     const y = this.node.y || 0;
     const nextTransform = `translate(${x}px, ${y}px)`;
     if (this.body.style.transform !== nextTransform) {
       this.body.style.transform = nextTransform;
     }
-    this.renderSVG();
+    if (!skipSVG) {
+      this.renderSVG();
+    }
   }
   bodyInit() {
     // this.body.innerHTML += `
@@ -228,7 +232,7 @@ export class VNode {
   onPointerUp = (e: PointerEvent) => {
     this.dndController.onPointerUp(e);
   };
-  render() {
+  render(measure = true) {
     if (this.hidden) return;
     const idx = parseInt(this.node.exData?.repeatMode || "");
     const iconBlock = this.body.querySelector(".repeat-icon");
@@ -273,7 +277,9 @@ export class VNode {
       this.body.classList.add(h);
     }
     this.refreshIndicators();
-    this.refreshBodyRect();
+    if (measure) {
+      this.refreshBodyRect();
+    }
 
     // для атладки
     /*if (this.node.list) {
@@ -380,7 +386,10 @@ export class VNode {
         const frame = (this.node as unknown as { frame?: { isFrameIn?: boolean; isFrameOut?: boolean } }).frame;
         this.elFrameBg.classList.toggle('frame-in', Boolean(frame?.isFrameIn));
         this.elFrameBg.classList.toggle('frame-out', Boolean(frame?.isFrameOut));
-        this.elFrameBg.classList.toggle('frame-page', this.node.type === 4 || this.node.type === 3);
+        this.elFrameBg.classList.toggle(
+          'frame-page',
+          this.node.type === NODE_TYPES.PAGE.id || this.node.type === NODE_TYPES.TEXT_EDIT_CLONE.id,
+        );
         if (children) {
           for (const ch of children) {
             if (ch.isOutGroupHeader && ch.vNode?.body) {

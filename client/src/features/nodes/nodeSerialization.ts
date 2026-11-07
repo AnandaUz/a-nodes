@@ -1,4 +1,5 @@
 import { core, EVENTS } from "../core/core";
+import Tools from "../core/Tools";
 import { NODE_TYPES } from "./node-registry";
 import { fromDB, toDB } from "@shared/types/INodeDB";
 import type { INodeDB } from "@shared/types/INodeDB";
@@ -10,6 +11,171 @@ import type { LNode_TextEdit } from "./LNode/LNode_TextEdit";
 import { applyTreeVisibility } from "./nodeTreeUtils";
 import { areNodesEqual } from "./snapshotUtils";
 
+export function instantiateSubgraph(
+  manager: NodeManager,
+  rawNodes: INodeDB[],
+  offset: { x: number; y: number },
+): LNode[] {
+  if (!rawNodes.length) return [];
+
+  const lidMap = new Map<number, number>();
+  const idMap = new Map<string, string>();
+  const createdNodes: LNode[] = [];
+
+  for (const nodeData of rawNodes) {
+    const isFrameAdaptation =
+      nodeData.type === NODE_TYPES.FRAME.main || nodeData.type === 21;
+    const type = isFrameAdaptation
+      ? NODE_TYPES.TEXT_EDIT.id
+      : (nodeData.type ?? 0);
+    const node = manager.addNode(type);
+
+    fromDB(nodeData, node);
+
+    if (isFrameAdaptation) {
+      (node as LNode_TextEdit).frame.isFrame = true;
+    }
+
+    const oldId = nodeData._id;
+    node._id = Tools.generateObjectId();
+    if (oldId) {
+      idMap.set(oldId, node._id);
+    }
+
+    const oldLID = node.lID;
+    if (oldLID) {
+      const newLID = manager.generateLID();
+      lidMap.set(oldLID, newLID);
+      node.lID = newLID;
+    } else if ((node as LNode_TextEdit).frame?.isFrame) {
+      node.lID = manager.generateLID();
+    }
+
+    node.pageId = core.mode.deskId;
+    node.inTrash = false;
+    node.hiddenBD = false;
+    node.hidden = false;
+
+    const originalX = nodeData.x ?? 0;
+    const originalY = nodeData.y ?? 0;
+    node.x = Tools.getDiskPosition(originalX + offset.x);
+    node.y = Math.round(originalY + offset.y);
+
+    if (nodeData.exData) {
+      node.exData = structuredClone(nodeData.exData);
+    }
+
+    createdNodes.push(node);
+  }
+
+  for (const node of createdNodes) {
+    if (node.list.parentLID) {
+      node.list.parentLID = lidMap.get(node.list.parentLID);
+    }
+
+    const rawLNode = node as LNode & {
+      outFrameLID?: number | undefined;
+      isLockedInOutFrame?: boolean | undefined;
+    };
+    if (rawLNode.outFrameLID) {
+      const mappedOutLID = lidMap.get(rawLNode.outFrameLID);
+      if (mappedOutLID !== undefined) {
+        rawLNode.outFrameLID = mappedOutLID;
+      } else {
+        rawLNode.outFrameLID = undefined;
+        rawLNode.isLockedInOutFrame = false;
+      }
+    }
+
+    if (node.clones) {
+      if (node.clones.mainNodeLID && lidMap.has(node.clones.mainNodeLID)) {
+        node.clones.mainNodeLID = lidMap.get(node.clones.mainNodeLID)!;
+      }
+      if (node.clones.sourceNodeId && idMap.has(node.clones.sourceNodeId)) {
+        node.clones.sourceNodeId = idMap.get(node.clones.sourceNodeId)!;
+      }
+    }
+
+    const frame = (node as LNode_TextEdit).frame;
+    if (frame) {
+      frame.parentsLID = frame.parentsLID
+        .map((id) => lidMap.get(id))
+        .filter((id): id is number => id !== undefined);
+    }
+
+    manager.registerNode(node);
+    manager.spatialIndex.insert(node);
+
+    if (core.serverPersistence) {
+      core.serverPersistence.createNode(node, (id: string) => {
+        if (id && id !== node._id) {
+          manager.unregisterNode(node);
+          node._id = id;
+          manager.registerNode(node);
+        }
+      });
+    }
+    core.store.emit(EVENTS.node.created, node);
+  }
+
+  for (const node of createdNodes) {
+    if (node.list.parentLID) {
+      const parentNode = manager.getNodeByLID(node.list.parentLID);
+      if (parentNode) {
+        node.list.initParent(parentNode);
+      }
+    }
+  }
+
+  manager.initCloneLinks();
+
+  for (const node of createdNodes) {
+    core.nodeRenderer?.createVNode(node);
+    node.repeatMode.refreshIndicator();
+  }
+
+  const createdFrames = createdNodes.filter(
+    (n) => (n as LNode_TextEdit).frame?.isFrame,
+  ) as LNode_TextEdit[];
+
+  for (const frameNode of createdFrames) {
+    frameNode.frame.init();
+  }
+  for (const frameNode of createdFrames) {
+    frameNode.frame.initBtns();
+  }
+  for (const frameNode of createdFrames) {
+    frameNode.frame.setBtnsState();
+  }
+
+  for (const node of createdNodes) {
+    node.vNode?.refreshBodyRect();
+  }
+
+  const updatedRoots = new Set<LNode>();
+  for (const node of createdNodes) {
+    if (!node.list.parentNode) {
+      applyTreeVisibility(node);
+    }
+    const root = node.list.mainParent || node;
+    if (!updatedRoots.has(root)) {
+      updatedRoots.add(root);
+      root.list.setPositionForChildren();
+      root.list.checkTree();
+      root.vNode?.renderSVG();
+      root.save();
+    }
+    node.save();
+    manager.spatialIndex.update(node);
+  }
+
+  for (const frameNode of createdFrames) {
+    frameNode.frame.redrawPaths();
+  }
+
+  return createdNodes;
+}
+
 function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   node.forCompatibility();
 
@@ -17,9 +183,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   if (node.exData?.ownerNodesIds) {
     const sourceNodeId = node.exData.ownerNodesIds[0];
     if (sourceNodeId) {
-      const mainNode = [...manager.nodes.values()].find(
-        (n) => n._id === sourceNodeId,
-      );
+      const mainNode = manager.getNodeById(sourceNodeId);
       if (mainNode) {
         manager.ensureLID(mainNode);
         node.clones.mainNode = mainNode;
@@ -46,6 +210,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
       if (node.list.parentNode !== parentNode) {
         if (node.list.parentNode) {
           node.list.parentNode.list.children?.delete(node);
+          node.list.parentNode.list.invalidateChildrenOrder();
           (node.list.parentNode.vNode as any)?.refreshListBtns?.();
         }
         node.list.initParent(parentNode);
@@ -53,6 +218,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
     }
   } else if (node.list.parentNode) {
     node.list.parentNode.list.children?.delete(node);
+    node.list.parentNode.list.invalidateChildrenOrder();
     (node.list.parentNode.vNode as any)?.refreshListBtns?.();
     node.list.parentNode = null;
   }
@@ -122,7 +288,7 @@ export function diffDeskSnapshot(
   // 1. Удаляем отсутствующие / помеченные в корзину
   for (const node of toRemove) {
     node.remove();
-    manager.nodes.delete(node);
+    manager.unregisterNode(node);
     manager.spatialIndex.remove(node);
     existingMap.delete(node._id!);
   }
@@ -142,6 +308,7 @@ export function diffDeskSnapshot(
       const currentDB = toDB(existing);
       if (!areNodesEqual(currentDB, nodeData)) {
         fromDB(nodeData, existing);
+        manager.registerNode(existing);
         updatedNodes.push(existing);
       }
     } else {
@@ -156,7 +323,7 @@ export function diffDeskSnapshot(
         (newNode as LNode_TextEdit).frame.isFrame = true;
         newNode.save();
       }
-      manager.nodes.add(newNode);
+      manager.registerNode(newNode);
       addedNodes.push(newNode);
     }
   }
@@ -174,6 +341,7 @@ export function diffDeskSnapshot(
     if (!node.lID) continue;
     if (checkLID.has(node.lID)) {
       node.lID = manager.generateLID();
+      manager.registerNode(node);
       node.save();
     } else {
       checkLID.add(node.lID);
@@ -254,7 +422,7 @@ export function loadDeskSnapshot(
     const node = manager.addNode(nodeData.type || 0);
     if (!node) continue;
     fromDB(nodeData, node);
-    manager.nodes.add(node);
+    manager.registerNode(node);
 
     // адаптация - переделываю тип фреймов, в ноду фрейм
     if (isFrameAdaptation) {

@@ -1,5 +1,9 @@
 import { core } from "../core/core";
 import { GRID } from "../core/CONST";
+import {
+  captureMoveHistoryNodes,
+  commitMoveHistoryTransaction,
+} from "../core/commands/historyCommands";
 import { NODE_TYPES } from "./node-registry";
 import type { LNode } from "./LNode/LNode";
 import type { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
@@ -11,6 +15,7 @@ import { getRectForNodes, gatherSubtree } from "./nodeTreeUtils";
 export function initCloneLinks(
   nodes: Iterable<LNode>,
   getNodeByLID: (lID: number) => LNode | undefined,
+  getNodeById?: (id: string) => LNode | undefined,
 ): void {
   const allNodes = [...nodes];
   const clones = allNodes.filter(
@@ -22,8 +27,10 @@ export function initCloneLinks(
   for (const node of clones as LNode_TEClone[]) {
     let mainNode: LNode_TextEdit | undefined;
     if (node.clones.sourceNodeId) {
-      mainNode = allNodes.find(
-        (n) => n._id === node.clones.sourceNodeId,
+      mainNode = (
+        getNodeById
+          ? getNodeById(node.clones.sourceNodeId)
+          : allNodes.find((n) => n._id === node.clones.sourceNodeId)
       ) as LNode_TextEdit | undefined;
     }
     if (!mainNode) {
@@ -89,7 +96,11 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
         }
         adoptParent.list.children.add(child);
       });
+      adoptParent.list.invalidateChildrenOrder();
+      adoptParent.list.invalidateRectCache();
       node.list.children.clear();
+      node.list.invalidateChildrenOrder();
+      node.list.invalidateRectCache();
       (node.vNode as any)?.refreshListBtns?.();
       (adoptParent.vNode as any)?.refreshListBtns?.();
     }
@@ -161,6 +172,9 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   });
 
   const byNode = validCandidates?.[0];
+  if (byNode) {
+    captureMoveHistoryNodes([byNode]);
+  }
 
   frameNodes.forEach((fn) => {
     fn.save();
@@ -220,14 +234,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
         oldPositions.set(ch, { x: ch.x, y: ch.y });
       });
 
-      mainParent.list.setPositionForChildren(
-        undefined,
-        0,
-        0,
-        true,
-        false,
-        false,
-      );
+      mainParent.list.syncChildrenCoordinates();
       mainParent.list.checkTree();
       mainParent.list.setPositionForChildren(
         undefined,
@@ -349,4 +356,5 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
     });
   }
   core.mode.isShiftDrag = false;
+  commitMoveHistoryTransaction(selectedNodes);
 }

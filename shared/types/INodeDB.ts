@@ -332,12 +332,13 @@ export function fromDB(db: INodeDB, node: ILNode) {
   node.title = db.title;
   // this.ok = db.ok;
   // распаковываем list
-  if (db.L !== undefined && db.L !== null) {
-    blockL.unpack(node, db.L);
-  } else if (node.list) {
+  if (node.list) {
     node.list.parentLID = undefined;
     node.list.index = undefined;
     node.list.tab = 0;
+  }
+  if (db.L !== undefined && db.L !== null) {
+    blockL.unpack(node, db.L);
   }
   if (db.exData) {
     node.exData = {
@@ -375,16 +376,17 @@ export function fromDB(db: INodeDB, node: ILNode) {
   // распаковываем repeatMode и разные дат
   blockD.unpack(node, db.D);
   // родители фреймов
-  if (db.f && node.frame) {
-    node.frame.parentsLID = db.f;
-  }
   if (node.frame) {
+    node.frame.parentsLID = db.f ? [...db.f] : [];
     node.frame.isFrameIn = Boolean(db.i);
     node.frame.isFrameOut = Boolean(db.o);
   }
   if (db.isLockedInOutFrame) {
     node.isLockedInOutFrame = true;
     node.outFrameLID = db.outFrameLID;
+  } else {
+    node.isLockedInOutFrame = false;
+    node.outFrameLID = undefined;
   }
   return node;
 }

@@ -100,7 +100,7 @@ export function createTestTextNode(
   node.vNode.width = options.width ?? 100;
   node.vNode.height = options.height ?? 30;
 
-  core.nodeManager?.nodes.add(node);
+  core.nodeManager?.registerNode(node);
   return node;
 }
 
