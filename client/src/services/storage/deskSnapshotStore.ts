@@ -1,5 +1,11 @@
+import type { INodeDB } from "@shared/types/INodeDB";
 import type { DeskSnapshot } from "../../features/core/interfaces";
 import { LEGACY_STORAGE_KEYS } from "./storageKeys";
+
+export interface PendingMutations {
+  nodes: INodeDB[];
+  deletedIds: string[];
+}
 
 interface StoredSnapshotRecord {
   deskId: string;
@@ -7,14 +13,23 @@ interface StoredSnapshotRecord {
   updatedAt: number;
 }
 
+interface StoredMutationsRecord {
+  deskId: string;
+  nodes: INodeDB[];
+  deletedIds: string[];
+  updatedAt: number;
+}
+
 const DB_NAME = "anodes_storage";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "desk_snapshots";
+const MUTATIONS_STORE_NAME = "pending_mutations";
 const MAX_SNAPSHOTS = 50;
 
 class DeskSnapshotStore {
   private dbPromise: Promise<IDBDatabase | null> | null = null;
   private memoryFallback = new Map<string, DeskSnapshot>();
+  private mutationsFallback = new Map<string, PendingMutations>();
 
   private getDB(): Promise<IDBDatabase | null> {
     if (typeof window === "undefined" || typeof indexedDB === "undefined") {
@@ -30,6 +45,9 @@ class DeskSnapshotStore {
           if (!db.objectStoreNames.contains(STORE_NAME)) {
             const store = db.createObjectStore(STORE_NAME, { keyPath: "deskId" });
             store.createIndex("updatedAt", "updatedAt");
+          }
+          if (!db.objectStoreNames.contains(MUTATIONS_STORE_NAME)) {
+            db.createObjectStore(MUTATIONS_STORE_NAME, { keyPath: "deskId" });
           }
         };
         req.onsuccess = () => resolve(req.result);
@@ -130,18 +148,99 @@ class DeskSnapshotStore {
 
   async clearSnapshots(): Promise<void> {
     this.memoryFallback.clear();
+    this.mutationsFallback.clear();
     const db = await this.getDB();
     if (!db) return;
 
     return new Promise((resolve) => {
       try {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        store.clear();
+        const stores = db.objectStoreNames.contains(MUTATIONS_STORE_NAME)
+          ? [STORE_NAME, MUTATIONS_STORE_NAME]
+          : [STORE_NAME];
+        const tx = db.transaction(stores, "readwrite");
+        tx.objectStore(STORE_NAME).clear();
+        if (stores.includes(MUTATIONS_STORE_NAME)) {
+          tx.objectStore(MUTATIONS_STORE_NAME).clear();
+        }
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();
       } catch {
         resolve();
+      }
+    });
+  }
+
+  async savePendingMutations(
+    deskId: string,
+    nodes: INodeDB[],
+    deletedIds: string[],
+  ): Promise<void> {
+    const isEmpty = nodes.length === 0 && deletedIds.length === 0;
+    if (isEmpty) {
+      this.mutationsFallback.delete(deskId);
+    } else {
+      this.mutationsFallback.set(deskId, { nodes, deletedIds });
+    }
+
+    const db = await this.getDB();
+    if (!db || !db.objectStoreNames.contains(MUTATIONS_STORE_NAME)) return;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(MUTATIONS_STORE_NAME, "readwrite");
+        const store = tx.objectStore(MUTATIONS_STORE_NAME);
+        if (isEmpty) {
+          store.delete(deskId);
+        } else {
+          const record: StoredMutationsRecord = {
+            deskId,
+            nodes,
+            deletedIds,
+            updatedAt: Date.now(),
+          };
+          store.put(record);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  }
+
+  async getPendingMutations(deskId: string): Promise<PendingMutations | null> {
+    const db = await this.getDB();
+    if (!db || !db.objectStoreNames.contains(MUTATIONS_STORE_NAME)) {
+      return this.mutationsFallback.get(deskId) ?? null;
+    }
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(MUTATIONS_STORE_NAME, "readonly");
+        const store = tx.objectStore(MUTATIONS_STORE_NAME);
+        const req = store.get(deskId);
+
+        req.onsuccess = () => {
+          const record = req.result as StoredMutationsRecord | undefined;
+          if (
+            record &&
+            ((Array.isArray(record.nodes) && record.nodes.length > 0) ||
+              (Array.isArray(record.deletedIds) && record.deletedIds.length > 0))
+          ) {
+            resolve({
+              nodes: record.nodes ?? [],
+              deletedIds: record.deletedIds ?? [],
+            });
+          } else {
+            resolve(this.mutationsFallback.get(deskId) ?? null);
+          }
+        };
+
+        req.onerror = () => {
+          resolve(this.mutationsFallback.get(deskId) ?? null);
+        };
+      } catch {
+        resolve(this.mutationsFallback.get(deskId) ?? null);
       }
     });
   }
@@ -198,4 +297,15 @@ class DeskSnapshotStore {
 }
 
 export const deskSnapshotStore = new DeskSnapshotStore();
+
+export const savePendingMutations = (
+  deskId: string,
+  nodes: INodeDB[],
+  deletedIds: string[],
+): Promise<void> => deskSnapshotStore.savePendingMutations(deskId, nodes, deletedIds);
+
+export const getPendingMutations = (
+  deskId: string,
+): Promise<PendingMutations | null> => deskSnapshotStore.getPendingMutations(deskId);
+
 

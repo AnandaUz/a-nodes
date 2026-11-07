@@ -1,6 +1,8 @@
 import bgFrameUrl from "@/assets/bg-m-2.svg";
 import { FRAME_BG_PATTERN } from "@/features/core/CONST";
 
+const BASE_FRAME_PATTERN_ID = "bg-frame-pattern-base";
+
 export class DeskSVG {
   private defs!: SVGDefsElement;
   private patterns = new WeakMap<SVGElement, SVGPatternElement>();
@@ -18,6 +20,7 @@ export class DeskSVG {
     this.arrowLayer = this.createGroup("arrow-layer");
 
     this.defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    this.initBaseFramePattern();
     this.svg.append(this.defs, this.bgLayer, this.arrowLayer);
     container.prepend(this.svg); // под нодами
   }
@@ -27,12 +30,13 @@ export class DeskSVG {
     g.classList.add(cls);
     return g;
   }
-  /** паттерн фона фрейма (свой на каждый прямоугольник, чтобы двигаться вместе с ним) */
-  private createFramePattern(id: string): SVGPatternElement {
+
+  /** базовый паттерн фона фрейма в <defs> (создаётся один раз) */
+  private initBaseFramePattern(): void {
     const ns = "http://www.w3.org/2000/svg";
     const { w, h, color } = FRAME_BG_PATTERN;
     const pattern = document.createElementNS(ns, "pattern");
-    pattern.setAttribute("id", id);
+    pattern.setAttribute("id", BASE_FRAME_PATTERN_ID);
     pattern.setAttribute("patternUnits", "userSpaceOnUse");
     pattern.setAttribute("width", String(w));
     pattern.setAttribute("height", String(h));
@@ -46,6 +50,16 @@ export class DeskSVG {
     img.setAttribute("height", String(h));
     pattern.append(bg, img);
     this.defs.appendChild(pattern);
+  }
+
+  /** облегчённый паттерн фона фрейма со ссылкой на базовый и сдвигом через patternTransform */
+  private createFramePattern(id: string, x = 0, y = 0): SVGPatternElement {
+    const ns = "http://www.w3.org/2000/svg";
+    const pattern = document.createElementNS(ns, "pattern");
+    pattern.setAttribute("id", id);
+    pattern.setAttribute("href", `#${BASE_FRAME_PATTERN_ID}`);
+    pattern.setAttribute("patternTransform", `translate(${x}, ${y})`);
+    this.defs.appendChild(pattern);
     return pattern;
   }
   /** фон фрейма: прямоугольник с паттерном, привязанным к его левому верхнему углу */
@@ -53,7 +67,7 @@ export class DeskSVG {
     const id = "bg-frame-pattern-" + ++this.patternSeq;
     const rect = this.drawRect(x, y, w, h, `url(#${id})`);
     rect.dataset.frame = "1";
-    const pattern = this.createFramePattern(id);
+    const pattern = this.createFramePattern(id, x, y);
     this.patterns.set(rect, pattern);
     this.moveRect(rect, x, y, w, h);
     return rect;
@@ -66,8 +80,7 @@ export class DeskSVG {
     rect.setAttribute("height", h.toString());
     const p = this.patterns.get(rect);
     if (p) {
-      p.setAttribute("x", x.toString());
-      p.setAttribute("y", y.toString());
+      p.setAttribute("patternTransform", `translate(${x}, ${y})`);
     }
   }
   /** удаляет прямоугольник вместе с его паттерном */
@@ -149,6 +162,8 @@ export class DeskSVG {
   clear() {
     this.bgLayer.innerHTML = "";
     this.arrowLayer.innerHTML = "";
+    this.defs.innerHTML = "";
+    this.initBaseFramePattern();
   }
   destroy() {
     this.svg.remove();

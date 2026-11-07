@@ -120,12 +120,15 @@ export default class TFrame {
 
     this.redrawPaths();
   }
-  redrawPaths() {
-    if (this.parents) {
+  redrawPaths(visited = new Set<TFrame>()) {
+    if (visited.has(this)) return;
+    visited.add(this);
+
+    if (this.parents && this.parents.size > 0) {
+      const newRect = this.owner.getNodeRect(true);
       this.parents.forEach((parent) => {
         const path = parent.path;
         const parentRect = parent.node.getNodeRect(true);
-        const newRect = this.owner.getNodeRect(true);
         path.draw(
           { x: parentRect.x + parentRect.width, y: parentRect.y + 10 },
           { x: newRect.x, y: newRect.y + 10 },
@@ -135,7 +138,7 @@ export default class TFrame {
 
     if (this.children) {
       this.children.forEach((child) => {
-        child.frame.redrawPaths();
+        child.frame.redrawPaths(visited);
       });
     }
   }

@@ -21,6 +21,7 @@ router.use(authenticate);
 router.get("/:nodeId/events", deskEventsController); // SSE поток событий деска
 router.get("/:nodeId", getNodesByParentNodeId); // вложенный desk
 router.put("/saveNodes", saveNodesController); // сохранить
+router.delete("/", deleteNodeController); // пакетное удаление
 router.delete("/:id", deleteNodeController); // удалить
 // router.put("/saveNode", saveNode); // сохранить
 

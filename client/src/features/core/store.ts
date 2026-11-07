@@ -8,8 +8,8 @@ export const EVENTS = {
     show: "loader:show",
     hide: "loader:hide",
   },
-  page: {
-    loaded: "page:loaded",
+  mode: {
+    changed: "mode:changed",
   },
   renderer: {
     refreshAllVNodes: "renderer:refreshAll", //срабатывает когда все ноды иницированы и отрендерены
@@ -22,7 +22,6 @@ export const EVENTS = {
     updated: "node:updated",
     moved: "node:moved",
     moving: "node:moving",
-    // movingById: "node:moving:${string}",
     deleted: "node:deleted",
     selected: "node:selected",
     unselected: "node:unselected",
@@ -37,32 +36,25 @@ export const EVENTS = {
       up: "pointer:up",
     },
   },
-
   server: {
     updated: "server:updated",
     loaded: "server:loaded",
     error: "server:error",
   },
-  frame: {
-    sub: {
-      created: "frame:sub:created",
-      deleted: "frame:sub:deleted",
-      connected: "frame:sub:connected",
-      disconnected: "frame:sub:disconnected",
-      addNodeClone: "frame:sub:addNodeClone",
-    },
-  },
-  helper: {
-    main: {
-      btnConnection: "helper:main:btnConnection",
-    },
-    sub: {
-      btnOk: "helper:sub:btnOk",
-    },
-  },
 } as const;
 
-export type DeskEvents = {
+type EventValues<T> = T extends string
+  ? T
+  : { [K in keyof T]: EventValues<T[K]> }[keyof T];
+
+export type EventName = EventValues<typeof EVENTS>;
+
+type AssertExactEvents<
+  T extends Record<EventName, unknown> &
+    Record<Exclude<keyof T, EventName>, never>,
+> = T;
+
+export type DeskEvents = AssertExactEvents<{
   [EVENTS.NodeManager.reInitAlnodes]: void;
   [EVENTS.node.created]: LNode;
   [EVENTS.node.updated]: LNode;
@@ -83,7 +75,8 @@ export type DeskEvents = {
   [EVENTS.vNode.pointer.up]: VNode;
   [EVENTS.loader.show]: void;
   [EVENTS.loader.hide]: void;
-};
+  [EVENTS.mode.changed]: { key: string; value: unknown };
+}>;
 
 export class Store extends EventEmitter<DeskEvents> {}
 export const store = new Store();

@@ -380,6 +380,16 @@ export async function deleteNodeById(id: string, _userId?: string) {
   return await Node.findOneAndDelete(filter);
 }
 
+export async function deleteNodesByIds(ids: string[], _userId?: string) {
+  const objectIds = ids
+    .filter((id) => isValidObjectId(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+  if (objectIds.length === 0) {
+    return { deletedCount: 0 };
+  }
+  return await Node.deleteMany({ _id: { $in: objectIds } });
+}
+
 export async function findQuickTargets(
   marker: string = ">>",
   pageId?: string,
