@@ -4,9 +4,11 @@
 
 ### Term Mapping
 
-- **нодаСтраница**: Узел типа страница (`LNode_Page`, `VPage`, `type: 3`, CSS `.v-n-page`).
+- **нодаСтраница**: Узел типа страница (`LNode_Page`, `VPage`, `type: 4`, CSS `.v-n-page`).
 - **кнопка перехода**: `.btn-el` (`🔗`) — клик/тап осуществляет переход на целевую доску.
 - **адрес доски**: `url` в `node.exData?.url` или `/desk/<_id>`.
+- **исходящие группы (`out`)**: Слепок `OUT`-фреймов страницы в корневом поле `node.out` (`IOutFrameData[]`) и битовом поле `P` (`selectedOutLID`, `outLimit`).
+- **разделитель группы**: Узел `.out-group-header` (`isOutGroupHeader: true`) с названием `OUT`-фрейма и линией.
 
 ### Code References
 

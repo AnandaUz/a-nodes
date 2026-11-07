@@ -3,6 +3,7 @@ import type { VNode } from "@/features/nodes/VNode/VNode";
 import TList from "./TList";
 import type { ILNode } from "@shared/types/ILNode";
 import type { IExData } from "@shared/types/IExData";
+import type { IOutFrameData } from "@shared/types/INodeDB";
 
 import TRepeatMode from "./TRepeatMode";
 import TClones from "./TClones";
@@ -37,6 +38,13 @@ export class LNode implements ILNode {
   hiddenBD: boolean = false;
   /** поле которое показывает видна нода или нет */
   hidden: boolean = false;
+  isLockedInOutFrame?: boolean;
+  outFrameLID?: number | undefined;
+  outOrigParentLID?: number | undefined;
+  isOutGroupHeader?: boolean;
+  selectedOutLID?: number | undefined;
+  outLimit?: number | undefined;
+  out?: IOutFrameData[] | null | undefined;
 
   constructor() {}
   forCompatibility() {
@@ -167,7 +175,7 @@ export class LNode implements ILNode {
         const childRect = child.getNodeRect(true);
         x0 = Math.min(x0, childRect.x);
         y0 = Math.min(y0, childRect.y);
-        x1 = Math.max(x1, childRect.x + childRect.width);
+        x1 = child.isOutGroupHeader ? x1 : Math.max(x1, childRect.x + childRect.width);
         y1 = Math.max(y1, childRect.y + childRect.height);
       }
     }

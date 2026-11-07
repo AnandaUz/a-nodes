@@ -1,4 +1,5 @@
 import type { IExData } from "./IExData";
+import type { IOutFrameData } from "./INodeDB";
 
 export interface ITList {
   parentLID?: number | undefined;
@@ -46,4 +47,9 @@ export interface ILNode {
   repeatMode: IRepeatMode;
   isLockedInOutFrame?: boolean;
   outFrameLID?: number | undefined;
+  outOrigParentLID?: number | undefined;
+  isOutGroupHeader?: boolean;
+  selectedOutLID?: number | undefined;
+  outLimit?: number | undefined;
+  out?: IOutFrameData[] | null | undefined;
 }

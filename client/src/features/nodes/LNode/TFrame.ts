@@ -71,6 +71,7 @@ export default class TFrame {
   }
   /** добавляем кнопки управления */
   addPowerBtns() {
+    if (this.owner.isOutGroupHeader) return;
     const vNode = this.owner.vNode;
     if (!vNode) return;
     if (this.frameNode && this.frameNode.frame.children.size > 0) {
@@ -281,12 +282,13 @@ export default class TFrame {
   setIoMode(mode: FrameIoMode): void {
     if (mode === "in") {
       if (!this.isFrame) this.turnOn_frameMode();
+      core.nodeManager?.ensureLID(this.owner);
       this.resetOtherIoFrames("in");
       this._isFrameIn = true;
       this._isFrameOut = false;
     } else if (mode === "out") {
       if (!this.isFrame) this.turnOn_frameMode();
-      this.resetOtherIoFrames("out");
+      core.nodeManager?.ensureLID(this.owner);
       this._isFrameIn = false;
       this._isFrameOut = true;
     } else {
@@ -295,6 +297,7 @@ export default class TFrame {
     }
     this.updateIoClasses();
     this.owner.save();
+    core.nodeManager?.syncCurrentPageOutData?.();
   }
 
   private resetOtherIoFrames(mode: "in" | "out"): void {

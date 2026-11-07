@@ -176,16 +176,29 @@ export const deleteNodeController = async (req: Request, res: Response) => {
     }
     const deletedNode = await deleteNodeById(id, userId);
     if (deletedNode) {
+      const targetDesks = new Set<string>();
       const deskId = deletedNode.pageId ? String(deletedNode.pageId) : "root";
-      sseService.broadcastToDesk(
-        deskId,
-        {
-          type: "nodes_updated",
+      targetDesks.add(deskId);
+      if (deletedNode.pageId && mongoose.isValidObjectId(deletedNode.pageId)) {
+        const parentPage = await Node.findOne({ _id: deletedNode.pageId })
+          .select("pageId")
+          .lean();
+        if (parentPage) {
+          targetDesks.add(parentPage.pageId ? String(parentPage.pageId) : "root");
+        }
+      }
+      const nowIso = new Date().toISOString();
+      for (const dId of targetDesks) {
+        sseService.broadcastToDesk(
+          dId,
+          {
+            type: "nodes_updated",
+            senderId,
+            serverTime: nowIso,
+          },
           senderId,
-          serverTime: new Date().toISOString(),
-        },
-        senderId,
-      );
+        );
+      }
     }
     res.json({ success: true, id });
   } catch (err: any) {

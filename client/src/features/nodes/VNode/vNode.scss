@@ -389,6 +389,48 @@
         }
     }
 
+    &.out-group-header {
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        width: var(--frame-w, 220px);
+        padding: 6px 12px 2px 12px;
+        background: transparent !important;
+        border-bottom: none !important;
+
+        .el-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: none !important;
+            min-width: 0;
+            padding: 0;
+            text-indent: 0;
+            font-size: 12px;
+            line-height: 1.2;
+            min-height: 16px;
+            color: #8c5d94;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0.9;
+
+            &::after {
+                content: "";
+                flex: 1;
+                height: 1px;
+                min-width: 24px;
+                background: #dba1e0;
+            }
+        }
+
+        .el-list-btns,
+        .el-indicators,
+        .el-frame-power-btns {
+            display: none !important;
+        }
+    }
+
 
 
 

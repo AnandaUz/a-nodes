@@ -88,6 +88,7 @@ export class Core {
         const checkLID = new Set<number>();
         core.nodeManager.nodes.forEach((node) => {
           /** проеверка на дублировани lID */
+          if (node.isLockedInOutFrame) return;
           if (!node.lID) return;
           if (!checkLID.has(node.lID)) {
             checkLID.add(node.lID);
@@ -119,6 +120,12 @@ export class Core {
 
         core.nodeManager.nodes.forEach((node) => {
           node.vNode?.refreshBodyRect();
+        });
+
+        core.nodeManager.nodes.forEach((node) => {
+          if (node.type === 4) {
+            (node as any).checkOutNodesMode?.();
+          }
         });
 
         this.nodeManager.setPositionForAllLinkedChildNodes();

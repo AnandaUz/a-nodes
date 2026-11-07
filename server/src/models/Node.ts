@@ -26,6 +26,31 @@ const exDataSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const outNodeItemSchema = new mongoose.Schema(
+  {
+    _id: { type: String },
+    lID: { type: Number },
+    parentLID: { type: Number },
+    title: { type: String },
+    tab: { type: Number },
+    index: { type: Number },
+    c: { type: String },
+    s: { type: Number },
+    D: { type: Number },
+  },
+  { _id: false },
+);
+
+const outFrameSchema = new mongoose.Schema(
+  {
+    _id: { type: String },
+    lID: { type: Number },
+    title: { type: String },
+    items: { type: [outNodeItemSchema], default: [] },
+  },
+  { _id: false },
+);
+
 const nodeSchema = new mongoose.Schema<INodeDocument>({
   s: { type: Number }, // разные переменные
   //   _id: {
@@ -51,6 +76,8 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
     default: undefined, // не записывать если пустой
   },
   A: { type: Number }, //переменные для клонов LNode_TEClone,
+  P: { type: Number }, //настройки LNode_Page (selectedOutLID + outLimit)
+  out: { type: [outFrameSchema], default: undefined }, //слепок OUT-фреймов страницы
   c: { type: mongoose.Schema.Types.ObjectId, ref: "Nodes" }, // ID оригинальной ноды для клона (sourceNodeId / clone of)
   f: { type: [Number], default: undefined }, //родители фреймов
   D: { type: Number }, //переменные для repeatMode и разных дат,

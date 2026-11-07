@@ -1,6 +1,25 @@
 import type { IExData } from "./IExData";
 import type { ILNode } from "./ILNode";
 
+export interface IOutNodeItem {
+  _id?: string | undefined;
+  lID: number;
+  parentLID?: number | undefined;
+  title?: string | undefined;
+  tab?: number | undefined;
+  index?: number | undefined;
+  c?: string | undefined;
+  s?: number | undefined;
+  D?: number | undefined;
+}
+
+export interface IOutFrameData {
+  _id?: string | undefined;
+  lID: number;
+  title?: string | undefined;
+  items: IOutNodeItem[];
+}
+
 export interface INodeDB {
   _id?: string | undefined;
   userId?: string | undefined;
@@ -15,6 +34,8 @@ export interface INodeDB {
   L?: number | undefined; //list - разные переменные
   s?: number | undefined; //lID - разные переменные
   A?: number | undefined; //переменные для клонов LNode_TEClone,
+  P?: number | undefined; //настройки LNode_Page (selectedOutLID + outLimit)
+  out?: IOutFrameData[] | null | undefined; //слепок OUT-фреймов страницы
   c?: string | undefined; // ID оригинальной ноды для клона (sourceNodeId / clone of)
   exData?: IExData | undefined;
   f?: number[] | null | undefined;
@@ -122,6 +143,29 @@ const blockA = new TPackedData<ILNode>().add<number>(
   },
   17,
 );
+// настройки для LNode_Page (выбранный OUT-фрейм и лимит количества в группе)
+const blockP = new TPackedData<ILNode>()
+  .add<number>(
+    {
+      get: (node) => node.selectedOutLID,
+      set: (node, v) => {
+        node.selectedOutLID = v;
+      },
+    },
+    17,
+  )
+  .add<number>(
+    {
+      get: (node) =>
+        node.outLimit !== undefined && node.outLimit !== 10
+          ? node.outLimit + 1
+          : 0,
+      set: (node, v) => {
+        if (v > 0) node.outLimit = v - 1;
+      },
+    },
+    8,
+  );
 // универсальные переменные
 const blockS = new TPackedData<ILNode>()
   .add<number>(
@@ -226,9 +270,10 @@ export function toDB(node: ILNode): INodeDB {
   }
   // упаковываем данные в одну переменную listData
   if (node.list && node.list.parentLID !== undefined) {
-    if (node.isLockedInOutFrame && node.outFrameLID && (node.list as any)?.parentNode?.type === 4) {
+    const restoreParentLID = node.outOrigParentLID || node.outFrameLID;
+    if (node.isLockedInOutFrame && restoreParentLID) {
       const origParentLID = node.list.parentLID;
-      node.list.parentLID = node.outFrameLID;
+      node.list.parentLID = restoreParentLID;
       res.L = blockL.pack(node);
       node.list.parentLID = origParentLID;
     } else {
@@ -245,6 +290,12 @@ export function toDB(node: ILNode): INodeDB {
   res.s = blockS.pack(node);
   // упаковка - TClones
   res.A = blockA.pack(node);
+  if (node.type === 4) {
+    res.P = blockP.pack(node) ?? null as any;
+    if (node.out !== undefined) {
+      res.out = node.out;
+    }
+  }
   if (node.clones?.sourceNodeId) {
     res.c = node.clones.sourceNodeId;
   }
@@ -309,6 +360,16 @@ export function fromDB(db: INodeDB, node: ILNode) {
   blockA.unpack(node, db.A);
   if (db.c && node.clones) {
     node.clones.sourceNodeId = String(db.c);
+  }
+
+  // распаковываем настройки и слепок LNode_Page
+  node.selectedOutLID = 0;
+  node.outLimit = 10;
+  if (db.P !== undefined && db.P !== null) {
+    blockP.unpack(node, db.P);
+  }
+  if (db.out !== undefined) {
+    node.out = db.out ?? [];
   }
 
   // распаковываем repeatMode и разные дат

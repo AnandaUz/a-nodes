@@ -118,6 +118,23 @@ c-nodes-menu {
             margin-top: 2px;
         }
     }
+
+    .page-out-block {
+        .out-frames-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 6px;
+
+            &:empty {
+                display: none;
+            }
+        }
+
+        .out-limit-stepper {
+            margin-top: 2px;
+        }
+    }
 }
 
 .text-style-block {

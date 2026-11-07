@@ -5,6 +5,7 @@ import type { LNode } from "./LNode";
 import type TList from "./TList";
 
 export function checkTree(owner: LNode): void {
+  if (owner.type === 4) return;
   const descendants: LNode[] = [];
   const gather = (node: LNode) => {
     if (node.list.children) {

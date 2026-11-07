@@ -22,6 +22,7 @@ import {
 } from "./nodeHierarchy";
 import { diffDeskSnapshot, loadDeskSnapshot } from "./nodeSerialization";
 import { SpatialIndex } from "./spatial/SpatialIndex";
+import { toDB, type IOutFrameData, type IOutNodeItem } from "@shared/types/INodeDB";
 
 export class NodeManager {
   nodes = new Set<LNode>();
@@ -55,7 +56,30 @@ export class NodeManager {
         this.onSelectedNodesMoved();
       }),
       core.store.on(EVENTS.node.updated, (node) => {
-        if (node) this.spatialIndex.update(node);
+        if (!node) return;
+        this.spatialIndex.update(node);
+        if (node.isLockedInOutFrame && !node.isOutGroupHeader) {
+          const mainPage = node.list.mainParent as LNode_Page | null;
+          if (mainPage && mainPage.type === NODE_TYPES.PAGE.id && Array.isArray(mainPage.out)) {
+            let changed = false;
+            for (const grp of mainPage.out) {
+              if (node.outFrameLID && grp.lID !== node.outFrameLID) continue;
+              for (const it of grp.items || []) {
+                if ((node._id && it._id === node._id) || (!node._id && it.lID === node.lID)) {
+                  if (it.title !== (node.title || "")) {
+                    it.title = node.title || "";
+                    changed = true;
+                  }
+                }
+              }
+            }
+            if (changed) {
+              mainPage.save();
+            }
+          }
+        } else if (this.pageNode && node !== this.pageNode) {
+          this.syncCurrentPageOutData();
+        }
       }),
       core.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
         this.rebuildSpatialIndex();
@@ -71,6 +95,54 @@ export class NodeManager {
     core.selectManager?.selectedNodes.forEach((node) => {
       this.spatialIndex.update(node);
     });
+    this.syncCurrentPageOutData();
+  }
+
+  syncCurrentPageOutData(): void {
+    if (!this.pageNode) return;
+    const outFrames = [...this.nodes.values()]
+      .filter(
+        (n) =>
+          !n.inTrash &&
+          !n.isLockedInOutFrame &&
+          (n as LNode_TextEdit).frame?.isFrame &&
+          (n as LNode_TextEdit).frame?.isFrameOut,
+      )
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+
+    const nextOut: IOutFrameData[] = [];
+    for (const frame of outFrames) {
+      this.ensureLID(frame);
+      if (!frame.lID) continue;
+      const items: IOutNodeItem[] = [];
+      frame.list.forEachChildren((ch) => {
+        if (ch.inTrash || ch.hiddenBD) return;
+        this.ensureLID(ch);
+        const dbCh = toDB(ch);
+        items.push({
+          _id: ch._id || undefined,
+          lID: ch.lID || 0,
+          parentLID: ch.list.parentNode?.lID || frame.lID || 0,
+          title: ch.title || "",
+          tab: ch.list.tab || 1,
+          index: ch.list.index || 0,
+          c: dbCh.c,
+          s: dbCh.s,
+          D: dbCh.D,
+        });
+      });
+      nextOut.push({
+        _id: frame._id || undefined,
+        lID: frame.lID,
+        title: frame.title || "",
+        items,
+      });
+    }
+
+    if (JSON.stringify(this.pageNode.out ?? []) !== JSON.stringify(nextOut)) {
+      this.pageNode.out = nextOut;
+      this.pageNode.save();
+    }
   }
 
   loadSnapshot(snapshot: DeskSnapshot): void {

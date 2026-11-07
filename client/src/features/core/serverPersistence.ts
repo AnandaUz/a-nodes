@@ -113,6 +113,7 @@ export class ServerPersistence {
         if (!_ids || _ids.length === 0) return;
         node._id = _ids[0] || "";
         onCreated?.(node._id);
+        core.nodeManager?.syncCurrentPageOutData();
         // this.data.push(node);
       })
       .catch((err) => {

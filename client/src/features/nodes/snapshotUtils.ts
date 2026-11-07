@@ -11,6 +11,8 @@ export function areNodesEqual(a: INodeDB, b: INodeDB): boolean {
   if ((a.L ?? 0) !== (b.L ?? 0)) return false;
   if ((a.s ?? 0) !== (b.s ?? 0)) return false;
   if ((a.A ?? 0) !== (b.A ?? 0)) return false;
+  if ((a.P ?? 0) !== (b.P ?? 0)) return false;
+  if ((a.out || b.out) && JSON.stringify(a.out ?? []) !== JSON.stringify(b.out ?? [])) return false;
   if ((a.D ?? 0) !== (b.D ?? 0)) return false;
   if (Boolean(a.i) !== Boolean(b.i)) return false;
   if (Boolean(a.o) !== Boolean(b.o)) return false;

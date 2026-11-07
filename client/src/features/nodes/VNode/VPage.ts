@@ -107,7 +107,6 @@ export class VPage extends VTextEdit {
     `;
   }
   render() {
-    (this.node as any).checkOutNodesMode?.();
     super.render();
   }
 }

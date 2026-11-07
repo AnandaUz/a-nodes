@@ -1,6 +1,113 @@
 import mongoose from "mongoose";
 import { Node } from "../models/Node";
 import { User } from "../models/User";
+import type { IOutFrameData, IOutNodeItem } from "../../../shared/types/INodeDB";
+
+export async function syncPageOutSnapshot(
+  pageId: string | mongoose.Types.ObjectId,
+): Promise<IOutFrameData[]> {
+  const pageIdStr = String(pageId);
+  if (!isValidObjectId(pageIdStr)) return [];
+  const pageObjId = new mongoose.Types.ObjectId(pageIdStr);
+
+  const outFrames = await Node.find({
+    pageId: pageObjId,
+    o: true,
+    inTrash: { $ne: true },
+  })
+    .sort({ y: 1, x: 1, _id: 1 })
+    .lean();
+
+  if (outFrames.length === 0) {
+    await Node.updateOne(
+      { _id: pageObjId },
+      { $set: { out: [], lastUpdate: new Date() } },
+    );
+    return [];
+  }
+
+  const subNodes = await Node.find({
+    pageId: pageObjId,
+    inTrash: { $ne: true },
+    ok: { $ne: true },
+  }).lean();
+
+  type ParsedChild = {
+    raw: any;
+    nodeLID: number;
+    parentLID: number;
+    tab: number;
+    index: number;
+  };
+
+  const childrenByParentLID = new Map<number, ParsedChild[]>();
+  for (const n of subNodes) {
+    if (n.L === undefined || n.L === null) continue;
+    const parentLID = (n.L >> 15) & 0x1ffff;
+    if (parentLID <= 0) continue;
+    const nodeLID = (n.s || 0) & 0x1ffff;
+    const tab = n.L & 0x7;
+    const rawIdx = (n.L >> 3) & 0xfff;
+    const index = rawIdx > 0 ? rawIdx - 1 : 0;
+
+    let list = childrenByParentLID.get(parentLID);
+    if (!list) {
+      list = [];
+      childrenByParentLID.set(parentLID, list);
+    }
+    list.push({ raw: n, nodeLID, parentLID, tab, index });
+  }
+
+  const out: IOutFrameData[] = [];
+
+  for (const frame of outFrames) {
+    const outFrameLID = (frame.s || 0) & 0x1ffff;
+    if (!outFrameLID) continue;
+
+    const items: IOutNodeItem[] = [];
+    const visited = new Set<number>([outFrameLID]);
+
+    const walk = (pLID: number) => {
+      const children = childrenByParentLID.get(pLID) || [];
+      children.sort((a, b) => a.index - b.index);
+      for (const ch of children) {
+        const hiddenBD = Boolean(((ch.raw.s || 0) >> 18) & 1);
+        if (hiddenBD) continue;
+        items.push({
+          _id: String(ch.raw._id),
+          lID: ch.nodeLID,
+          parentLID: pLID,
+          title: ch.raw.title || "",
+          tab: ch.tab || 1,
+          index: ch.index,
+          c: ch.raw.c ? String(ch.raw.c) : undefined,
+          s: ch.raw.s,
+          D: ch.raw.D,
+        });
+        if (ch.nodeLID > 0 && !visited.has(ch.nodeLID)) {
+          visited.add(ch.nodeLID);
+          walk(ch.nodeLID);
+        }
+      }
+    };
+
+    walk(outFrameLID);
+
+    out.push({
+      _id: String(frame._id),
+      lID: outFrameLID,
+      title: frame.title || "",
+      items,
+    });
+  }
+
+  await Node.updateOne(
+    { _id: pageObjId },
+    { $set: { out, lastUpdate: new Date() } },
+  );
+
+  return out;
+}
 
 export interface QuickAddNodeInput {
   rawText: string;
@@ -58,111 +165,33 @@ export async function getNodesAndPageByNodeId(
     pageQuery ? Node.findOne(pageQuery).select("-__v").lean() : null,
   ]);
 
-  // Поиск страничных нод на текущей доске (type === 4) и подгрузка узлов их OUT-фреймов
-  const deskPageNodes = await Node.find({
-    pageId: pageFilter,
-    type: 4,
-    inTrash: { $ne: true },
-  }).lean();
-
-  if (deskPageNodes.length > 0) {
-    const pageIdsOnDesk = deskPageNodes.map((p: any) => p._id);
-    const outFrames = await Node.find({
-      pageId: { $in: pageIdsOnDesk },
-      o: true,
-      inTrash: { $ne: true },
-    }).lean();
-
-    if (outFrames.length > 0) {
-      const pageIdsWithOutFrames = outFrames.map((f: any) => f.pageId);
-      const subNodes = await Node.find({
-        pageId: { $in: pageIdsWithOutFrames },
-        inTrash: { $ne: true },
-        ok: { $ne: true },
-      })
-        .select(exStr)
-        .lean();
-
-      const pageNodeOnDeskById = new Map<string, any>();
-      for (const pn of deskPageNodes) {
-        pageNodeOnDeskById.set(String(pn._id), pn);
-      }
-
-      const outNodesToAdd: any[] = [];
-      const existingIds = new Set(nodes.map((n: any) => String(n._id)));
-
-      for (const frame of outFrames) {
-        const pIdStr = String(frame.pageId);
-        const deskPageNode = pageNodeOnDeskById.get(pIdStr);
-        if (!deskPageNode) continue;
-
-        const outFrameLID = (frame.s || 0) & 0x1ffff;
-        let pageDeskLID = (deskPageNode.s || 0) & 0x1ffff;
-        if (!pageDeskLID) {
-          const maxLID = Math.max(0, ...nodes.map((n: any) => (n.s || 0) & 0x1ffff));
-          pageDeskLID = maxLID + 1;
-          deskPageNode.s = pageDeskLID;
-          const nodeInDesk = nodes.find((n: any) => String(n._id) === pIdStr);
-          if (nodeInDesk) {
-            nodeInDesk.s = pageDeskLID;
-          }
-          await Node.updateOne({ _id: deskPageNode._id }, { $set: { s: pageDeskLID } });
-        }
-
-        const nodesOfPage = subNodes.filter(
-          (n: any) => String(n.pageId) === pIdStr,
-        );
-
-        const collectedLIDs = new Set<number>();
-        collectedLIDs.add(outFrameLID);
-
-        let added = true;
-        while (added) {
-          added = false;
-          for (const n of nodesOfPage) {
-            if (n.L === undefined || n.L === null) continue;
-            const parentLID = (n.L >> 15) & 0x1ffff;
-            const nodeLID = (n.s || 0) & 0x1ffff;
-            if (parentLID > 0 && collectedLIDs.has(parentLID)) {
-              if (nodeLID > 0 && !collectedLIDs.has(nodeLID)) {
-                collectedLIDs.add(nodeLID);
-                added = true;
-              }
-            }
-          }
-        }
-
-        for (const n of nodesOfPage) {
-          const nodeLID = (n.s || 0) & 0x1ffff;
-          const origParentLID = ((n.L || 0) >> 15) & 0x1ffff;
-          if (nodeLID !== outFrameLID && origParentLID > 0 && collectedLIDs.has(origParentLID)) {
-            const copy: any = { ...n };
-            copy.isLockedInOutFrame = true;
-            copy.outFrameLID = outFrameLID;
-
-            if (origParentLID === outFrameLID) {
-              const tab = (copy.L || 0) & 0x7;
-              const index = ((copy.L || 0) >> 3) & 0xfff;
-              copy.L = tab | (index << 3) | (pageDeskLID << 15);
-            }
-
-            if (!existingIds.has(String(copy._id))) {
-              existingIds.add(String(copy._id));
-              outNodesToAdd.push(copy);
-            }
-          }
-        }
-      }
-
-      nodes.push(...outNodesToAdd);
+  // Однократная миграция `out` только для старых нод-страниц (type === 4), где `out` ещё не сохранён
+  for (const n of nodes as any[]) {
+    if (n.type === 4 && n.out === undefined && n._id) {
+      n.out = await syncPageOutSnapshot(n._id);
     }
   }
 
   // Подгрузка оригиналов для клонов (поле `c`), если оригиналы находятся на других страницах
   const loadedIds = new Set(nodes.map((n: any) => String(n._id)));
-  const missingSourceIds = nodes
-    .filter((n: any) => n.c && !loadedIds.has(String(n.c)))
-    .map((n: any) => new mongoose.Types.ObjectId(n.c));
+  const cloneSourceIds = new Set<string>();
+  for (const n of nodes as any[]) {
+    if (n.c && !loadedIds.has(String(n.c))) {
+      cloneSourceIds.add(String(n.c));
+    }
+    if (n.type === 4 && Array.isArray(n.out)) {
+      for (const group of n.out) {
+        for (const item of group.items || []) {
+          if (item.c && !loadedIds.has(String(item.c))) {
+            cloneSourceIds.add(String(item.c));
+          }
+        }
+      }
+    }
+  }
+  const missingSourceIds = [...cloneSourceIds]
+    .filter((id) => isValidObjectId(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
 
   if (missingSourceIds.length > 0) {
     const missingSources = await Node.find({
@@ -307,12 +336,27 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
     return upsertedId ? upsertedId.toString() : node._id;
   });
 
+  // Автоматическая синхронизация слепка `out` для страниц, внутри которых изменились ноды
+  const affectedPageIds = new Set<string>();
+  for (const node of nodes) {
+    if (node.pageId && isValidObjectId(String(node.pageId))) {
+      affectedPageIds.add(String(node.pageId));
+    }
+  }
+  for (const pId of affectedPageIds) {
+    await syncPageOutSnapshot(pId);
+  }
+
   return ids;
 }
 
 export async function deleteNodeById(id: string, _userId?: string) {
   const filter: any = { _id: new mongoose.Types.ObjectId(id) };
-  return await Node.findOneAndDelete(filter);
+  const deleted = await Node.findOneAndDelete(filter);
+  if (deleted?.pageId && isValidObjectId(String(deleted.pageId))) {
+    await syncPageOutSnapshot(String(deleted.pageId));
+  }
+  return deleted;
 }
 
 export async function findQuickTargets(
@@ -472,6 +516,10 @@ export async function createQuickNode(input: QuickAddNodeInput) {
 
   const newNode = new Node(nodeData);
   await newNode.save();
+
+  if (!isRoot && isValidObjectId(targetPageId)) {
+    await syncPageOutSnapshot(targetPageId);
+  }
 
   return {
     _id: newNode._id,

@@ -39,6 +39,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   }
   // показываем кому быть видимым кому нет
   node.hidden = node.hiddenBD;
+  if (node.isLockedInOutFrame) return;
   if (node.list.parentLID && node.list.parentLID !== node.lID) {
     const parentNode = manager.getNodeByLID(node.list.parentLID);
     if (parentNode) {
@@ -98,6 +99,7 @@ export function diffDeskSnapshot(
   const toRemove: LNode[] = [];
 
   for (const node of manager.nodes) {
+    if (node.isLockedInOutFrame) continue;
     if (!node._id) continue;
     existingMap.set(node._id, node);
 
@@ -168,6 +170,7 @@ export function diffDeskSnapshot(
   // Защита от коллизий lID при параллельном создании нод
   const checkLID = new Set<number>();
   for (const node of manager.nodes) {
+    if (node.isLockedInOutFrame) continue;
     if (!node.lID) continue;
     if (checkLID.has(node.lID)) {
       node.lID = manager.generateLID();

@@ -64,6 +64,7 @@ export default class VTextEdit extends VNode {
   }
 
   onDoubleClick(e: PointerEvent): void {
+    if (this.node.isOutGroupHeader) return;
     e.preventDefault();
     super.onDoubleClick(e);
     (this.node as LNode_TextEdit).turnOn_EditTitleMode();
@@ -137,6 +138,7 @@ export default class VTextEdit extends VNode {
       }
     }
     this.refreshListBtns();
+    this.body.classList.toggle("out-group-header", Boolean(this.node.isOutGroupHeader));
     (this.node as LNode_TextEdit).frame?.updateIoClasses();
   }
 

@@ -13,6 +13,6 @@
 | `!фонФрейма`, `!frameBackground` | [.agents/glossary/frame-background.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/frame-background.md) |
 | `!отложенныеЗадачи`, `!отложенныЗадачи`, `!delayedTasks` | [.agents/glossary/delayed-tasks.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/delayed-tasks.md) |
 | `!тексЕдит`, `!текстЕдит`, `!textEdit` | [.agents/glossary/text-edit.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/text-edit.md) |
-| `!нодаСтраница`, `!pageNode` | [.agents/glossary/page-node.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/page-node.md) |
+| `!нодаСтраница`, `!нодаПайдж`, `!pageNode` | [.agents/glossary/page-node.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/page-node.md) |
 | `!строкаПредков`, `!lineOfParentsTitle` | [.agents/glossary/line-of-parents-title.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/line-of-parents-title.md) |
 | `!хлебныеКрошки`, `!breadcrumbs` | [.agents/glossary/breadcrumbs.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/breadcrumbs.md) |
