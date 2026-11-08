@@ -11,7 +11,11 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
         token = authHeader.split(' ')[1];
-    } else if (typeof req.query?.['token'] === 'string') {
+    } else if (
+        typeof req.query?.['token'] === 'string' &&
+        req.method === 'GET' &&
+        req.path.endsWith('/events')
+    ) {
         token = req.query['token'];
     }
 

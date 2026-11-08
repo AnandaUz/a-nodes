@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Request, Response } from "express";
 import { LoginTicket, OAuth2Client } from "google-auth-library";
 import { User } from "../models/User";
@@ -10,6 +11,9 @@ import {
 } from "../utils/jwt";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const hashRefreshToken = (token: string): string =>
+  crypto.createHash("sha256").update(token).digest("hex");
 
 export const googleAuth = async (req: Request, res: Response) => {
   const { credential } = req.body;
@@ -82,8 +86,9 @@ export const googleAuth = async (req: Request, res: Response) => {
       id: user._id.toString(),
       googleId: user.googleId,
     });
-    // Сохраняем токен в БД для пользователя
+    // Сохраняем токен и хеш refreshToken в БД для пользователя
     user.token = token;
+    user.refreshTokenHash = hashRefreshToken(refreshToken);
     user.lastActiveAt = new Date();
     await user.save();
 
@@ -98,7 +103,6 @@ export const googleAuth = async (req: Request, res: Response) => {
         name: user.name,
         picture: payload.picture,
         isRegistered: user.isRegistered,
-        telegramId: user.telegramId,
         settings: user.settings,
         isAdmin: user._id.toString() === process.env.ADMIN_USER_ID,
         lastActiveAt: user.lastActiveAt,
@@ -165,7 +169,6 @@ export const registerUser = async (req: Request, res: Response) => {
         name: user.name,
         picture: payload.picture,
         isRegistered: user.isRegistered,
-        telegramId: user.telegramId,
         settings: user.settings,
         isAdmin: user._id.toString() === process.env.ADMIN_USER_ID,
         lastActiveAt: user.lastActiveAt,
@@ -210,7 +213,6 @@ export const verifySession = async (req: Request, res: Response) => {
         name: user.name,
         picture: user.picture || payload.picture,
         isRegistered: user.isRegistered,
-        telegramId: user.telegramId,
         settings: user.settings,
         isAdmin: user._id.toString() === process.env.ADMIN_USER_ID,
         lastActiveAt: user.lastActiveAt,
@@ -230,8 +232,10 @@ export const logout = async (req: Request, res: Response) => {
     const payload = verifyToken(token);
     if (!payload) return res.status(401).json({ error: "Невалидный токен" });
 
-    // Чистим токен в базе
-    await User.findByIdAndUpdate(payload.id, { $unset: { token: "" } });
+    // Чистим токен и refreshTokenHash в базе
+    await User.findByIdAndUpdate(payload.id, {
+      $unset: { token: "", refreshTokenHash: "" },
+    });
 
     return res.json({ success: true });
   } catch (error) {
@@ -241,15 +245,22 @@ export const logout = async (req: Request, res: Response) => {
 export const refresh = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken)
+    if (!refreshToken || typeof refreshToken !== "string")
       return res.status(401).json({ error: "Нет refresh токена" });
 
     const payload = verifyRefreshToken(refreshToken);
     if (!payload)
       return res.status(401).json({ error: "Невалидный refresh токен" });
 
-    const user = await User.findById(payload.id).lean();
+    const user = await User.findById(payload.id).select("+refreshTokenHash");
     if (!user) return res.status(404).json({ error: "Пользователь не найден" });
+
+    const incomingHash = hashRefreshToken(refreshToken);
+    if (!user.refreshTokenHash || user.refreshTokenHash !== incomingHash) {
+      return res
+        .status(401)
+        .json({ error: "Refresh токен отозван или недействителен" });
+    }
 
     const newToken = generateToken({
       id: user._id.toString(),
@@ -263,6 +274,11 @@ export const refresh = async (req: Request, res: Response) => {
       id: user._id.toString(),
       googleId: user.googleId,
     });
+
+    user.token = newToken;
+    user.refreshTokenHash = hashRefreshToken(newRefreshToken);
+    user.lastActiveAt = new Date();
+    await user.save();
 
     return res.json({
       token: newToken,

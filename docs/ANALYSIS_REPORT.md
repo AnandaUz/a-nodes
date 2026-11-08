@@ -1,13 +1,13 @@
-# Полный глубокий анализ проекта «a-nodes»
+﻿# Полный глубокий анализ проекта «a-nodes»
 
 > **Дата составления:** 2026-10-20  
 > **Версия системы:** a-nodes v0.1.0  
 > **Цель документа:** Системный аудит архитектуры, безопасности, производительности и UX, а также дорожная карта улучшений (Топ-20) и функциональных инноваций (Топ-10).
 
 Связанная документация:
-- [ARCHITECTURE.md](file:///d:/_sites/a-node(v.AI)/ARCHITECTURE.md) — системная архитектура и потоки данных.
-- [docs/PROJECT_CONTEXT.md](file:///d:/_sites/a-node(v.AI)/docs/PROJECT_CONTEXT.md) — выжимка для AI-ассистента.
-- [.agents/glossary/index.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/index.md) — проектный глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
+- [ARCHITECTURE.md](file:///a:/a-node_2.0/ARCHITECTURE.md) — системная архитектура и потоки данных.
+- [docs/PROJECT_CONTEXT.md](file:///a:/a-node_2.0/docs/PROJECT_CONTEXT.md) — выжимка для AI-ассистента.
+- [.agents/glossary/index.md](file:///a:/a-node_2.0/.agents/glossary/index.md) — проектный глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
 
 ---
 

@@ -1,11 +1,11 @@
-# Architecture Overview: a-nodes
+﻿# Architecture Overview: a-nodes
 
 Системная архитектура пространственного аутлайнера **a-nodes** — бесконечной визуальной доски со структурированными иерархическими списками, синхронизированными клонами и фреймами.
 
 Связанные документы:
-- [.agents/glossary/index.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/index.md) — терминология доменной модели (!фрейм, !группа, !подфрейм, !клон).
-- [docs/PROJECT_CONTEXT.md](file:///d:/_sites/a-node(v.AI)/docs/PROJECT_CONTEXT.md) — компактная выжимка для AI-ассистента.
-- [docs/ANALYSIS_REPORT.md](file:///d:/_sites/a-node(v.AI)/docs/ANALYSIS_REPORT.md) — аудит, рекомендации улучшений и roadmap.
+- [.agents/glossary/index.md](file:///a:/a-node_2.0/.agents/glossary/index.md) — терминология доменной модели (!фрейм, !группа, !подфрейм, !клон).
+- [docs/PROJECT_CONTEXT.md](file:///a:/a-node_2.0/docs/PROJECT_CONTEXT.md) — компактная выжимка для AI-ассистента.
+- [docs/ANALYSIS_REPORT.md](file:///a:/a-node_2.0/docs/ANALYSIS_REPORT.md) — аудит, рекомендации улучшений и roadmap.
 
 ---
 

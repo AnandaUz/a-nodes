@@ -13,7 +13,7 @@
 # Project Keywords
 
 - `..<name>`: читать `.tasks/<name>.md`. Если отсутствует — создать по компактному формату чек-листа (`- [ ]`, без длинных эссе и логов).
-- `!<term>`: читать строго соответствующий модуль `.agents/glossary/<term>.md` (см. [.agents/glossary/index.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/index.md)). Использовать готовые классы/файлы без предварительного grep-поиска.
+- `!<term>`: читать строго соответствующий модуль `.agents/glossary/<term>.md` (см. [.agents/glossary/index.md](file:///a:/a-node_2.0/.agents/glossary/index.md)). Использовать готовые классы/файлы без предварительного grep-поиска.
 - `@путь/к/файлу` или `!<Класс.метод>`: переходить напрямую к файлу/методу без предварительного grep-поиска.
 - `/a-fix-bug` или `!баг`: запуск скилла `.agents/skills/a-fix-bug/SKILL.md`.
 - `/a-create-test` или `аСоздаёмТест <Класс|Модуль>`: запуск скилла `.agents/skills/a-create-test/SKILL.md`.

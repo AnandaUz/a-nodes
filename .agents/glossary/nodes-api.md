@@ -1,4 +1,4 @@
-## ноды / Nodes API & Bitmasks
+﻿## ноды / Nodes API & Bitmasks
 
 Единый справочник архитектуры, сигнатур публичных методов и битовой упаковки подсистемы нод (`LNode`, `VNode`, `NodeManager`, `INodeDB`).
 
@@ -36,28 +36,28 @@
 ### Маппинг сущностей и сигнатуры (`client/src/features/nodes/`)
 
 - **Logic (`LNode/`):**
-  - [`LNode.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/LNode.ts) — `getNodeRect(withChildren = true): DOMRect`, `moveTo({ x, y }, save = true)`, `hide(withChildren = true, isSelf = true)`, `show(withChildren = true, isSelf = true)`, `select()`, `unselect()`, `remove()`, `save()`.
-  - [`LNode_TextEdit.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/LNode_TextEdit.ts) — `turnOn_EditTitleMode()`, `turnOff_EditTitleMode()`, `setTitleText(v, putInInnerHTML, initFromClone)`, `onInput()`, `frame: TFrame`.
-  - [`LNode_TEClone.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/LNode_TEClone.ts) — `setLineOfParentsTitle()`, `setRating(v)`.
-  - [`LNode_Page.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/LNode_Page.ts) — `checkOutNodesMode()`.
-  - [`TList.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/TList.ts) — `getSortedChildren(): readonly LNode[]`, `invalidateChildrenOrder()`, `invalidateRectCache()`, `forEachChildren(fn)`, `initParent(parent)`, `setParent(parent, newIndex)`, `clearParent()`, `checkTree()`, `syncChildrenCoordinates()`, `setPositionForChildren(parentX, totalTab, totalIndex, isRoot, isDrag, animate, oldPositions, customOldFrameRect)`, `mainParent`.
-  - [`listHierarchy.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/listHierarchy.ts) — `checkTree(owner)`, `clearParent(list, owner)`, `setParent(list, owner, parent, newIndex)`, `syncChildrenCoordinates(node, startY)`, `setPositionForChildren(...)`.
-  - [`TFrame.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/TFrame.ts) — `init()`, `initBtns()`, `setBtnsState()`, `addFrame()`, `linkToParent(parent)`, `unlinkFromParent(parent)`, `redrawPaths()`, `bringToFront()`, `setIoMode(mode)`.
-  - [`TClones.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/TClones.ts) — `mainNode`, `sourceNode`, `nodes: Set<LNode>`, `doForAll(fn)`, `removeAllClones()`.
-  - [`TRepeatMode.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/LNode/TRepeatMode.ts) — `mode`, `date`, `setDelay(days)`, `refreshIndicator()`.
+  - [`LNode.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/LNode.ts) — `getNodeRect(withChildren = true): DOMRect`, `moveTo({ x, y }, save = true)`, `hide(withChildren = true, isSelf = true)`, `show(withChildren = true, isSelf = true)`, `select()`, `unselect()`, `remove()`, `save()`.
+  - [`LNode_TextEdit.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/LNode_TextEdit.ts) — `turnOn_EditTitleMode()`, `turnOff_EditTitleMode()`, `setTitleText(v, putInInnerHTML, initFromClone)`, `onInput()`, `frame: TFrame`.
+  - [`LNode_TEClone.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/LNode_TEClone.ts) — `setLineOfParentsTitle()`, `setRating(v)`.
+  - [`LNode_Page.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/LNode_Page.ts) — `checkOutNodesMode()`.
+  - [`TList.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/TList.ts) — `getSortedChildren(): readonly LNode[]`, `invalidateChildrenOrder()`, `invalidateRectCache()`, `forEachChildren(fn)`, `initParent(parent)`, `setParent(parent, newIndex)`, `clearParent()`, `checkTree()`, `syncChildrenCoordinates()`, `setPositionForChildren(parentX, totalTab, totalIndex, isRoot, isDrag, animate, oldPositions, customOldFrameRect)`, `mainParent`.
+  - [`listHierarchy.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/listHierarchy.ts) — `checkTree(owner)`, `clearParent(list, owner)`, `setParent(list, owner, parent, newIndex)`, `syncChildrenCoordinates(node, startY)`, `setPositionForChildren(...)`.
+  - [`TFrame.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/TFrame.ts) — `init()`, `initBtns()`, `setBtnsState()`, `addFrame()`, `linkToParent(parent)`, `unlinkFromParent(parent)`, `redrawPaths()`, `bringToFront()`, `setIoMode(mode)`.
+  - [`TClones.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/TClones.ts) — `mainNode`, `sourceNode`, `nodes: Set<LNode>`, `doForAll(fn)`, `removeAllClones()`.
+  - [`TRepeatMode.ts`](file:///a:/a-node_2.0/client/src/features/nodes/LNode/TRepeatMode.ts) — `mode`, `date`, `setDelay(days)`, `refreshIndicator()`.
 - **View (`VNode/`):**
-  - [`VNode.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/VNode/VNode.ts) — `render(measure = true)`, `applyPosition(skipSVG = false)`, `renderSVG(animate, oldFrameRect)`, `prepareMeasure()`, `readMeasure()`, `refreshBodyRect()`, `moveAniTo(x, y, delay)`.
-  - [`VTextEdit.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/VNode/VTextEdit.ts) — `titleEl`, `toggleListOpen()`, `toggleRepeatsOpen()`, `toggleHiddenOpen()`, `refreshListBtns()`.
-  - [`DndController.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/VNode/DndController.ts) — `onPointerDown(e)`, `onPointerMove(e, fromTransform)`, `onPointerUp(e)`, `flushDragMove()`, `cancelDrag()`.
-  - [`ResizeController.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/VNode/ResizeController.ts) — `prepareMeasure()`, `readMeasure()`, `refreshBodyRect()`, `checkPointOver(x, y)`, `checkInRect(rect)`.
+  - [`VNode.ts`](file:///a:/a-node_2.0/client/src/features/nodes/VNode/VNode.ts) — `render(measure = true)`, `applyPosition(skipSVG = false)`, `renderSVG(animate, oldFrameRect)`, `prepareMeasure()`, `readMeasure()`, `refreshBodyRect()`, `moveAniTo(x, y, delay)`.
+  - [`VTextEdit.ts`](file:///a:/a-node_2.0/client/src/features/nodes/VNode/VTextEdit.ts) — `titleEl`, `toggleListOpen()`, `toggleRepeatsOpen()`, `toggleHiddenOpen()`, `refreshListBtns()`.
+  - [`DndController.ts`](file:///a:/a-node_2.0/client/src/features/nodes/VNode/DndController.ts) — `onPointerDown(e)`, `onPointerMove(e, fromTransform)`, `onPointerUp(e)`, `flushDragMove()`, `cancelDrag()`.
+  - [`ResizeController.ts`](file:///a:/a-node_2.0/client/src/features/nodes/VNode/ResizeController.ts) — `prepareMeasure()`, `readMeasure()`, `refreshBodyRect()`, `checkPointOver(x, y)`, `checkInRect(rect)`.
 - **DB / Manager / Diagnostics:**
-  - [`NodeManager.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/NodeManager.ts) — `nodes`, `nodesByLID`, `nodesById`, `registerNode(node)`, `unregisterNode(node)`, `getNodeByLID(lID)`, `getNodeById(id)`, `generateLID()`, `ensureLID(node)`, `scheduleNodeUpdate(node)`, `flushPendingUpdates()`, `createNode(opts)`, `copyNode(node, opts)`, `putNodeInTrash(node, withClones)`, `restoreNodeFromTrash(node, withClones)`, `hardDeleteNode(node)`, `searchInRect(rect)`, `getNodeAtPoint(x, y)`.
-  - [`nodeLifecycle.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/nodeLifecycle.ts) — `reInitAllNodes(manager)`.
-  - [`nodeTextCreation.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/nodeTextCreation.ts) — `addTextEditNodeByEnter(manager, e)`, `addTextEditNodeUnderSelected(manager, selectedNode)`.
-  - [`nodeHierarchy.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/nodeHierarchy.ts) — `initCloneLinks(nodes, getNodeByLID, getNodeById)`, `setPositionForAllLinkedChildNodes(nodes)`, `handleSelectedNodesMoved(manager)`.
-  - [`nodeSerialization.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/nodeSerialization.ts) — `loadDeskSnapshot(manager, snapshot)`, `diffDeskSnapshot(manager, snapshot, options)`.
-  - [`nodeDiagnostics.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/nodeDiagnostics.ts) — `validateNodeGraph(manager): string[]`, `dumpNodeTree(root): string`.
-  - [`nodeTestFactory.ts`](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/__tests__/nodeTestFactory.ts) — `setupTestNodeEnv()`, `createTestTextNode(opts)`, `createTestTree(spec)`.
+  - [`NodeManager.ts`](file:///a:/a-node_2.0/client/src/features/nodes/NodeManager.ts) — `nodes`, `nodesByLID`, `nodesById`, `registerNode(node)`, `unregisterNode(node)`, `getNodeByLID(lID)`, `getNodeById(id)`, `generateLID()`, `ensureLID(node)`, `scheduleNodeUpdate(node)`, `flushPendingUpdates()`, `createNode(opts)`, `copyNode(node, opts)`, `putNodeInTrash(node, withClones)`, `restoreNodeFromTrash(node, withClones)`, `hardDeleteNode(node)`, `searchInRect(rect)`, `getNodeAtPoint(x, y)`.
+  - [`nodeLifecycle.ts`](file:///a:/a-node_2.0/client/src/features/nodes/nodeLifecycle.ts) — `reInitAllNodes(manager)`.
+  - [`nodeTextCreation.ts`](file:///a:/a-node_2.0/client/src/features/nodes/nodeTextCreation.ts) — `addTextEditNodeByEnter(manager, e)`, `addTextEditNodeUnderSelected(manager, selectedNode)`.
+  - [`nodeHierarchy.ts`](file:///a:/a-node_2.0/client/src/features/nodes/nodeHierarchy.ts) — `initCloneLinks(nodes, getNodeByLID, getNodeById)`, `setPositionForAllLinkedChildNodes(nodes)`, `handleSelectedNodesMoved(manager)`.
+  - [`nodeSerialization.ts`](file:///a:/a-node_2.0/client/src/features/nodes/nodeSerialization.ts) — `loadDeskSnapshot(manager, snapshot)`, `diffDeskSnapshot(manager, snapshot, options)`.
+  - [`nodeDiagnostics.ts`](file:///a:/a-node_2.0/client/src/features/nodes/nodeDiagnostics.ts) — `validateNodeGraph(manager): string[]`, `dumpNodeTree(root): string`.
+  - [`nodeTestFactory.ts`](file:///a:/a-node_2.0/client/src/features/nodes/__tests__/nodeTestFactory.ts) — `setupTestNodeEnv()`, `createTestTextNode(opts)`, `createTestTree(spec)`.
 
 ### Lifecycle
 
