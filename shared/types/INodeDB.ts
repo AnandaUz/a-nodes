@@ -348,7 +348,6 @@ const blockL = new TPackedData<ILNode>()
 export function toDB(node: ILNode): INodeDB {
   const res: INodeDB = {
     _id: node._id,
-    userId: node.userId || undefined,
     pageId: node.pageId,
     inTrash: node.inTrash,
     lastUpdate: node.lastUpdate,

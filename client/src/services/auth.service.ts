@@ -80,10 +80,8 @@ export async function googleAuth(credential: string): Promise<AuthResponse> {
 
 export async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
-  console.log("refreshToken из localStorage:", refreshToken);
 
   if (!refreshToken) {
-    console.log("refresh токен не найден");
     return null;
   }
 
@@ -94,9 +92,7 @@ export async function refreshAccessToken(): Promise<string | null> {
       body: JSON.stringify({ refreshToken }),
     });
 
-    console.log("статус ответа /refresh:", response.status);
     const data = await response.json();
-    console.log("ответ /refresh:", data);
 
     if (!response.ok) {
       removeTokens();

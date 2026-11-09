@@ -90,8 +90,7 @@ nodeSchema.index({ pageId: 1, inTrash: 1 });
 nodeSchema.index({ pageId: 1, lastUpdate: 1 });
 nodeSchema.index({ pageId: 1, i: 1 });
 nodeSchema.index({ pageId: 1, o: 1 });
-nodeSchema.index({ userId: 1, pageId: 1, inTrash: 1 });
-nodeSchema.index({ userId: 1, pageId: 1, lastUpdate: 1 });
+nodeSchema.index({ userId: 1 }, { sparse: true });
 nodeSchema.index({ c: 1 });
 
 export const Node: Model<INodeDocument> =

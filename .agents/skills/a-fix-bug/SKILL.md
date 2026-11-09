@@ -1,4 +1,4 @@
----
+﻿---
 name: a-fix-bug
 description: >-
   Обработка баг-репорта по методологии TDD (!баг / /a-fix-bug).
@@ -26,7 +26,7 @@ description: >-
 - Найти существующий или создать целевой файл теста `<module>.test.ts`.
 
 ### 2. Падающий регрессионный тест
-- Добавить тест, воспроизводящий баг при заданных условиях (для тестов нод использовать готовую фабрику [nodeTestFactory.ts](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/__tests__/nodeTestFactory.ts) и диагностику [nodeDiagnostics.ts](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/nodeDiagnostics.ts)).
+- Добавить тест, воспроизводящий баг при заданных условиях (для тестов нод использовать готовую фабрику [nodeTestFactory.ts](file:///a:/a-node_2.0/client/src/features/nodes/__tests__/nodeTestFactory.ts) и диагностику [nodeDiagnostics.ts](file:///a:/a-node_2.0/client/src/features/nodes/nodeDiagnostics.ts)).
 - Запустить тест: `npx vitest run <target.test.ts>`.
 - Убедиться, что тест упал именно с ожидаемой ошибкой.
 

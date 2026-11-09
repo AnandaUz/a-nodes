@@ -1,4 +1,4 @@
----
+﻿---
 name: a-create-test
 description: >-
   Пошаговое создание и сборка тестов Vitest (аСоздаёмТест / /a-create-test).
@@ -30,7 +30,7 @@ description: >-
 1. Каждая последующая реплика пользователя переводится строго в строки теста (arrange-act-assert).
 2. Минимальные точечные правки без переписывания файла.
 3. Не запускать Vitest автоматически.
-4. Готовые шаблоны кода брать строго из [resources/snippets.md](file:///d:/_sites/a-node(v.AI)/.agents/skills/a-create-test/resources/snippets.md) и фабрики фикстур [nodeTestFactory.ts](file:///d:/_sites/a-node(v.AI)/client/src/features/nodes/__tests__/nodeTestFactory.ts) (`setupTestNodeEnv`, `createTestTextNode`, `createTestTree`) без поиска по проекту.
+4. Готовые шаблоны кода брать строго из [resources/snippets.md](file:///a:/a-node_2.0/.agents/skills/a-create-test/resources/snippets.md) и фабрики фикстур [nodeTestFactory.ts](file:///a:/a-node_2.0/client/src/features/nodes/__tests__/nodeTestFactory.ts) (`setupTestNodeEnv`, `createTestTextNode`, `createTestTree`) без поиска по проекту.
 
 ### Этап 3: Проверка и отладка
 1. Запуск Vitest выполняется строго по команде `!проверь` или «реализуй тест»:

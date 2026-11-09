@@ -4,6 +4,7 @@ import { Node } from "../models/Node";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import {
   bulkSaveNodes,
+  canUserAccessPage,
   createQuickNode,
   deleteNodeById,
   deleteNodesByIds,
@@ -27,20 +28,29 @@ export const getNodesByParentNodeId = async (req: Request, res: Response) => {
     );
     res.json({ nodes, pageNode, serverTime, breadcrumbs });
   } catch (err: any) {
-    console.error("[getNodesByParentNodeId Error]:", err);
+    const status = err?.status || 500;
+    if (status >= 500) {
+      console.error("[getNodesByParentNodeId Error]:", err);
+    }
     res
-      .status(500)
-      .json({ message: "Ошибка загрузки desk", error: err?.message });
+      .status(status)
+      .json({ message: err?.message || "Ошибка загрузки desk" });
   }
 };
 
-export const deskEventsController = (req: Request, res: Response) => {
+export const deskEventsController = async (req: Request, res: Response) => {
   const nodeId = (req.params["nodeId"] as string) || "root";
   const clientId =
     (req.query["clientId"] as string) ||
     (req.headers["x-client-id"] as string) ||
     undefined;
   const userId = (req as AuthRequest).user?.id;
+
+  if (!(await canUserAccessPage(nodeId, userId, "read"))) {
+    return res.status(403).json({ message: "Доступ к событиям страницы запрещён" });
+  }
+
+  const channelId = nodeId === "root" && userId ? `root:${userId}` : nodeId;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -57,7 +67,7 @@ export const deskEventsController = (req: Request, res: Response) => {
     res,
   };
 
-  const unsubscribe = sseService.subscribe(nodeId, sseClient);
+  const unsubscribe = sseService.subscribe(channelId, sseClient);
 
   const pingInterval = setInterval(() => {
     try {
@@ -145,8 +155,9 @@ export const saveNodesController = async (req: Request, res: Response) => {
     }
 
     for (const deskId of affectedDesks) {
+      const channelId = deskId === "root" && userId ? `root:${userId}` : deskId;
       sseService.broadcastToDesk(
-        deskId,
+        channelId,
         {
           type: "nodes_updated",
           senderId,
@@ -192,8 +203,10 @@ export const deleteNodeController = async (req: Request, res: Response) => {
       }
       const serverTime = new Date().toISOString();
       for (const deskId of affectedDesks) {
+        const channelId =
+          deskId === "root" && userId ? `root:${userId}` : deskId;
         sseService.broadcastToDesk(
-          deskId,
+          channelId,
           {
             type: "nodes_updated",
             senderId,
@@ -224,8 +237,9 @@ export const deleteNodeController = async (req: Request, res: Response) => {
       }
       const nowIso = new Date().toISOString();
       for (const dId of targetDesks) {
+        const channelId = dId === "root" && userId ? `root:${userId}` : dId;
         sseService.broadcastToDesk(
-          dId,
+          channelId,
           {
             type: "nodes_updated",
             senderId,
@@ -245,8 +259,8 @@ export const deleteNodeController = async (req: Request, res: Response) => {
 };
 
 const checkApiKey = (req: Request): boolean => {
-  const secretKey =
-    process.env.API_SECRET_KEY || "anodes_sec_9f7c2a4e8b1d3f605a9e7c1b4d8a2f5e";
+  const secretKey = process.env.API_SECRET_KEY;
+  if (!secretKey) return false;
   const authHeader = req.headers.authorization;
   const apiKey =
     (req.headers["x-api-key"] as string) ||
@@ -265,8 +279,10 @@ export const getQuickTargetsController = async (
       return res.status(401).json({ message: "Неверный API ключ" });
     }
 
-    const marker = (req.query.q as string) || ">>";
-    const pageId = req.query.pageId as string | undefined;
+    const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const marker = (rawQ || ">>").slice(0, 64);
+    const pageId =
+      typeof req.query.pageId === "string" ? req.query.pageId : undefined;
 
     const targets = await findQuickTargets(marker, pageId);
     res.json({ success: true, targets });

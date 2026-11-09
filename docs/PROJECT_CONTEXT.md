@@ -1,11 +1,11 @@
-# a-nodes: AI Context Cheatsheet & Knowledge Base
+﻿# a-nodes: AI Context Cheatsheet & Knowledge Base
 
 Этот документ предназначен для быстрого ввода AI-ассистента в контекст проекта `a-nodes` в будущих запросах.
 
 Связанная документация:
-- [ARCHITECTURE.md](file:///d:/_sites/a-node(v.AI)/ARCHITECTURE.md) — детальная архитектура системы и потоки данных.
-- [.agents/glossary/index.md](file:///d:/_sites/a-node(v.AI)/.agents/glossary/index.md) — глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
-- [docs/ANALYSIS_REPORT.md](file:///d:/_sites/a-node(v.AI)/docs/ANALYSIS_REPORT.md) — технический аудит, рекомендации и roadmap.
+- [ARCHITECTURE.md](file:///a:/a-node_2.0/ARCHITECTURE.md) — детальная архитектура системы и потоки данных.
+- [.agents/glossary/index.md](file:///a:/a-node_2.0/.agents/glossary/index.md) — глоссарий терминов (!фрейм, !группа, !подфрейм, !клон).
+- [docs/ANALYSIS_REPORT.md](file:///a:/a-node_2.0/docs/ANALYSIS_REPORT.md) — технический аудит, рекомендации и roadmap.
 
 ---
 

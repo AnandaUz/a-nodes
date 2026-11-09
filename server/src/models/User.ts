@@ -20,11 +20,12 @@ const userSchema = new Schema<IUserDocument>({
     type: Boolean,
     default: false,
   },
-  telegramId: {
-    type: Number,
-  },
   token: {
     type: String,
+  },
+  refreshTokenHash: {
+    type: String,
+    select: false,
   },
   createdAt: {
     type: Date,

@@ -1,9 +1,9 @@
 export interface IUser {
   id: string;
   googleId: string;
-  telegramId?: number;
   isRegistered?: boolean;
   token?: string;
+  refreshTokenHash?: string;
   createdAt: Date;
   email?: string;
   picture?: string;

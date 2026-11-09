@@ -141,17 +141,141 @@ export function isValidObjectId(id: string): boolean {
   return Boolean(id && mongoose.Types.ObjectId.isValid(id));
 }
 
+const PUBLIC_READONLY_PAGE_IDS = new Set(["6a38c536ddc2e09f58fe390f"]);
+const PAGE_CACHE_TTL_MS = 60_000;
+
+interface UserPagesCacheEntry {
+  expiresAt: number;
+  ownedPages: Set<string>;
+}
+
+const userPagesCache = new Map<string, UserPagesCacheEntry>();
+
+export function invalidateUserPagesCache(userId?: string): void {
+  if (userId) {
+    userPagesCache.delete(userId);
+  } else {
+    userPagesCache.clear();
+  }
+}
+
+export async function getUserOwnedPageIds(userId: string): Promise<Set<string>> {
+  const now = Date.now();
+  const cached = userPagesCache.get(userId);
+  if (cached && cached.expiresAt > now) {
+    return cached.ownedPages;
+  }
+
+  const owned = new Set<string>();
+  if (!isValidObjectId(userId)) return owned;
+  const userObjId = new mongoose.Types.ObjectId(userId);
+
+  const [userDoc, directPages] = await Promise.all([
+    User.findById(userObjId).select("settings.homeId").lean(),
+    Node.find({ userId: userObjId }).select("_id").lean(),
+  ]);
+
+  if (userDoc?.settings?.homeId) {
+    owned.add(String(userDoc.settings.homeId));
+  }
+  for (const p of directPages) {
+    owned.add(String(p._id));
+  }
+
+  if (owned.size > 0) {
+    const allPages = await Node.find({
+      $or: [{ type: 4 }, { "exData.url": { $exists: true, $ne: null } }],
+    })
+      .select("_id pageId exData.url")
+      .lean();
+
+    let added = true;
+    while (added) {
+      added = false;
+      for (const p of allPages) {
+        const pid = p.pageId ? String(p.pageId) : null;
+        if (pid && owned.has(pid)) {
+          const nid = String(p._id);
+          if (!owned.has(nid)) {
+            owned.add(nid);
+            added = true;
+          }
+          const uUrl = (p as any).exData?.url;
+          if (
+            typeof uUrl === "string" &&
+            /^[0-9a-fA-F]{24}$/.test(uUrl) &&
+            !PUBLIC_READONLY_PAGE_IDS.has(uUrl) &&
+            !owned.has(uUrl)
+          ) {
+            owned.add(uUrl);
+            added = true;
+          }
+        }
+      }
+    }
+  }
+
+  userPagesCache.set(userId, {
+    expiresAt: now + PAGE_CACHE_TTL_MS,
+    ownedPages: owned,
+  });
+  return owned;
+}
+
+export async function canUserAccessPage(
+  nodeId: string,
+  userId?: string,
+  mode: "read" | "write" = "read",
+): Promise<boolean> {
+  if (!userId || !isValidObjectId(userId)) return false;
+  if (nodeId === "root") return true;
+  if (mode === "read" && PUBLIC_READONLY_PAGE_IDS.has(nodeId)) return true;
+
+  const owned = await getUserOwnedPageIds(userId);
+  if (owned.has(nodeId)) return true;
+
+  if (isValidObjectId(nodeId)) {
+    const pageDoc = await Node.findById(nodeId).select("userId pageId").lean();
+    if (pageDoc) {
+      if (pageDoc.userId && String(pageDoc.userId) === userId) {
+        owned.add(nodeId);
+        return true;
+      }
+      if (pageDoc.pageId && owned.has(String(pageDoc.pageId))) {
+        owned.add(nodeId);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export async function getNodesAndPageByNodeId(
   nodeId: string,
-  _userId?: string,
+  userId?: string,
   since?: Date,
 ) {
   const isRoot = nodeId === "root";
+  if (!isRoot && !isValidObjectId(nodeId)) {
+    const err: any = new Error("Некорректный ID страницы");
+    err.status = 400;
+    throw err;
+  }
+
+  if (!(await canUserAccessPage(nodeId, userId, "read"))) {
+    const err: any = new Error("Доступ к этой странице запрещён");
+    err.status = 403;
+    throw err;
+  }
+
   const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(nodeId);
 
   const nodeQuery: any = {
     pageId: pageFilter,
   };
+  if (isRoot && userId && isValidObjectId(userId)) {
+    nodeQuery.userId = new mongoose.Types.ObjectId(userId);
+  }
 
   // Дельта-синхронизация: возвращаем только изменившиеся/удаленные после since
   if (since && !isNaN(since.getTime())) {
@@ -163,7 +287,7 @@ export async function getNodesAndPageByNodeId(
     ];
   }
 
-  const exStr = since ? "-__v" : "-__v -inTrash -ok";
+  const exStr = since ? "-__v -userId" : "-__v -inTrash -ok -userId";
 
   const pageQuery: any = isRoot
     ? null
@@ -204,9 +328,15 @@ export async function getNodesAndPageByNodeId(
     .filter((id) => isValidObjectId(id))
     .map((id) => new mongoose.Types.ObjectId(id));
 
-  if (missingSourceIds.length > 0) {
+  if (missingSourceIds.length > 0 && userId) {
+    const ownedPages = await getUserOwnedPageIds(userId);
+    const ownedPageObjIds = [...ownedPages]
+      .filter((id) => isValidObjectId(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
     const missingSources = await Node.find({
       _id: { $in: missingSourceIds },
+      pageId: { $in: ownedPageObjIds },
       inTrash: { $ne: true },
     })
       .select(exStr)
@@ -225,10 +355,17 @@ export async function getNodesAndPageByNodeId(
   }
 
   const breadcrumbs: { id: string; title: string }[] = [];
+  const ownedPagesForBreadcrumbs = userId
+    ? await getUserOwnedPageIds(userId)
+    : new Set<string>();
 
   let targetPageNode: any = pageNode;
   if (!targetPageNode && !isRoot && isValidObjectId(nodeId)) {
+    const ownedPageObjIds = [...ownedPagesForBreadcrumbs]
+      .filter((id) => isValidObjectId(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
     targetPageNode = await Node.findOne({
+      pageId: { $in: ownedPageObjIds },
       $or: [
         { "exData.url": nodeId },
         { "exData.url": `/desk/${nodeId}` },
@@ -297,6 +434,7 @@ export async function getNodesAndPageByNodeId(
           if (visited.has(parentIdStr)) break;
           visited.add(parentIdStr);
 
+          if (!ownedPagesForBreadcrumbs.has(parentIdStr)) break;
           const parentNode = ancestorsMap.get(parentIdStr);
           if (!parentNode) break;
 
@@ -314,19 +452,92 @@ export async function getNodesAndPageByNodeId(
   return { nodes, pageNode, serverTime: new Date(), breadcrumbs };
 }
 
+const ALLOWED_NODE_FIELDS = new Set([
+  "pageId",
+  "inTrash",
+  "lastUpdate",
+  "type",
+  "x",
+  "y",
+  "title",
+  "ok",
+  "L",
+  "s",
+  "A",
+  "P",
+  "out",
+  "c",
+  "exData",
+  "f",
+  "D",
+  "i",
+  "o",
+]);
+
 export async function bulkSaveNodes(nodes: any[], userId?: string) {
   if (!nodes || nodes.length === 0) return [];
+  if (!userId || !isValidObjectId(userId)) {
+    throw new Error("Не указан авторизованный пользователь");
+  }
 
   const now = new Date();
-  const userObjectId = userId ? new mongoose.Types.ObjectId(userId) : undefined;
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const ownedPages = await getUserOwnedPageIds(userId);
 
-  const operations = nodes.map((node: any) => {
-    const { _id, userId: nodeUserId, ...updateData } = node;
+  const incomingIds = nodes
+    .map((n) => n?._id)
+    .filter((id): id is string => typeof id === "string" && isValidObjectId(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const existingDocs =
+    incomingIds.length > 0
+      ? await Node.find({ _id: { $in: incomingIds } })
+          .select("_id pageId userId type")
+          .lean()
+      : [];
+  const existingMap = new Map(existingDocs.map((d) => [String(d._id), d]));
+
+  const allowedPageIds = new Set(ownedPages);
+  for (const node of nodes) {
+    if (
+      node?.type === 4 &&
+      node?._id &&
+      isValidObjectId(String(node._id)) &&
+      (!node.pageId || allowedPageIds.has(String(node.pageId)))
+    ) {
+      allowedPageIds.add(String(node._id));
+    }
+  }
+
+  let hasPageChanges = false;
+  const validNodeIndexes: number[] = [];
+  const operations: any[] = [];
+
+  nodes.forEach((node: any, index: number) => {
+    const { _id, userId: _ignoredUserId, ...updateData } = node;
+    const idStr = _id && isValidObjectId(String(_id)) ? String(_id) : undefined;
+    const existingDoc = idStr ? existingMap.get(idStr) : undefined;
+
+    if (existingDoc) {
+      const existingOwned = existingDoc.pageId
+        ? ownedPages.has(String(existingDoc.pageId))
+        : (existingDoc.userId && String(existingDoc.userId) === userId) ||
+          ownedPages.has(String(existingDoc._id));
+      if (!existingOwned) return;
+    }
+
+    if (
+      updateData.pageId &&
+      !allowedPageIds.has(String(updateData.pageId))
+    ) {
+      return;
+    }
 
     const setFields: Record<string, any> = {};
     const unsetFields: Record<string, ""> = {};
 
     for (const [key, value] of Object.entries(updateData)) {
+      if (!ALLOWED_NODE_FIELDS.has(key)) continue;
       if (value === null) {
         unsetFields[key] = "";
       } else {
@@ -334,21 +545,29 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
       }
     }
 
-    const targetUserId =
-      userObjectId ||
-      (nodeUserId && isValidObjectId(nodeUserId)
-        ? new mongoose.Types.ObjectId(nodeUserId)
-        : undefined);
+    const effectiveType = setFields.type ?? existingDoc?.type;
+    const effectivePageId =
+      "pageId" in setFields || "pageId" in unsetFields
+        ? setFields.pageId
+        : existingDoc?.pageId;
+    const isRootNode = !effectivePageId;
 
-    if (targetUserId) {
-      setFields.userId = targetUserId;
+    if (isRootNode) {
+      setFields.userId = userObjectId;
+      hasPageChanges = true;
+    } else {
+      if (existingDoc?.userId) {
+        unsetFields.userId = "";
+      }
+      if (effectiveType === 4) {
+        hasPageChanges = true;
+      }
     }
 
     if (setFields.c && isValidObjectId(setFields.c)) {
       setFields.c = new mongoose.Types.ObjectId(setFields.c);
     }
 
-    // Дельта-синхронизация: проставляем временную метку обновления
     if (!setFields.lastUpdate) {
       setFields.lastUpdate = now;
     } else {
@@ -363,35 +582,45 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
     if (Object.keys(setFields).length > 0) update.$set = setFields;
     if (Object.keys(unsetFields).length > 0) update.$unset = unsetFields;
 
-    const filter: any = {};
-    if (_id && isValidObjectId(_id)) {
-      filter._id = new mongoose.Types.ObjectId(_id);
-    } else {
-      filter._id = new mongoose.Types.ObjectId();
-      if (userObjectId) {
-        filter.userId = userObjectId;
-      }
-    }
+    const filter: any = {
+      _id: idStr ? new mongoose.Types.ObjectId(idStr) : new mongoose.Types.ObjectId(),
+    };
 
-    return {
+    validNodeIndexes.push(index);
+    operations.push({
       updateOne: {
         filter,
         update,
         upsert: true,
       },
-    };
+    });
   });
+
+  if (operations.length === 0) return [];
 
   const result = await Node.bulkWrite(operations, { ordered: true });
 
-  const ids = nodes.map((node: any, index: number) => {
-    const upsertedId = result.upsertedIds[index];
-    return upsertedId ? upsertedId.toString() : node._id;
+  if (hasPageChanges) {
+    invalidateUserPagesCache(userId);
+  }
+
+  const upsertedByOriginalIndex = new Map<number, string>();
+  validNodeIndexes.forEach((origIdx, opIdx) => {
+    const upsertedId = result.upsertedIds[opIdx];
+    const resolvedId = upsertedId
+      ? upsertedId.toString()
+      : nodes[origIdx]._id;
+    upsertedByOriginalIndex.set(origIdx, resolvedId);
   });
+
+  const ids = nodes.map((node: any, idx: number) =>
+    upsertedByOriginalIndex.get(idx) ?? node._id,
+  );
 
   // Автоматическая синхронизация слепка `out` для страниц, внутри которых изменились ноды
   const affectedPageIds = new Set<string>();
-  for (const node of nodes) {
+  for (const idx of validNodeIndexes) {
+    const node = nodes[idx];
     if (node.pageId && isValidObjectId(String(node.pageId))) {
       affectedPageIds.add(String(node.pageId));
     }
@@ -403,44 +632,96 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
   return ids;
 }
 
-export async function deleteNodeById(id: string, _userId?: string) {
-  const filter: any = { _id: new mongoose.Types.ObjectId(id) };
-  const deleted = await Node.findOneAndDelete(filter);
+export async function deleteNodeById(id: string, userId?: string) {
+  if (!userId || !isValidObjectId(userId) || !isValidObjectId(id)) return null;
+  const ownedPages = await getUserOwnedPageIds(userId);
+  const existing = await Node.findById(id).select("_id pageId userId type").lean();
+  if (!existing) return null;
+
+  const isOwned = existing.pageId
+    ? ownedPages.has(String(existing.pageId))
+    : (existing.userId && String(existing.userId) === userId) ||
+      ownedPages.has(String(existing._id));
+  if (!isOwned) return null;
+
+  const deleted = await Node.findOneAndDelete({
+    _id: new mongoose.Types.ObjectId(id),
+  });
+  if (deleted?.type === 4) {
+    invalidateUserPagesCache(userId);
+  }
   if (deleted?.pageId && isValidObjectId(String(deleted.pageId))) {
     await syncPageOutSnapshot(String(deleted.pageId));
   }
   return deleted;
 }
 
-export async function deleteNodesByIds(ids: string[], _userId?: string) {
+export async function deleteNodesByIds(ids: string[], userId?: string) {
+  if (!userId || !isValidObjectId(userId)) {
+    return { deletedCount: 0 };
+  }
   const objectIds = ids
     .filter((id) => isValidObjectId(id))
     .map((id) => new mongoose.Types.ObjectId(id));
   if (objectIds.length === 0) {
     return { deletedCount: 0 };
   }
-  return await Node.deleteMany({ _id: { $in: objectIds } });
+
+  const ownedPages = await getUserOwnedPageIds(userId);
+  const docs = await Node.find({ _id: { $in: objectIds } })
+    .select("_id pageId userId type")
+    .lean();
+
+  const allowedIds: mongoose.Types.ObjectId[] = [];
+  let hasDeletedPage = false;
+
+  for (const doc of docs) {
+    const isOwned = doc.pageId
+      ? ownedPages.has(String(doc.pageId))
+      : (doc.userId && String(doc.userId) === userId) ||
+        ownedPages.has(String(doc._id));
+    if (isOwned) {
+      allowedIds.push(doc._id);
+      if (doc.type === 4) hasDeletedPage = true;
+    }
+  }
+
+  if (allowedIds.length === 0) {
+    return { deletedCount: 0 };
+  }
+
+  const res = await Node.deleteMany({ _id: { $in: allowedIds } });
+  if (hasDeletedPage) {
+    invalidateUserPagesCache(userId);
+  }
+  return res;
 }
 
 export async function findQuickTargets(
   marker: string = ">>",
   pageId?: string,
 ): Promise<QuickTargetItem[]> {
+  const safeMarker = String(marker || ">>").slice(0, 64);
+  const escapedMarker = safeMarker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const query: any = {
-    title: { $regex: marker },
+    title: { $regex: escapedMarker },
     inTrash: { $ne: true },
   };
 
   if (pageId) {
-    query.pageId =
-      pageId === "root" ? null : new mongoose.Types.ObjectId(pageId);
+    if (pageId === "root") {
+      query.pageId = null;
+    } else if (isValidObjectId(pageId)) {
+      query.pageId = new mongoose.Types.ObjectId(pageId);
+    }
   }
 
   const nodes = await Node.find(query).select("_id title pageId s L").lean();
 
   return nodes.map((n) => {
     const rawTitle = n.title || "";
-    const cleanTitle = rawTitle.replace(marker, "").trim();
+    const cleanTitle = rawTitle.replace(safeMarker, "").trim();
     const parentLID = (n.s || 0) & 0x1ffff;
     return {
       _id: n._id,
@@ -508,24 +789,16 @@ export async function createQuickNode(input: QuickAddNodeInput) {
     }
   }
 
-  let targetUserId: any = customUserId;
-  if (!targetUserId) {
-    const adminId = process.env.BOT_ADMIN
-      ? Number(process.env.BOT_ADMIN)
-      : null;
-    let user = adminId
-      ? await User.findOne({ telegramId: adminId }).select("_id").lean()
-      : null;
-    if (!user) {
-      user = await User.findOne().select("_id").lean();
-    }
-    targetUserId = user?._id;
-  }
-
   const isRoot = !targetPageId || targetPageId === "root";
   const pageFilter = isRoot
     ? null
     : new mongoose.Types.ObjectId(targetPageId);
+
+  let targetUserId: any = isRoot ? customUserId : undefined;
+  if (isRoot && !targetUserId) {
+    const user = await User.findOne().select("_id").lean();
+    targetUserId = user?._id;
+  }
 
   // Ищем детей целевого родителя, чтобы вычислить следующий index
   const pageNodes = await Node.find({
