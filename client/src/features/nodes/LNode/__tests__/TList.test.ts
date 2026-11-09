@@ -580,7 +580,7 @@ describe("TList (листГруппа)", () => {
       core.desk.viewport = {
         screenToWorld: (x: number, y: number) => ({ x, y }),
       } as any;
-      core.history = { execute: vi.fn() } as any;
+      core.history = { execute: vi.fn(), push: vi.fn() } as any;
 
       // Пользователь начинает тащить node1
       core.desk.pointer = { x: 100, y: 200 };
@@ -699,7 +699,7 @@ describe("TList (листГруппа)", () => {
       core.desk.viewport = {
         screenToWorld: (x: number, y: number) => ({ x, y }),
       } as any;
-      core.history = { execute: vi.fn() } as any;
+      core.history = { execute: vi.fn(), push: vi.fn() } as any;
 
       // Пользователь начинает тащить node3
       core.desk.pointer = { x: 300, y: 100 };

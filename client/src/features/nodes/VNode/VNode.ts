@@ -30,6 +30,7 @@ export class VNode {
     this.resizeController = new ResizeController(this);
     this.body = document.createElement("div");
     this.body.className = "vNode";
+    this.syncDataAttrs();
     this.applyPosition(true);
     this.container.appendChild(this.body);
   }
@@ -232,8 +233,22 @@ export class VNode {
   onPointerUp = (e: PointerEvent) => {
     this.dndController.onPointerUp(e);
   };
+  syncDataAttrs(): void {
+    if (this.node?._id) {
+      this.body.dataset.id = this.node._id;
+    } else {
+      delete this.body.dataset.id;
+    }
+    if (this.node?.lID !== undefined) {
+      this.body.dataset.lid = String(this.node.lID);
+    } else {
+      delete this.body.dataset.lid;
+    }
+  }
+
   render(measure = true) {
     if (this.hidden) return;
+    this.syncDataAttrs();
     const idx = parseInt(this.node.exData?.repeatMode || "");
     const iconBlock = this.body.querySelector(".repeat-icon");
     if (!isNaN(idx) || this.node.exData?.repeatDay) {
@@ -310,11 +325,7 @@ export class VNode {
     );
   }
 
-  animateFrameBg(
-    fromRect: DOMRect,
-    toRect: DOMRect,
-    duration = 200,
-  ) {
+  animateFrameBg(fromRect: DOMRect, toRect: DOMRect, duration = 200) {
     this.resizeController.animateFrameBg(
       this.elFrameBg,
       fromRect,
@@ -383,17 +394,25 @@ export class VNode {
           });
           this.container.appendChild(this.elFrameBg);
         }
-        const frame = (this.node as unknown as { frame?: { isFrameIn?: boolean; isFrameOut?: boolean } }).frame;
-        this.elFrameBg.classList.toggle('frame-in', Boolean(frame?.isFrameIn));
-        this.elFrameBg.classList.toggle('frame-out', Boolean(frame?.isFrameOut));
+        const frame = (
+          this.node as unknown as {
+            frame?: { isFrameIn?: boolean; isFrameOut?: boolean };
+          }
+        ).frame;
+        this.elFrameBg.classList.toggle("frame-in", Boolean(frame?.isFrameIn));
         this.elFrameBg.classList.toggle(
-          'frame-page',
-          this.node.type === NODE_TYPES.PAGE.id || this.node.type === NODE_TYPES.TEXT_EDIT_CLONE.id,
+          "frame-out",
+          Boolean(frame?.isFrameOut),
+        );
+        this.elFrameBg.classList.toggle(
+          "frame-page",
+          this.node.type === NODE_TYPES.PAGE.id ||
+            this.node.type === NODE_TYPES.TEXT_EDIT_CLONE.id,
         );
         if (children) {
           for (const ch of children) {
             if (ch.isOutGroupHeader && ch.vNode?.body) {
-              ch.vNode.body.style.setProperty('--frame-w', nextW);
+              ch.vNode.body.style.setProperty("--frame-w", nextW);
             }
           }
         }

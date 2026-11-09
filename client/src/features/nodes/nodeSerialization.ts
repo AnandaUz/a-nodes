@@ -334,18 +334,36 @@ export function diffDeskSnapshot(
     manager.spatialIndex.insert(node);
   }
 
-  // Защита от коллизий lID при параллельном создании нод
-  const checkLID = new Set<number>();
+  // Защита от коллизий lID с сохранением целостности дерева
+  const seenLIDs = new Map<number, LNode>();
   for (const node of manager.nodes) {
     if (node.isLockedInOutFrame) continue;
     if (!node.lID) continue;
-    if (checkLID.has(node.lID)) {
-      node.lID = manager.generateLID();
-      manager.registerNode(node);
-      node.save();
-    } else {
-      checkLID.add(node.lID);
+
+    const existing = seenLIDs.get(node.lID);
+    if (!existing) {
+      seenLIDs.set(node.lID, node);
+      continue;
     }
+
+    // При коллизии нода с зависимыми связями (дети, фреймы) сохраняет lID,
+    // а уступающая нода каскадно переназначается через reassignNodeLID
+    const nodeHasLinks =
+      (node.list?.children?.size ?? 0) > 0 ||
+      ((node as any).frame?.children?.size ?? 0) > 0;
+    const existingHasLinks =
+      (existing.list?.children?.size ?? 0) > 0 ||
+      ((existing as any).frame?.children?.size ?? 0) > 0;
+
+    let targetToReassign = node;
+    if (nodeHasLinks && !existingHasLinks) {
+      targetToReassign = existing;
+      seenLIDs.set(node.lID, node);
+    }
+
+    const newLID = manager.generateLID();
+    manager.reassignNodeLID(targetToReassign, newLID);
+    seenLIDs.set(newLID, targetToReassign);
   }
 
   // Обновляем визуализацию изменившихся

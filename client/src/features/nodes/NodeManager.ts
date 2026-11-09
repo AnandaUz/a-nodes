@@ -6,10 +6,7 @@ import { NODE_REGISTRY, NODE_TYPES } from "./node-registry";
 import type { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import type { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
 import type { LNode_Page } from "./LNode/LNode_Page";
-import {
-  getRectForNodes,
-  findNodeByLID,
-} from "./nodeTreeUtils";
+import { getRectForNodes, findNodeByLID } from "./nodeTreeUtils";
 import {
   handleSelectedNodesMoved,
   initCloneLinks,
@@ -21,7 +18,11 @@ import {
   addTextEditNodeUnderSelected,
 } from "./nodeTextCreation";
 import { SpatialIndex } from "./spatial/SpatialIndex";
-import { toDB, type IOutFrameData, type IOutNodeItem } from "@shared/types/INodeDB";
+import {
+  toDB,
+  type IOutFrameData,
+  type IOutNodeItem,
+} from "@shared/types/INodeDB";
 
 export class NodeManager {
   nodes = new Set<LNode>();
@@ -117,12 +118,19 @@ export class NodeManager {
         this.scheduleNodeUpdate(node);
         if (node.isLockedInOutFrame && !node.isOutGroupHeader) {
           const mainPage = node.list.mainParent as LNode_Page | null;
-          if (mainPage && mainPage.type === NODE_TYPES.PAGE.id && Array.isArray(mainPage.out)) {
+          if (
+            mainPage &&
+            mainPage.type === NODE_TYPES.PAGE.id &&
+            Array.isArray(mainPage.out)
+          ) {
             let changed = false;
             for (const grp of mainPage.out) {
               if (node.outFrameLID && grp.lID !== node.outFrameLID) continue;
               for (const it of grp.items || []) {
-                if ((node._id && it._id === node._id) || (!node._id && it.lID === node.lID)) {
+                if (
+                  (node._id && it._id === node._id) ||
+                  (!node._id && it.lID === node.lID)
+                ) {
                   if (it.title !== (node.title || "")) {
                     it.title = node.title || "";
                     changed = true;
@@ -378,9 +386,14 @@ export class NodeManager {
       return;
     }
     // отключаем паур кнопку
-    if (node.type === NODE_TYPES.TEXT_EDIT.id && (node as any).clones?.mainNode) {
+    if (
+      node.type === NODE_TYPES.TEXT_EDIT.id &&
+      (node as any).clones?.mainNode
+    ) {
       if ((node as any).clones.mainNode.type === NODE_TYPES.TEXT_EDIT.id)
-        (node as any).clones.mainNode.frame.turnOff_PowerBtn((node as any).frame?.frameLID);
+        (node as any).clones.mainNode.frame.turnOff_PowerBtn(
+          (node as any).frame?.frameLID,
+        );
     }
   }
 
@@ -523,7 +536,9 @@ export class NodeManager {
     cloneNode.clones.mainNode = mainNode;
     mainNode.clones.nodes.add(cloneNode);
     if (mainNode.type === NODE_TYPES.TEXT_EDIT_CLONE.id) {
-      cloneNode.clones.sourceNode = (mainNode as LNode_TEClone).clones.sourceNode;
+      cloneNode.clones.sourceNode = (
+        mainNode as LNode_TEClone
+      ).clones.sourceNode;
     } else {
       cloneNode.clones.sourceNode = mainNode;
     }
@@ -542,6 +557,20 @@ export class NodeManager {
     for (const node of this.nodes) {
       if (node.lID && node.lID > this.maxLID) {
         this.maxLID = node.lID;
+      }
+      if (node.list?.parentLID && node.list.parentLID > this.maxLID) {
+        this.maxLID = node.list.parentLID;
+      }
+      const frame = (node as any).frame;
+      if (frame && Array.isArray(frame.parentsLID)) {
+        for (const pid of frame.parentsLID) {
+          if (typeof pid === "number" && pid > this.maxLID) {
+            this.maxLID = pid;
+          }
+        }
+      }
+      if (node.clones?.mainNodeLID && node.clones.mainNodeLID > this.maxLID) {
+        this.maxLID = node.clones.mainNodeLID;
       }
     }
     return this.maxLID;
@@ -564,6 +593,64 @@ export class NodeManager {
       this.nodesByLID.set(node.lID, node);
     }
     return node.lID;
+  }
+
+  reassignNodeLID(node: LNode, newLID: number): void {
+    const oldLID = node.lID;
+    if (oldLID === newLID) return;
+
+    if (oldLID && this.nodesByLID.get(oldLID) === node) {
+      this.nodesByLID.delete(oldLID);
+    }
+    node.lID = newLID;
+    this.nodesByLID.set(newLID, node);
+    if (newLID > this.maxLID) {
+      this.maxLID = newLID;
+    }
+
+    // Каскадное обновление детей в списке
+    node.list.children?.forEach((child) => {
+      if (child.list) {
+        child.list.parentLID = newLID;
+        child.save();
+      }
+    });
+
+    // Каскадное обновление связанных фреймов и клонов по всей доске
+    if (oldLID) {
+      for (const other of this.nodes) {
+        if (other === node) continue;
+        let changed = false;
+
+        const frame = (other as any).frame;
+        if (
+          frame &&
+          Array.isArray(frame.parentsLID) &&
+          frame.parentsLID.includes(oldLID)
+        ) {
+          frame.parentsLID = frame.parentsLID.map((id: number) =>
+            id === oldLID ? newLID : id,
+          );
+          changed = true;
+        }
+
+        if (other.clones && other.clones.mainNodeLID === oldLID) {
+          other.clones.mainNodeLID = newLID;
+          changed = true;
+        }
+
+        if (other.list?.parentLID === oldLID) {
+          other.list.parentLID = newLID;
+          changed = true;
+        }
+
+        if (changed) {
+          other.save();
+        }
+      }
+    }
+
+    node.save();
   }
 
   async addTextEditNode_byEnter(e: KeyboardEvent) {

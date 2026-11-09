@@ -456,7 +456,7 @@ export function commitMoveHistoryTransaction(
   }
 
   const command = new SnapshotDiffCommand(beforeMap, afterMap);
-  if (command.hasChanges && core.history) {
+  if (command.hasChanges && typeof core.history?.push === "function") {
     core.history.push(command);
     return command;
   }

@@ -1,4 +1,5 @@
 import type { LNode } from "./LNode/LNode";
+import { core } from "../core/core";
 
 export function getRectForNodes(nodes: Iterable<LNode>): DOMRect {
   let x0 = Infinity,
@@ -84,6 +85,9 @@ export function generateLID(nodes: Iterable<LNode>): number {
 }
 
 export function ensureLID(nodes: Iterable<LNode>, node: LNode): number {
+  if (core.nodeManager) {
+    return core.nodeManager.ensureLID(node);
+  }
   if (!node.lID) {
     node.lID = generateLID(nodes);
     node.save();

@@ -1,6 +1,96 @@
 import type { IExData } from "./IExData";
 import type { ILNode } from "./ILNode";
 
+export const S_BITMASKS = {
+  LID_BITS: 17,
+  LID_MASK: 0x1ffff, // (1 << 17) - 1 = 131071
+  FRAME_BIT: 17,
+  HIDDEN_BD_BIT: 18,
+  LIST_CLOSED_BIT: 19,
+  REPEATS_OPEN_BIT: 20,
+  HIDDEN_OPEN_BIT: 21,
+} as const;
+
+export function extractLIDFromS(s: number | null | undefined): number {
+  if (s === undefined || s === null) return 0;
+  return (s >>> 0) & S_BITMASKS.LID_MASK;
+}
+
+export function patchLIDInS(s: number | null | undefined, lid: number): number {
+  const current = (s ?? 0) >>> 0;
+  const cleanLID = (lid >>> 0) & S_BITMASKS.LID_MASK;
+  return ((current & ~S_BITMASKS.LID_MASK) | cleanLID) >>> 0;
+}
+
+export function extractFlagsFromS(s: number | null | undefined) {
+  const unsigned = (s ?? 0) >>> 0;
+  return {
+    isFrame: Boolean((unsigned >>> S_BITMASKS.FRAME_BIT) & 1),
+    hiddenBD: Boolean((unsigned >>> S_BITMASKS.HIDDEN_BD_BIT) & 1),
+    isListOpen: !Boolean((unsigned >>> S_BITMASKS.LIST_CLOSED_BIT) & 1),
+    isRepeatsOpen: Boolean((unsigned >>> S_BITMASKS.REPEATS_OPEN_BIT) & 1),
+    isHiddenOpen: Boolean((unsigned >>> S_BITMASKS.HIDDEN_OPEN_BIT) & 1),
+  };
+}
+
+export function patchFlagInS(
+  s: number | null | undefined,
+  flag: "isFrame" | "hiddenBD" | "isListClosed" | "isRepeatsOpen" | "isHiddenOpen",
+  value: boolean,
+): number {
+  const current = (s ?? 0) >>> 0;
+  let bitOffset = 0;
+  switch (flag) {
+    case "isFrame":
+      bitOffset = S_BITMASKS.FRAME_BIT;
+      break;
+    case "hiddenBD":
+      bitOffset = S_BITMASKS.HIDDEN_BD_BIT;
+      break;
+    case "isListClosed":
+      bitOffset = S_BITMASKS.LIST_CLOSED_BIT;
+      break;
+    case "isRepeatsOpen":
+      bitOffset = S_BITMASKS.REPEATS_OPEN_BIT;
+      break;
+    case "isHiddenOpen":
+      bitOffset = S_BITMASKS.HIDDEN_OPEN_BIT;
+      break;
+  }
+  const mask = 1 << bitOffset;
+  return (value ? current | mask : current & ~mask) >>> 0;
+}
+
+export const L_BITMASKS = {
+  TAB_MASK: 0x7,
+  INDEX_MASK: 0xfff,
+  PARENT_LID_MASK: 0x1ffff,
+} as const;
+
+export function extractParentLIDFromL(
+  L: number | null | undefined,
+): number | undefined {
+  if (L === undefined || L === null) return undefined;
+  const unsigned = L >>> 0;
+  const parentLID = (unsigned >>> 15) & L_BITMASKS.PARENT_LID_MASK;
+  return parentLID > 0 ? parentLID : undefined;
+}
+
+export function packL(
+  tab: number,
+  index: number | undefined,
+  parentLID: number | undefined,
+): number | undefined {
+  if (parentLID === undefined) return undefined;
+  const t = (Math.max(0, tab) & L_BITMASKS.TAB_MASK) >>> 0;
+  const idx =
+    ((index !== undefined && index >= 0 ? index + 1 : 0) &
+      L_BITMASKS.INDEX_MASK) >>>
+    0;
+  const p = (parentLID & L_BITMASKS.PARENT_LID_MASK) >>> 0;
+  return (t | (idx << 3) | (p << 15)) >>> 0;
+}
+
 export interface IOutNodeItem {
   _id?: string | undefined;
   lID: number;
@@ -90,10 +180,13 @@ class TPackedData<T> {
     let ff = false;
     this.fields.forEach((f) => {
       const mask = (1 << f.bits) - 1;
-      const val = f.get(obj) & mask;
-      if (val > 0) {
-        result |= val << offset;
-        ff = true;
+      const rawVal = f.get(obj);
+      if (rawVal !== undefined && rawVal !== null) {
+        const val = Number(rawVal) & mask;
+        if (val > 0) {
+          result = (result | (val << offset)) >>> 0;
+          ff = true;
+        }
       }
       offset += f.bits;
     });
@@ -102,10 +195,11 @@ class TPackedData<T> {
 
   unpack(obj: T, packed: number | null | undefined): void {
     if (packed === undefined || packed === null) return;
+    const unsignedPacked = packed >>> 0;
     let offset = 0;
     this.fields.forEach((f) => {
       const mask = (1 << f.bits) - 1;
-      const val = (packed >> offset) & mask;
+      const val = (unsignedPacked >>> offset) & mask;
       if (val > 0 || f.bits === 1) {
         f.set(obj, val);
       }

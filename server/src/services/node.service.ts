@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
 import { Node } from "../models/Node";
 import { User } from "../models/User";
-import type { IOutFrameData, IOutNodeItem } from "../../../shared/types/INodeDB";
+import type {
+  IOutFrameData,
+  IOutNodeItem,
+} from "../../../shared/types/INodeDB";
+import {
+  extractLIDFromS,
+  patchLIDInS,
+  extractFlagsFromS,
+  packL,
+} from "../../../shared/types/INodeDB";
 
 export async function syncPageOutSnapshot(
   pageId: string | mongoose.Types.ObjectId,
@@ -45,7 +54,7 @@ export async function syncPageOutSnapshot(
     if (n.L === undefined || n.L === null) continue;
     const parentLID = (n.L >> 15) & 0x1ffff;
     if (parentLID <= 0) continue;
-    const nodeLID = (n.s || 0) & 0x1ffff;
+    const nodeLID = extractLIDFromS(n.s);
     const tab = n.L & 0x7;
     const rawIdx = (n.L >> 3) & 0xfff;
     const index = rawIdx > 0 ? rawIdx - 1 : 0;
@@ -61,7 +70,7 @@ export async function syncPageOutSnapshot(
   const out: IOutFrameData[] = [];
 
   for (const frame of outFrames) {
-    const outFrameLID = (frame.s || 0) & 0x1ffff;
+    const outFrameLID = extractLIDFromS(frame.s);
     if (!outFrameLID) continue;
 
     const items: IOutNodeItem[] = [];
@@ -71,7 +80,7 @@ export async function syncPageOutSnapshot(
       const children = childrenByParentLID.get(pLID) || [];
       children.sort((a, b) => a.index - b.index);
       for (const ch of children) {
-        const hiddenBD = Boolean(((ch.raw.s || 0) >> 18) & 1);
+        const { hiddenBD } = extractFlagsFromS(ch.raw.s);
         if (hiddenBD) continue;
         items.push({
           _id: String(ch.raw._id),
@@ -478,7 +487,7 @@ export async function createQuickNode(input: QuickAddNodeInput) {
       targetPageId = parentNode.pageId
         ? parentNode.pageId.toString()
         : "root";
-      let pLID = (parentNode.s || 0) & 0x1ffff;
+      let pLID = extractLIDFromS(parentNode.s);
       if (!pLID) {
         const pageNodesForLID = await Node.find({
           pageId: parentNode.pageId ?? null,
@@ -488,11 +497,11 @@ export async function createQuickNode(input: QuickAddNodeInput) {
           .lean();
         let maxLID = 0;
         for (const n of pageNodesForLID) {
-          const curLID = (n.s || 0) & 0x1ffff;
+          const curLID = extractLIDFromS(n.s);
           if (curLID > maxLID) maxLID = curLID;
         }
         pLID = maxLID + 1;
-        parentNode.s = ((parentNode.s || 0) & ~0x1ffff) | (pLID & 0x1ffff);
+        parentNode.s = patchLIDInS(parentNode.s, pLID);
         await parentNode.save();
       }
       targetParentLID = pLID;
@@ -547,10 +556,7 @@ export async function createQuickNode(input: QuickAddNodeInput) {
           : 22;
 
   // Упаковываем L: tab (3 бита), index (12 бит), parentLID (17 бит)
-  const t = targetTab & 0x7;
-  const idx = finalIndex & 0xfff;
-  const pLID = targetParentLID & 0x1ffff;
-  const newL = (t | (idx << 3) | (pLID << 15)) >>> 0;
+  const newL = packL(targetTab, finalIndex, targetParentLID);
 
   const nodeData: Record<string, any> = {
     title: rawText,
@@ -561,7 +567,7 @@ export async function createQuickNode(input: QuickAddNodeInput) {
   };
 
   if (customS !== undefined) {
-    nodeData.s = customS;
+    nodeData.s = (customS >>> 0);
   }
 
   if (targetUserId) {

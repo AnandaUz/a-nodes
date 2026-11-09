@@ -9,7 +9,16 @@ import TRepeatMode from "./TRepeatMode";
 import TClones from "./TClones";
 
 export class LNode implements ILNode {
-  _id: string | undefined = "";
+  private __id: string | undefined = "";
+  get _id(): string | undefined {
+    return this.__id;
+  }
+  set _id(v: string | undefined) {
+    this.__id = v;
+    if (typeof this.vNode?.syncDataAttrs === "function") {
+      this.vNode.syncDataAttrs();
+    }
+  }
   userId: string | undefined;
   pageId: string | undefined;
   inTrash: boolean | undefined;
@@ -48,7 +57,16 @@ export class LNode implements ILNode {
 
   exData?: IExData | undefined;
 
-  lID?: number | undefined;
+  private _lID?: number | undefined;
+  get lID(): number | undefined {
+    return this._lID;
+  }
+  set lID(v: number | undefined) {
+    this._lID = v;
+    if (typeof this.vNode?.syncDataAttrs === "function") {
+      this.vNode.syncDataAttrs();
+    }
+  }
   vNode?: VNode | undefined;
   /** поле которое я сохраняю в базе */
   hiddenBD: boolean = false;
@@ -204,7 +222,9 @@ export class LNode implements ILNode {
         const childRect = child.getNodeRect(true);
         x0 = Math.min(x0, childRect.x);
         y0 = Math.min(y0, childRect.y);
-        x1 = child.isOutGroupHeader ? x1 : Math.max(x1, childRect.x + childRect.width);
+        x1 = child.isOutGroupHeader
+          ? x1
+          : Math.max(x1, childRect.x + childRect.width);
         y1 = Math.max(y1, childRect.y + childRect.height);
       }
     }

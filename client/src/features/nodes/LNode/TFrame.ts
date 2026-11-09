@@ -310,6 +310,7 @@ export default class TFrame {
     } else if (mode === "out") {
       if (!this.isFrame) this.turnOn_frameMode();
       core.nodeManager?.ensureLID(this.owner);
+      this.resetOtherIoFrames("out");
       this._isFrameIn = false;
       this._isFrameOut = true;
     } else {
