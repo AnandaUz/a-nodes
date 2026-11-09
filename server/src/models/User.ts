@@ -22,6 +22,7 @@ const userSchema = new Schema<IUserDocument>({
   },
   token: {
     type: String,
+    select: false,
   },
   refreshTokenHash: {
     type: String,

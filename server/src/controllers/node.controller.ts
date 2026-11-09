@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import crypto from "crypto";
 import mongoose from "mongoose";
 import { Node } from "../models/Node";
 import type { AuthRequest } from "../middleware/auth.middleware";
@@ -267,7 +268,11 @@ const checkApiKey = (req: Request): boolean => {
     (authHeader && authHeader.startsWith("Bearer ")
       ? authHeader.split(" ")[1]
       : null);
-  return Boolean(apiKey && apiKey === secretKey);
+  if (!apiKey) return false;
+  const keyBuf = Buffer.from(apiKey);
+  const secretBuf = Buffer.from(secretKey);
+  if (keyBuf.length !== secretBuf.length) return false;
+  return crypto.timingSafeEqual(keyBuf, secretBuf);
 };
 
 export const getQuickTargetsController = async (

@@ -1,5 +1,6 @@
 import { getUsers } from '../services/users.service';
 import type { IUser } from '@shared/types';
+import { escapeHtml } from '@/features/core/escapeHtml';
 
 class CUsersList extends HTMLElement {
   async connectedCallback() {
@@ -19,7 +20,7 @@ class CUsersList extends HTMLElement {
       <ul class="users-list ul-level">
         ${users.map(user => `
           <li class="users-list__item">
-            <a href="/user/${user.id}">${user.name}</a>
+            <a href="/user/${encodeURIComponent(user.id)}">${escapeHtml(user.name)}</a>
           </li>
         `).join('')}
       </ul>

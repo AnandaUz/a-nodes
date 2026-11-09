@@ -1,5 +1,6 @@
 import { getUser } from "@/services/auth.service";
 import api from "@/features/core/api";
+import { escapeHtml } from "@/features/core/escapeHtml";
 import "./admin.scss";
 
 interface AdminUserStat {
@@ -24,16 +25,6 @@ function formatDate(isoString?: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function escapeHtml(str?: string): string {
-  if (!str) return "";
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 export function adminPage() {

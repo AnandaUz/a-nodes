@@ -20,19 +20,32 @@ export class VPage extends VTextEdit {
       const navigateToPage = (openInNewTab: boolean) => {
         const _id = this.node._id;
         let url = "";
-        const essUrl = this.node.exData?.url;
+        const essUrl = this.node.exData?.url?.trim();
         if (essUrl) {
           if (/^[a-f0-9]{24}$/i.test(essUrl)) {
             url = "/desk/" + essUrl;
-          } else {
+          } else if (essUrl.startsWith("/") && !essUrl.startsWith("//")) {
             url = essUrl;
+          } else {
+            try {
+              const parsed = new URL(essUrl);
+              if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+                url = parsed.href;
+              } else {
+                url = "/desk/" + _id;
+              }
+            } catch {
+              url = "/desk/" + _id;
+            }
           }
         } else {
           url = "/desk/" + _id;
         }
 
-        if (openInNewTab) {
-          window.open(url, "_blank");
+        const isInternal = url.startsWith("/") && !url.startsWith("//");
+
+        if (openInNewTab || !isInternal) {
+          window.open(url, "_blank", "noopener,noreferrer");
         } else {
           const deskTargetId =
             essUrl && /^[a-f0-9]{24}$/i.test(essUrl) ? essUrl : _id;

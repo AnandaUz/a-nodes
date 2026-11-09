@@ -1,4 +1,5 @@
 import type { LNode_TEClone } from "../LNode/LNode_TEClone";
+import { escapeHtml } from "@/features/core/escapeHtml";
 import VTextEdit from "./VTextEdit";
 
 export default class VTextEditClone extends VTextEdit {
@@ -17,7 +18,7 @@ export default class VTextEditClone extends VTextEdit {
 
     const title = this.node.clones.sourceNode?.title || "$$$$$$";
     if (title) {
-      const str = title.replace(/\n/g, "<br/>");
+      const str = escapeHtml(title).replace(/\n/g, "<br/>");
       if (str !== this.titleEl.innerHTML) {
         this.titleEl.innerHTML = str;
       }

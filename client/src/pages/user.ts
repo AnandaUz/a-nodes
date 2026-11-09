@@ -1,4 +1,5 @@
 import { getUsers } from '@/services/users.service';
+import { escapeHtml } from '@/features/core/escapeHtml';
 import type { Page } from '../types';
 
 
@@ -18,8 +19,8 @@ export const userPage: Page = ({ id }) => {
       }
 
       section.innerHTML = `
-        <h1>${user.name}</h1>
-        <p>${user.email ?? ''}</p>
+        <h1>${escapeHtml(user.name)}</h1>
+        <p>${escapeHtml(user.email ?? '')}</p>
       `;
     }
   };
