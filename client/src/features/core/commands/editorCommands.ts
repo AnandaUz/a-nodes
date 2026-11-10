@@ -23,7 +23,8 @@ export const editorCommands: UICommand[] = [
   {
     label: "Новая нода снизу",
     description: "В режиме редактирования текста создает ноду под текущей",
-    shortcuts: ["enter", "num-enter"],
+    shortcuts: ["enter", "num-enter", "numpadenter"],
+    when: "editing",
     execute: (e) => {
       if (!core.mode.textEditing) return;
 
