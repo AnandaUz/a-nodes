@@ -54,9 +54,9 @@ export const googleAuth = async (req: Request, res: Response) => {
         isNew = true;
       } else if (!user.settings?.homeId) {
         const homeNode = new Node({
-          title: "♥️ Главная",
-          type: 4,
-          userId: user._id,
+          t: "♥️ Главная",
+          T: 4,
+          UI: user._id,
         });
         await homeNode.save();
         user.settings = { ...(user.settings || {}), homeId: homeNode._id.toString() };
@@ -141,9 +141,9 @@ export const registerUser = async (req: Request, res: Response) => {
     // Создание рабочего стола для пользователя
     if (!user.settings?.homeId) {
       const homeNode = new Node({
-        title: "♥️ Главная",
-        type: 4,
-        userId: user._id,
+        t: "♥️ Главная",
+        T: 4,
+        UI: user._id,
       });
       await homeNode.save();
       user.settings = { ...(user.settings || {}), homeId: homeNode._id.toString() };

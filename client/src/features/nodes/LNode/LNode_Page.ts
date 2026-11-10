@@ -94,7 +94,7 @@ export class LNode_Page extends LNode_TextEdit {
         }
 
         if (hdrNode) {
-          hdrNode.title = frameData.title || "Исходящие";
+          hdrNode.title = frameData.t || (frameData as any).title || "Исходящие";
           hdrNode.isOutGroupHeader = true;
           hdrNode.isLockedInOutFrame = true;
           hdrNode.outFrameLID = frameData.lID;
@@ -140,9 +140,9 @@ export class LNode_Page extends LNode_TextEdit {
         fromDB(
           {
             _id: item._id,
-            pageId: this._id,
-            type: targetType,
-            title: item.title,
+            pI: this._id,
+            T: targetType,
+            t: item.t ?? (item as any).title,
             c: item.c,
             s: item.s,
             D: item.D,

@@ -2,10 +2,10 @@ import mongoose, { Model, Document } from "mongoose";
 import type { INodeDB } from "../../../shared/types/INodeDB.js";
 
 export interface INodeDocument
-  extends Omit<INodeDB, "_id" | "userId" | "pageId" | "c">, Document {
+  extends Omit<INodeDB, "_id" | "UI" | "pI" | "c">, Document {
   _id: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
-  pageId?: mongoose.Types.ObjectId | null;
+  UI: mongoose.Types.ObjectId;
+  pI?: mongoose.Types.ObjectId | null;
   c?: mongoose.Types.ObjectId | null;
 }
 
@@ -31,7 +31,7 @@ const outNodeItemSchema = new mongoose.Schema(
     _id: { type: String },
     lID: { type: Number },
     parentLID: { type: Number },
-    title: { type: String },
+    t: { type: String },
     tab: { type: Number },
     index: { type: Number },
     c: { type: String },
@@ -45,7 +45,7 @@ const outFrameSchema = new mongoose.Schema(
   {
     _id: { type: String },
     lID: { type: Number },
-    title: { type: String },
+    t: { type: String },
     items: { type: [outNodeItemSchema], default: [] },
   },
   { _id: false },
@@ -57,18 +57,18 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
   //     type: mongoose.Schema.Types.ObjectId,
   //     required: true,s
   //   },
-  userId: {
+  UI: {
     type: mongoose.Schema.Types.ObjectId,
   },
-  pageId: {
+  pI: {
     type: mongoose.Schema.Types.ObjectId,
   },
   x: { type: mongoose.Schema.Types.Int32 },
   y: { type: mongoose.Schema.Types.Int32 },
-  type: { type: mongoose.Schema.Types.Int32 },
+  T: { type: mongoose.Schema.Types.Int32 },
   inTrash: { type: Boolean },
-  lastUpdate: { type: Date },
-  title: { type: String },
+  lU: { type: Date },
+  t: { type: String },
   ok: { type: Boolean },
   L: { type: Number },
   exData: {
@@ -86,11 +86,11 @@ const nodeSchema = new mongoose.Schema<INodeDocument>({
 });
 
 // Ключевые индексы для выборок уровня и дельта-синхронизации
-nodeSchema.index({ pageId: 1, inTrash: 1 });
-nodeSchema.index({ pageId: 1, lastUpdate: 1 });
-nodeSchema.index({ pageId: 1, i: 1 });
-nodeSchema.index({ pageId: 1, o: 1 });
-nodeSchema.index({ userId: 1 }, { sparse: true });
+nodeSchema.index({ pI: 1, inTrash: 1 });
+nodeSchema.index({ pI: 1, lU: 1 });
+nodeSchema.index({ pI: 1, i: 1 });
+nodeSchema.index({ pI: 1, o: 1 });
+nodeSchema.index({ UI: 1 }, { sparse: true });
 nodeSchema.index({ c: 1 });
 
 export const Node: Model<INodeDocument> =

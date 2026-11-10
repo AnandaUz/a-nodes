@@ -3,8 +3,8 @@ import type { DeskSnapshot } from "../core/interfaces";
 
 export function areNodesEqual(a: INodeDB, b: INodeDB): boolean {
   if (a._id !== b._id) return false;
-  if (a.type !== b.type) return false;
-  if (a.title !== b.title) return false;
+  if (a.T !== b.T) return false;
+  if (a.t !== b.t) return false;
   if (Boolean(a.inTrash) !== Boolean(b.inTrash)) return false;
   if (Boolean(a.ok) !== Boolean(b.ok)) return false;
   if ((a.x ?? 0) !== (b.x ?? 0) || (a.y ?? 0) !== (b.y ?? 0)) return false;
@@ -25,9 +25,9 @@ export function areNodesEqual(a: INodeDB, b: INodeDB): boolean {
     }
   }
 
-  if (a.lastUpdate || b.lastUpdate) {
-    const timeA = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0;
-    const timeB = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0;
+  if (a.lU || b.lU) {
+    const timeA = a.lU ? new Date(a.lU).getTime() : 0;
+    const timeB = b.lU ? new Date(b.lU).getTime() : 0;
     if (timeA !== timeB) return false;
   }
 

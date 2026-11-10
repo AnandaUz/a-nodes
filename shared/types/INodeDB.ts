@@ -95,7 +95,7 @@ export interface IOutNodeItem {
   _id?: string | undefined;
   lID: number;
   parentLID?: number | undefined;
-  title?: string | undefined;
+  t?: string | undefined;
   tab?: number | undefined;
   index?: number | undefined;
   c?: string | undefined;
@@ -106,20 +106,20 @@ export interface IOutNodeItem {
 export interface IOutFrameData {
   _id?: string | undefined;
   lID: number;
-  title?: string | undefined;
+  t?: string | undefined;
   items: IOutNodeItem[];
 }
 
 export interface INodeDB {
   _id?: string | undefined;
-  userId?: string | undefined;
-  pageId?: string | undefined;
+  UI?: string | undefined;
+  pI?: string | undefined;
   inTrash?: boolean | undefined;
-  lastUpdate?: Date | undefined;
-  type?: number | undefined;
+  lU?: Date | undefined;
+  T?: number | undefined;
   x?: number | undefined;
   y?: number | undefined;
-  title?: string | undefined;
+  t?: string | undefined;
   ok?: boolean | undefined;
   L?: number | undefined; //list - разные переменные
   s?: number | undefined; //lID - разные переменные
@@ -348,11 +348,11 @@ const blockL = new TPackedData<ILNode>()
 export function toDB(node: ILNode): INodeDB {
   const res: INodeDB = {
     _id: node._id,
-    pageId: node.pageId,
+    pI: node.pageId,
     inTrash: node.inTrash,
-    lastUpdate: node.lastUpdate,
-    type: node.type,
-    title: node.title,
+    lU: node.lastUpdate,
+    T: node.type,
+    t: node.title,
     // ok: this.ok,
   };
   // родители фреймов
@@ -415,14 +415,14 @@ export function toDB(node: ILNode): INodeDB {
 }
 export function fromDB(db: INodeDB, node: ILNode) {
   node._id = db._id ?? "";
-  node.userId = db.userId;
-  node.pageId = db.pageId;
+  node.userId = db.UI ?? (db as any).userId;
+  node.pageId = db.pI ?? (db as any).pageId;
   node.inTrash = db.inTrash;
-  node.lastUpdate = db.lastUpdate;
-  node.type = db.type ?? 0;
+  node.lastUpdate = db.lU ?? (db as any).lastUpdate;
+  node.type = db.T ?? (db as any).type ?? 0;
   node.x = db.x ?? 0;
   node.y = db.y ?? 0;
-  node.title = db.title;
+  node.title = db.t ?? (db as any).title;
   // this.ok = db.ok;
   // распаковываем list
   if (node.list) {

@@ -104,7 +104,8 @@ export const saveNodesController = async (req: Request, res: Response) => {
     const pageObjectIds: mongoose.Types.ObjectId[] = [];
 
     for (const node of nodes) {
-      affectedDesks.add(node.pageId ? String(node.pageId) : "root");
+      const pid = node.pI ?? (node as any).pageId;
+      affectedDesks.add(pid ? String(pid) : "root");
       if (node._id && mongoose.isValidObjectId(node._id)) {
         const oId = new mongoose.Types.ObjectId(node._id);
         affectedDesks.add(String(node._id));
@@ -113,8 +114,8 @@ export const saveNodesController = async (req: Request, res: Response) => {
       if (node.c && mongoose.isValidObjectId(node.c)) {
         sourceObjectIds.push(new mongoose.Types.ObjectId(node.c));
       }
-      if (node.pageId && mongoose.isValidObjectId(node.pageId)) {
-        pageObjectIds.push(new mongoose.Types.ObjectId(node.pageId));
+      if (pid && mongoose.isValidObjectId(pid)) {
+        pageObjectIds.push(new mongoose.Types.ObjectId(pid));
       }
     }
 
@@ -123,11 +124,11 @@ export const saveNodesController = async (req: Request, res: Response) => {
         c: { $in: nodeObjectIds },
         inTrash: { $ne: true },
       })
-        .select("pageId")
+        .select("pI")
         .lean();
 
       for (const cl of clones) {
-        affectedDesks.add(cl.pageId ? String(cl.pageId) : "root");
+        affectedDesks.add(cl.pI ? String(cl.pI) : "root");
       }
     }
 
@@ -136,11 +137,11 @@ export const saveNodesController = async (req: Request, res: Response) => {
         _id: { $in: sourceObjectIds },
         inTrash: { $ne: true },
       })
-        .select("pageId")
+        .select("pI")
         .lean();
 
       for (const src of sources) {
-        affectedDesks.add(src.pageId ? String(src.pageId) : "root");
+        affectedDesks.add(src.pI ? String(src.pI) : "root");
       }
     }
 
@@ -149,11 +150,11 @@ export const saveNodesController = async (req: Request, res: Response) => {
         _id: { $in: pageObjectIds },
         inTrash: { $ne: true },
       })
-        .select("pageId")
+        .select("pI")
         .lean();
 
       for (const pp of parentPages) {
-        affectedDesks.add(pp.pageId ? String(pp.pageId) : "root");
+        affectedDesks.add(pp.pI ? String(pp.pI) : "root");
       }
     }
 
@@ -196,13 +197,13 @@ export const deleteNodeController = async (req: Request, res: Response) => {
       }
       const objectIds = validIds.map((id) => new mongoose.Types.ObjectId(id));
       const existingNodes = await Node.find({ _id: { $in: objectIds } })
-        .select("pageId")
+        .select("pI")
         .lean();
       await deleteNodesByIds(validIds, userId);
 
       const affectedDesks = new Set<string>();
       for (const n of existingNodes) {
-        affectedDesks.add(n.pageId ? String(n.pageId) : "root");
+        affectedDesks.add(n.pI ? String(n.pI) : "root");
       }
       const serverTime = new Date().toISOString();
       for (const deskId of affectedDesks) {
@@ -228,14 +229,14 @@ export const deleteNodeController = async (req: Request, res: Response) => {
     const deletedNode = await deleteNodeById(id, userId);
     if (deletedNode) {
       const targetDesks = new Set<string>();
-      const deskId = deletedNode.pageId ? String(deletedNode.pageId) : "root";
+      const deskId = deletedNode.pI ? String(deletedNode.pI) : "root";
       targetDesks.add(deskId);
-      if (deletedNode.pageId && mongoose.isValidObjectId(deletedNode.pageId)) {
-        const parentPage = await Node.findOne({ _id: deletedNode.pageId })
-          .select("pageId")
+      if (deletedNode.pI && mongoose.isValidObjectId(deletedNode.pI)) {
+        const parentPage = await Node.findOne({ _id: deletedNode.pI })
+          .select("pI")
           .lean();
         if (parentPage) {
-          targetDesks.add(parentPage.pageId ? String(parentPage.pageId) : "root");
+          targetDesks.add(parentPage.pI ? String(parentPage.pI) : "root");
         }
       }
       const nowIso = new Date().toISOString();
@@ -289,7 +290,11 @@ export const getQuickTargetsController = async (
     const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
     const marker = (rawQ || ">>").slice(0, 64);
     const pageId =
-      typeof req.query.pageId === "string" ? req.query.pageId : undefined;
+      typeof req.query.pI === "string"
+        ? req.query.pI
+        : typeof req.query.pageId === "string"
+          ? req.query.pageId
+          : undefined;
 
     const targets = await findQuickTargets(marker, pageId);
     res.json({ success: true, targets });
@@ -319,15 +324,15 @@ export const quickAddNodeController = async (req: Request, res: Response) => {
     if (typeof req.body === "string") {
       rawText = req.body.trim();
     } else if (req.body && typeof req.body === "object") {
-      rawText = (req.body.text || req.body.title || "").toString().trim();
+      rawText = (req.body.text || req.body.t || req.body.title || "").toString().trim();
       customParentTitle = req.body.parentTitle;
-      customPageId = req.body.pageId;
+      customPageId = req.body.pI || req.body.pageId;
       if (req.body.parentLID !== undefined)
         customParentLID = Number(req.body.parentLID);
       if (req.body.tab !== undefined) customTab = Number(req.body.tab);
       if (req.body.index !== undefined) customIndex = Number(req.body.index);
       if (req.body.s !== undefined) customS = Number(req.body.s);
-      customUserId = req.body.userId;
+      customUserId = req.body.UI || req.body.userId;
     }
 
     if (!rawText) {
