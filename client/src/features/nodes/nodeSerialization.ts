@@ -207,7 +207,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   if (node.isLockedInOutFrame) return;
   if (node.list.parentLID && node.list.parentLID !== node.lID) {
     const parentNode = manager.getNodeByLID(node.list.parentLID);
-    if (parentNode) {
+    if (parentNode && !parentNode.inTrash) {
       if (node.list.parentNode !== parentNode) {
         if (node.list.parentNode) {
           node.list.parentNode.list.children?.delete(node);
@@ -216,12 +216,28 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
         }
         node.list.initParent(parentNode);
       }
+    } else {
+      if (node.list.parentNode) {
+        node.list.parentNode.list.children?.delete(node);
+        node.list.parentNode.list.invalidateChildrenOrder();
+        node.list.parentNode.vNode?.refreshListBtns?.();
+        node.list.parentNode = null;
+      }
+      node.list.parentLID = undefined;
     }
   } else if (node.list.parentNode) {
     node.list.parentNode.list.children?.delete(node);
     node.list.parentNode.list.invalidateChildrenOrder();
     node.list.parentNode.vNode?.refreshListBtns?.();
     node.list.parentNode = null;
+  }
+
+  const frame = (node as LNode_TextEdit).frame;
+  if (frame && frame.parentsLID?.length) {
+    frame.parentsLID = frame.parentsLID.filter((pLid) => {
+      const pNode = manager.getNodeByLID(pLid);
+      return pNode && !pNode.inTrash && (pNode as LNode_TextEdit).frame?.isFrame;
+    });
   }
 }
 

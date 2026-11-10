@@ -1,6 +1,10 @@
 import { core } from "../core/core";
 import { GRID } from "../core/CONST";
 import Tools from "../core/Tools";
+import {
+  beginMoveHistoryTransaction,
+  commitMoveHistoryTransaction,
+} from "../core/commands/historyCommands";
 import { NODE_TYPES } from "./node-registry";
 import type { NodeManager } from "./NodeManager";
 import type { LNode } from "./LNode/LNode";
@@ -18,11 +22,78 @@ export async function addTextEditNodeByEnter(
 
   const node = core.selectManager.selectedNodes.values().next()
     .value as LNode_TextEdit;
-  const title = node.title || "";
+  const rawTitle = node.title || "";
+  const title = rawTitle.trim();
   const vNode = node.vNode as VTextEdit;
 
   if (!title) {
-    vNode.moveAniTo(null, (node.y ?? 0) + 25);
+    if (rawTitle) {
+      node.title = "";
+      if (vNode) {
+        vNode.title = "";
+        vNode.refreshBodyRect();
+        vNode.render();
+      }
+    }
+
+    const oldParent = node.list?.parentNode;
+    const mainParent = node.list?.mainParent;
+    const rowHeight = vNode?.height || 25;
+
+    const trackingNodes: LNode[] = [node];
+    if (mainParent) trackingNodes.push(mainParent);
+    else if (oldParent) trackingNodes.push(oldParent);
+    beginMoveHistoryTransaction(trackingNodes);
+
+    if (oldParent) {
+      node.list.clearParent();
+      if (node.vNode?.body?.classList.contains("in-frame")) {
+        node.vNode.body.classList.remove("in-frame");
+      }
+      vNode?.removeFramePowerBtn?.();
+
+      const root =
+        mainParent && mainParent !== node
+          ? mainParent
+          : oldParent !== node
+            ? oldParent
+            : null;
+      if (root) {
+        root.list.setPositionForChildren(undefined, 0, 0, true, false, true);
+        root.vNode?.renderSVG();
+        root.vNode?.refreshListBtns?.();
+      } else if (oldParent) {
+        oldParent.vNode?.refreshListBtns?.();
+      }
+
+      const parentRect = root ? root.getNodeRect(true) : null;
+      const bottomY = parentRect
+        ? parentRect.y + parentRect.height
+        : (node.y ?? 0);
+      const targetY = Math.max((node.y ?? 0) + rowHeight, bottomY + rowHeight);
+      const targetX = root ? root.x : node.x;
+
+      const fromX = node.x;
+      const fromY = node.y;
+      node.moveTo({ x: targetX, y: targetY });
+      if (typeof vNode?.animateMove === "function") {
+        vNode.animateMove(fromX, fromY, targetX, targetY);
+      }
+    } else {
+      const fromX = node.x;
+      const fromY = node.y;
+      const targetY = (node.y ?? 0) + rowHeight;
+      node.moveTo({ x: node.x, y: targetY });
+      if (typeof vNode?.animateMove === "function") {
+        vNode.animateMove(fromX, fromY, node.x, targetY);
+      }
+    }
+
+    if (node.list?.children?.size) {
+      node.list.setPositionForChildren();
+    }
+
+    commitMoveHistoryTransaction(trackingNodes);
     return;
   }
 
@@ -32,8 +103,8 @@ export async function addTextEditNodeByEnter(
   const range = selection.getRangeAt(0);
   const cursorIndex = Tools.getCursorIndex(vNode.titleEl, range);
 
-  const leftText = title.slice(0, cursorIndex).trimEnd();
-  const rightText = title.slice(cursorIndex).trimStart();
+  const leftText = rawTitle.slice(0, cursorIndex).trimEnd();
+  const rightText = rawTitle.slice(cursorIndex).trimStart();
 
   vNode.title = leftText;
   vNode.refreshBodyRect();

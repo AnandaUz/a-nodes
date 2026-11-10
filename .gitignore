@@ -53,3 +53,7 @@ dist-ssr
 !.agents/
 
 db_backups/
+
+coverage/
+.turbo/
+*.tsbuildinfo

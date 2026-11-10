@@ -89,7 +89,15 @@ export class LNode_TextEdit extends LNode {
     const vNode = this.vNode as VTextEdit;
     if (vNode) {
       vNode.titleEl.contentEditable = "false";
+      const oldH = vNode.height;
       vNode.refreshBodyRect();
+      if (oldH !== vNode.height) {
+        const main = this.list.mainParent;
+        if (main && (this.list.parentNode || this.list.children?.size)) {
+          main.list.setPositionForChildren();
+          main.vNode?.renderSVG();
+        }
+      }
     }
     this.save();
 

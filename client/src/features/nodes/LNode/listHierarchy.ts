@@ -4,6 +4,14 @@ import { core } from "@/features/core/core";
 import type { LNode } from "./LNode";
 import type TList from "./TList";
 
+/**
+ * @contract
+ *   Предусловия: owner — корневой или промежуточный узел иерархии списка.
+ *   Постусловия: производит балансировку табов (tab) и индексов (index) всех потомков
+ *                относительно уровней отступа GRID.x; исключает циклические ссылки.
+ * @invariants
+ *   Ни один ребенок не может иметь tab > lastLevel + 1.
+ */
 export function checkTree(owner: LNode): void {
   if (owner.type === 4) return;
   const descendants: LNode[] = [];
@@ -25,12 +33,13 @@ export function checkTree(owner: LNode): void {
   type TLevelParent = { node: LNode; count: number } | undefined | null;
   const levelsParents: TLevelParent[] = [];
   levelsParents[-1] = { node: owner, count: 0 };
+  let lastLevel = 0;
 
   list.forEach((chNode, index) => {
     if (index === 0) return;
     if (!chNode) return;
 
-    const tabIndex =
+    const rawTabIndex =
       chNode.hidden || chNode.hiddenBD
         ? (chNode.list.tab ?? 0)
         : Math.round(
@@ -41,12 +50,15 @@ export function checkTree(owner: LNode): void {
     const parentIsExcluded =
       chNode.list.parentNode && excluded.has(chNode.list.parentNode);
 
-    if (tabIndex < 0 || parentIsExcluded) {
+    if (rawTabIndex < 0 || parentIsExcluded) {
       excluded.add(chNode);
       chNode.list.clearParent();
       chNode.save();
       return;
     }
+
+    const tabIndex = Math.min(rawTabIndex, lastLevel + 1);
+    lastLevel = tabIndex;
 
     levelsParents[tabIndex] = { node: chNode, count: 0 };
     levelsParents.splice(tabIndex + 1);
@@ -106,6 +118,12 @@ export function checkTree(owner: LNode): void {
   });
 }
 
+/**
+ * @contract
+ *   Предусловия: owner прикреплен или открепляется от list.parentNode.
+ *   Постусловия: очищает родительские ссылки, сбрасывает tab = 0, удаляет клоны при необходимости,
+ *                возвращает список родителей, требующих обновления геометрии.
+ */
 export function clearParent(list: TList, owner: LNode): LNode[] {
   if (owner.isLockedInOutFrame) {
     return list.parentNode ? [list.parentNode] : [];
@@ -145,6 +163,9 @@ export function clearParent(list: TList, owner: LNode): LNode[] {
   list.parentNode = null;
   list.index = undefined;
   list.tab = 0;
+  if ((owner as any).clones?.nodes?.size) {
+    core.nodeManager?.removeAllClones(owner as any);
+  }
   if (owner.vNode?.body) {
     delete owner.vNode.body.dataset.totaltab;
     owner.vNode.refreshBodyRect();
@@ -154,6 +175,23 @@ export function clearParent(list: TList, owner: LNode): LNode[] {
   return willRefParent;
 }
 
+function isDescendant(candidate: LNode, root: LNode): boolean {
+  let curr: LNode | null | undefined = candidate.list.parentNode;
+  const seen = new Set<LNode>();
+  while (curr && !seen.has(curr)) {
+    if (curr === root) return true;
+    seen.add(curr);
+    curr = curr.list.parentNode;
+  }
+  return false;
+}
+
+/**
+ * @contract
+ *   Предусловия: parent !== owner и parent не является потомком owner (защита от циклов).
+ *   Постусловия: устанавливает parent в качестве родителя owner с индексом newIndex и табом по GRID.x,
+ *                возвращает список узлов, требующих перерасчета геометрии.
+ */
 export function setParent(
   list: TList,
   owner: LNode,
@@ -161,6 +199,9 @@ export function setParent(
   newIndex: number,
 ): LNode[] {
   const willRefParent: LNode[] = [];
+  if (parent === owner || isDescendant(parent, owner)) {
+    return willRefParent;
+  }
   if (parent && !parent.lID && core.nodeManager) {
     core.nodeManager.ensureLID(parent);
   }
@@ -210,10 +251,9 @@ export function setParent(
     willRefParent.push(oldParent);
   }
 
-  list.index = newIndex - 0.5;
-  list.tab = tab;
   const oldParentNode = list.parentNode;
   list.parentNode = parent;
+  list.tab = Math.max(0, tab);
   // если изменился родитель
   if (oldParentNode != parent) {
     owner.refresh();
@@ -221,226 +261,28 @@ export function setParent(
 
   if (!parent.list.children) parent.list.children = new Set();
   parent.list.children.add(owner);
+
+  const siblings = [...parent.list.children]
+    .filter((ch) => ch !== owner)
+    .sort((a, b) => (a.list.index ?? 0) - (b.list.index ?? 0));
+
+  const targetIdx = Math.max(0, Math.min(Math.round(newIndex), siblings.length));
+  siblings.splice(targetIdx, 0, owner);
+
+  siblings.forEach((node, index) => {
+    if (node.list && node.list.index !== index) {
+      node.list.index = index;
+      node.save();
+    }
+  });
+
   parent.list.invalidateChildrenOrder();
   parent.list.invalidateRectCache();
   parent.vNode?.refreshListBtns?.();
-  const m = parent.list.getSortedChildren();
-  m.forEach((node, index) => {
-    if (node.list) {
-      if (node.list.index != index) {
-        node.list.index = index;
-        node.save();
-      }
-    }
-  });
-  parent.list.invalidateChildrenOrder();
 
   willRefParent.push(owner);
   return willRefParent;
 }
 
-export function setPositionForChildren(
-  list: TList,
-  owner: LNode,
-  parentX: number | undefined = undefined,
-  _totalTab = 0,
-  totalIndex = 0,
-  isRoot = true,
-  isDrag = false,
-  animate = false,
-  oldPositions?: Map<LNode, { x: number; y: number }>,
-  customOldFrameRect?: DOMRect | null,
-): number {
-  if (!list.children?.size) return 0;
+export { setPositionForChildren, syncChildrenCoordinates } from "./listLayout";
 
-  let oldFrameRect: DOMRect | null = null;
-  if (customOldFrameRect !== undefined) {
-    oldFrameRect = customOldFrameRect;
-  } else if (
-    isRoot &&
-    animate &&
-    (owner as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame &&
-    owner.vNode?.elFrameBg
-  ) {
-    oldFrameRect = owner.getNodeRect();
-  }
-
-  const baseX = parentX ?? owner.x;
-  const isFrame = !!(
-    (owner as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame ||
-    (owner.list.mainParent as unknown as { frame?: { isFrame: boolean } })?.frame?.isFrame
-  );
-
-  if (isRoot) {
-    // Фаза 1: Топология, табы и классы фрейма (Top-Down)
-    propagateTabsAndFrameClass(owner, baseX, isFrame);
-
-    // Фаза 2: Пакетный замер размеров блоков (Batch Measurement)
-    measureSubtree(owner, isDrag);
-  }
-
-  // Фаза 3: Расчет координат списка и позиционирование (Vertical Layout)
-  const startY = owner.y + (owner.vNode?.height ?? 0);
-  const totalIndexRef = { count: totalIndex };
-  const h = layoutTree(owner, startY, animate, oldPositions, totalIndexRef);
-
-  // Фаза 4: Геометрия фона и связей (Bounding Box & Background)
-  if (isRoot) {
-    owner.vNode?.renderSVG(animate, oldFrameRect);
-  }
-  return h;
-}
-
-export function syncChildrenCoordinates(
-  node: LNode,
-  startY: number = node.y + (node.vNode?.height ?? 0),
-): number {
-  if (!node.list.children?.size) return 0;
-  const m = node.list.getSortedChildren();
-  let h = 0;
-  for (const child of m) {
-    child.x = node.x + GRID.x * (child.list.tab ?? 0);
-    if (child.hidden) continue;
-    child.y = startY + h;
-    const chH = child.vNode?.height || 0;
-    h += chH;
-    if (child.list.children?.size) {
-      h += syncChildrenCoordinates(child, child.y + chH);
-    }
-  }
-  return h;
-}
-
-function propagateTabsAndFrameClass(
-  parent: LNode,
-  baseX: number,
-  isFrame: boolean,
-): void {
-  if (!parent.list.children?.size) return;
-  const m = parent.list.getSortedChildren();
-  for (const child of m) {
-    child.x = parent.x + GRID.x * (child.list.tab ?? 0);
-    if (child.hidden) continue;
-    const xx = Math.round((child.x - baseX) / GRID.x);
-    const strTab = xx.toString();
-    const chVNode = child.vNode;
-    if (chVNode?.body) {
-      if (chVNode.body.dataset && chVNode.body.dataset.totaltab !== strTab) {
-        chVNode.body.dataset.totaltab = strTab;
-        chVNode._tabChanged = true;
-      }
-      if (chVNode.body.classList) {
-        if (isFrame) {
-          if (!chVNode.body.classList.contains("in-frame")) {
-            chVNode.body.classList.add("in-frame");
-            chVNode._tabChanged = true;
-          }
-        } else {
-          if (chVNode.body.classList.contains("in-frame")) {
-            chVNode.body.classList.remove("in-frame");
-            chVNode._tabChanged = true;
-          }
-        }
-      }
-      if (chVNode.body.style && chVNode.body.style.width !== "") {
-        chVNode.body.style.width = "";
-      }
-    }
-    propagateTabsAndFrameClass(child, baseX, isFrame);
-  }
-}
-
-function measureSubtree(node: LNode, isDrag: boolean): void {
-  const vNode = node.vNode;
-  if (vNode && typeof vNode.refreshBodyRect === "function") {
-    const tabChanged = Boolean(vNode._tabChanged);
-    if (!isDrag || tabChanged || !vNode.height) {
-      vNode.refreshBodyRect();
-      vNode._tabChanged = false;
-    }
-  }
-  if (!node.list.children?.size) return;
-  for (const child of node.list.children) {
-    if (child.hidden) continue;
-    measureSubtree(child, isDrag);
-  }
-}
-
-function layoutTree(
-  node: LNode,
-  startY: number,
-  animate: boolean,
-  oldPositions?: Map<LNode, { x: number; y: number }>,
-  totalIndexRef = { count: 0 },
-): number {
-  node.list._cachedRect = null;
-  if (!node.list.children?.size) return 0;
-  const m = node.list.getSortedChildren();
-  let h = 0;
-  let x0 = node.x;
-  let y0 = node.y;
-  let x1 = node.x + (node.vNode?.width ?? 0);
-  let y1 = node.y + (node.vNode?.height ?? 0);
-
-  for (const child of m) {
-    if (child.hidden) continue;
-    const prevPos = oldPositions?.get(child);
-    const oldX = prevPos ? prevPos.x : child.x;
-    const oldY = prevPos ? prevPos.y : child.y;
-
-    child.y = startY + h;
-    totalIndexRef.count++;
-    child.list.totalIndex = totalIndexRef.count;
-
-    const chVNode = child.vNode;
-    if (chVNode) {
-      if (
-        animate &&
-        (oldX !== child.x || oldY !== child.y) &&
-        typeof chVNode.animateMove === "function"
-      ) {
-        chVNode.animateMove(oldX, oldY, child.x, child.y);
-      }
-      const skipChildSVG = !(chVNode.elSVG || chVNode.elFrameBg);
-      chVNode.applyPosition(skipChildSVG);
-      h += chVNode.height;
-    }
-
-    if (child.list.children?.size) {
-      h += layoutTree(
-        child,
-        child.y + (child.vNode?.height ?? 0),
-        animate,
-        oldPositions,
-        totalIndexRef,
-      );
-      const childRect = child.list._cachedRect ?? child.getNodeRect(true);
-      x0 = Math.min(x0, childRect.x);
-      y0 = Math.min(y0, childRect.y);
-      x1 = Math.max(x1, childRect.x + childRect.width);
-      y1 = Math.max(y1, childRect.y + childRect.height);
-    } else {
-      const chW = chVNode?.width ?? 0;
-      const chH = chVNode?.height ?? 0;
-      child.list._cachedRect = {
-        x: child.x,
-        y: child.y,
-        width: chW,
-        height: chH,
-      } as DOMRect;
-      x0 = Math.min(x0, child.x);
-      y0 = Math.min(y0, child.y);
-      x1 = Math.max(x1, child.x + chW);
-      y1 = Math.max(y1, child.y + chH);
-    }
-  }
-
-  node.list._cachedRect = {
-    x: x0,
-    y: y0,
-    width: x1 - x0,
-    height: y1 - y0,
-  } as DOMRect;
-
-  return h;
-}

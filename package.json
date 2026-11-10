@@ -12,6 +12,7 @@
     "restore:db:drop": "tsx ./restore_db.ts --drop",
     "typecheck": "npm --prefix client run typecheck",
     "test:nodes": "npm --prefix client test -- --run src/features/nodes",
+    "test:related": "npm --prefix client run test:related --",
     "test:client": "npm run test -w client",
     "test": "npm run test -w client"
   },

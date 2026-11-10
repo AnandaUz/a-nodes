@@ -16,6 +16,29 @@ const DBL_CLICK_DELAY = 300; // Максимальное время между �
 const DBL_CLICK_DISTANCE = 5;
 
 export class DndController {
+  private static dropIndicator: HTMLElement | null = null;
+
+  static showDropIndicator(x: number, y: number, width: number): void {
+    if (typeof document === "undefined") return;
+    if (!DndController.dropIndicator) {
+      DndController.dropIndicator = document.createElement("div");
+      DndController.dropIndicator.className = "dnd-drop-indicator";
+      DndController.dropIndicator.style.cssText =
+        "position:absolute;height:2px;background:#3b82f6;pointer-events:none;z-index:9999;border-radius:1px;";
+      core.desk?.nodesEl?.appendChild(DndController.dropIndicator);
+    }
+    DndController.dropIndicator.style.left = `${x}px`;
+    DndController.dropIndicator.style.top = `${y}px`;
+    DndController.dropIndicator.style.width = `${width}px`;
+    DndController.dropIndicator.style.display = "block";
+  }
+
+  static hideDropIndicator(): void {
+    if (DndController.dropIndicator) {
+      DndController.dropIndicator.style.display = "none";
+    }
+  }
+
   private vNode: VNode;
   movingElement: HTMLElement | null = null;
   isDragging: boolean = false;
@@ -63,6 +86,7 @@ export class DndController {
     this.targetPos = null;
     this.lastPointerEvent = null;
     core.mode.isShiftDrag = false;
+    DndController.hideDropIndicator();
     if (!core.mode.selectMoving) {
       cancelMoveHistoryTransaction();
     }
@@ -186,6 +210,29 @@ export class DndController {
     if (hasMovingChildren) {
       this.vNode.node.list.setPositionForChildren(undefined, 0, 0, true, true);
     }
+
+    if (core.selectManager) {
+      const nearby = core.selectManager.getNodeOverRect({
+        x: this.vNode.node.x - 20,
+        y: this.vNode.node.y - 10,
+        width: (this.vNode.width || 100) + 40,
+        height: (this.vNode.height || 30) + 20,
+      } as DOMRect);
+      const targetCandidate = nearby.find((n) => n !== this.vNode.node && !n.hidden);
+      if (targetCandidate && targetCandidate.vNode) {
+        const cy =
+          this.vNode.node.y < targetCandidate.y
+            ? targetCandidate.y
+            : targetCandidate.y + (targetCandidate.vNode.height || 30);
+        DndController.showDropIndicator(
+          targetCandidate.x,
+          cy,
+          targetCandidate.vNode.width || 120,
+        );
+      } else {
+        DndController.hideDropIndicator();
+      }
+    }
   }
 
   private applyDragMove = () => {
@@ -266,6 +313,7 @@ export class DndController {
       return;
     }
     this.flushDragMove();
+    DndController.hideDropIndicator();
     this.vNode.body.classList.remove("is-dragging");
     this.isDragging = false;
     if (!this.isMoved && !core.mode.selectMoving) {

@@ -93,16 +93,34 @@ export default class TFrame {
   }
   /** иницируем кнопки добавления клонов */
   initBtns() {
+    const validChildLIDs = new Set<number>();
+    this.children.forEach((chFrame) => {
+      if (chFrame.lID) validChildLIDs.add(chFrame.lID);
+    });
+
     this.owner.list.forEachChildren((child) => {
       if (this.owner === child) return;
       const vNode = child.vNode as VTextEdit;
-      if (vNode) {
+      if (vNode?.body) {
         vNode.body.classList.add("in-frame");
+        const btns = vNode.body.querySelectorAll(
+          ".el-frame-power-btns .sub .btns .btn",
+        );
+        btns.forEach((btnEl) => {
+          const match = btnEl.className.match(/btn-(\d+)/);
+          if (match) {
+            const id = Number(match[1]);
+            if (!validChildLIDs.has(id)) {
+              vNode.removeFramePowerBtnFor?.(id);
+            }
+          }
+        });
       }
       if (child instanceof LNode_TextEdit) {
         child.frame.addPowerBtns();
       }
     });
+    this.setBtnsState();
   }
   /** подключаем детей к родителям */
   init() {
@@ -134,6 +152,9 @@ export default class TFrame {
           { x: parentRect.x + parentRect.width, y: parentRect.y + 10 },
           { x: newRect.x, y: newRect.y + 10 },
         );
+        if (!visited.has(parent.node.frame)) {
+          parent.node.frame.redrawPaths(visited);
+        }
       });
     }
 
@@ -399,8 +420,18 @@ export default class TFrame {
     const childZ = String(z + 1);
     root.list.forEachChildren((child) => {
       if (child === root) return;
-      if (child.vNode && child.vNode.body.style.zIndex !== childZ) {
-        child.vNode.body.style.zIndex = childZ;
+      const childFrame = (child as LNode_TextEdit).frame;
+      if (childFrame?.isFrame) {
+        const subBg = (child.vNode as VTextEdit | undefined)?.elFrameBg;
+        if (subBg) subBg.style.zIndex = String(z + 2);
+        if (child.vNode) child.vNode.body.style.zIndex = String(z + 3);
+        child.list.forEachChildren((subChild) => {
+          if (subChild.vNode) subChild.vNode.body.style.zIndex = String(z + 3);
+        });
+      } else {
+        if (child.vNode && child.vNode.body.style.zIndex !== childZ) {
+          child.vNode.body.style.zIndex = childZ;
+        }
       }
     });
   }

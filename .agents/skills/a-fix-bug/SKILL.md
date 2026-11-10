@@ -1,4 +1,4 @@
-﻿---
+---
 name: a-fix-bug
 description: >-
   Обработка баг-репорта по методологии TDD (!баг / /a-fix-bug).
@@ -13,7 +13,9 @@ description: >-
 
 1. Полный прогон тестов запрещён. Запуск строго таргетированный:
    ```bash
-   npx vitest run <target.test.ts>
+   npx vitest run --reporter=basic <target.test.ts>
+   # или запуск связанных тестов:
+   npx vitest related --run <file.ts>
    ```
 2. Описания тестов (`describe`, `it`) писать строго на русском языке.
 3. TypeScript: соблюдать `erasableSyntaxOnly` (без `enum`, без `parameter properties`).
@@ -27,7 +29,7 @@ description: >-
 
 ### 2. Падающий регрессионный тест
 - Добавить тест, воспроизводящий баг при заданных условиях (для тестов нод использовать готовую фабрику [nodeTestFactory.ts](file:///a:/a-node_2.0/client/src/features/nodes/__tests__/nodeTestFactory.ts) и диагностику [nodeDiagnostics.ts](file:///a:/a-node_2.0/client/src/features/nodes/nodeDiagnostics.ts)).
-- Запустить тест: `npx vitest run <target.test.ts>`.
+- Запустить тест: `npx vitest run --reporter=basic <target.test.ts>`.
 - Убедиться, что тест упал именно с ожидаемой ошибкой.
 
 ### 3. Исправление кода
@@ -35,6 +37,6 @@ description: >-
 - Не менять публичные интерфейсы и несвязанную логику.
 
 ### 4. Верификация
-- Повторно запустить целевой тест: `npx vitest run <target.test.ts>`.
+- Повторно запустить целевой тест: `npx vitest run --reporter=basic <target.test.ts>`.
 - При необходимости проверить типы: `npm --prefix client run typecheck`.
 - Если тест прошёл, отрапортовать об успешном исправлении с ссылкой на изменённые файлы.

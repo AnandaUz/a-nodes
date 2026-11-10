@@ -716,6 +716,7 @@
     box-sizing: border-box;
     z-index: 90;
     box-shadow: 0 4px 10px rgb(13 61 89 / 22%);
+    will-change: transform, width, height;
 
     &.frame-in {
         border-radius: 8px;

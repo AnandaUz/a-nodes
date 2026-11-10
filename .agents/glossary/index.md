@@ -19,3 +19,7 @@
 | `!главноеМеню`, `!mainMenu` | [.agents/glossary/main-menu.md](file:///a:/a-node_2.0/.agents/glossary/main-menu.md) |
 | `!ноды`, `!nodes`, `!nodeApi` | [.agents/glossary/nodes-api.md](file:///a:/a-node_2.0/.agents/glossary/nodes-api.md) |
 | `!шотКат`, `!горячаяКлавиша`, `!hotkey`, `!shortcut` | [.agents/glossary/shortcut.md](file:///a:/a-node_2.0/.agents/glossary/shortcut.md) |
+| `!история`, `!undoRedo` | [.agents/glossary/history.md](file:///a:/a-node_2.0/.agents/glossary/history.md) |
+| `!выделение`, `!selectManager` | [.agents/glossary/select-manager.md](file:///a:/a-node_2.0/.agents/glossary/select-manager.md) |
+| `!трансформация`, `!transformMove` | [.agents/glossary/transform-move.md](file:///a:/a-node_2.0/.agents/glossary/transform-move.md) |
+| `!селектор`, `!selectionRect` | [.agents/glossary/selection-rect.md](file:///a:/a-node_2.0/.agents/glossary/selection-rect.md) |

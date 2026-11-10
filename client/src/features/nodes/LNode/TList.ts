@@ -52,7 +52,9 @@ export default class TList {
       this._sortedChildren.some((ch) => !this.children!.has(ch))
     ) {
       this._sortedChildren = [...this.children].sort(
-        (a, b) => (a.list.index ?? 0) - (b.list.index ?? 0),
+        (a, b) =>
+          (a.list.index ?? 0) - (b.list.index ?? 0) ||
+          ((a.lID ?? 0) - (b.lID ?? 0)),
       );
     }
     return this._sortedChildren;
@@ -143,12 +145,19 @@ export default class TList {
     this._onChangeListeners.add(fn);
     return () => this._onChangeListeners.delete(fn); // отписка
   }
-  forEachChildren(fn: (node: LNode, index: number) => void) {
+  forEachChildren(
+    fn: (node: LNode, index: number) => void,
+    visited?: Set<LNode>,
+  ) {
     if (this.children?.size) {
+      const seen = visited ?? new Set<LNode>();
+      seen.add(this.owner);
       const m = this.getSortedChildren();
       for (const [index, child] of m.entries()) {
+        if (seen.has(child)) continue;
+        seen.add(child);
         fn(child, index);
-        child.list.forEachChildren(fn);
+        child.list.forEachChildren(fn, seen);
       }
     }
   }
@@ -183,7 +192,9 @@ export default class TList {
   }
   get mainParent(): LNode | null {
     let parent: LNode = this.owner;
-    while (parent.list.parentNode) {
+    const seen = new Set<LNode>();
+    while (parent.list.parentNode && !seen.has(parent.list.parentNode)) {
+      seen.add(parent);
       parent = parent.list.parentNode;
     }
     return parent;

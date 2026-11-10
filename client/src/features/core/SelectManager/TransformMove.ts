@@ -71,7 +71,24 @@ export class TransformMove {
       e.shiftKey || core.mode.mouseStatus.shift || core.mode.isShiftDrag,
     );
 
+    const rootNodesToMove = new Set<LNode>();
     this.selectManager.selectedNodes.forEach((node) => {
+      if (!isShift) {
+        let p = node.list.parentNode;
+        let hasSelectedAncestor = false;
+        while (p) {
+          if (this.selectManager.selectedNodes.has(p)) {
+            hasSelectedAncestor = true;
+            break;
+          }
+          p = p.list.parentNode;
+        }
+        if (hasSelectedAncestor) return;
+      }
+      rootNodesToMove.add(node);
+    });
+
+    rootNodesToMove.forEach((node) => {
       const startPos = this.startPositions.get(node);
       if (!startPos) return;
       node.x = Tools.getDiskPosition(Math.round(startPos.x + dx));

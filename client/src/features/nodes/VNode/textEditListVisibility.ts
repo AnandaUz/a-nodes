@@ -35,8 +35,15 @@ export function restoreSubtreeVisibility(parent: LNode): void {
 
 function updateLayoutAfterVisibilityToggle(node: LNode, view: VTextEdit): void {
   const mainParent = node.list.mainParent || node;
-  mainParent.list.setPositionForChildren();
-  mainParent.vNode?.renderSVG();
+  mainParent.list.setPositionForChildren(
+    undefined,
+    0,
+    0,
+    true,
+    false,
+    true,
+  );
+  mainParent.vNode?.renderSVG(true);
   const frameNode = mainParent as unknown as {
     frame?: { isFrame: boolean; initBtns(): void; setBtnsState(): void; bringToFront(): void };
   };
@@ -53,9 +60,17 @@ export function toggleListOpen(view: VTextEdit): void {
   const list = view.node.list;
   list.isListOpen = !list.isListOpen;
   if (!list.isListOpen) {
+    let count = 0;
+    list.forEachChildren(() => count++);
+    const shouldUnmount = count > 50;
     list.forEachChildren((child) => {
       child.hidden = true;
-      child.vNode?.hide();
+      if (shouldUnmount && child.vNode && !child.isSelected) {
+        child.vNode.remove();
+        child.vNode = undefined;
+      } else {
+        child.vNode?.hide();
+      }
     });
   } else {
     restoreSubtreeVisibility(view.node);

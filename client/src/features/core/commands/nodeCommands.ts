@@ -3,6 +3,10 @@ import { NODE_TYPES } from "../../nodes/node-registry";
 import Tools from "../Tools";
 import type { LNode_TextEdit } from "../../nodes/LNode/LNode_TextEdit";
 import { BatchCommand } from "../history";
+import {
+  beginMoveHistoryTransaction,
+  commitMoveHistoryTransaction,
+} from "./historyCommands";
 import type { UICommand } from "./types";
 
 export const nodeCreationCommands: UICommand[] = [
@@ -138,6 +142,65 @@ export const nodeActionCommands: UICommand[] = [
       });
       core.history.push(new BatchCommand(deleteCommands));
       core.selectManager.clearSelection();
+    },
+  },
+  {
+    label: "увеличить отступ в списке",
+    description: "Сдвинуть ноду вправо в дереве списка",
+    shortcuts: ["tab"],
+    when: "canvas",
+    execute: (e?: any) => {
+      e?.preventDefault?.();
+      const selected = Array.from(core.selectManager.selectedNodes.values());
+      if (selected.length === 0) return;
+      beginMoveHistoryTransaction(selected);
+      selected.forEach((node) => {
+        if (!node.list.parentNode) return;
+        const siblings = node.list.parentNode.list.getSortedChildren();
+        const myIdx = siblings.indexOf(node);
+        if (myIdx > 0) {
+          const prevSibling = siblings[myIdx - 1];
+          if (prevSibling) {
+            node.list.setParent(
+              prevSibling,
+              prevSibling.list.children?.size ?? 0,
+            );
+            const root = node.list.mainParent || prevSibling;
+            if (root) {
+              root.list.setPositionForChildren();
+              root.vNode?.renderSVG();
+            }
+            node.save();
+          }
+        }
+      });
+      commitMoveHistoryTransaction(selected);
+    },
+  },
+  {
+    label: "уменьшить отступ в списке",
+    description: "Сдвинуть ноду влево в дереве списка",
+    shortcuts: ["shift+tab"],
+    when: "canvas",
+    execute: (e?: any) => {
+      e?.preventDefault?.();
+      const selected = Array.from(core.selectManager.selectedNodes.values());
+      if (selected.length === 0) return;
+      beginMoveHistoryTransaction(selected);
+      selected.forEach((node) => {
+        const parent = node.list.parentNode;
+        if (!parent || !parent.list.parentNode) return;
+        const grandParent = parent.list.parentNode;
+        const parentIdx = grandParent.list.getSortedChildren().indexOf(parent);
+        node.list.setParent(grandParent, parentIdx + 1);
+        const root = node.list.mainParent || grandParent;
+        if (root) {
+          root.list.setPositionForChildren();
+          root.vNode?.renderSVG();
+        }
+        node.save();
+      });
+      commitMoveHistoryTransaction(selected);
     },
   },
 ];

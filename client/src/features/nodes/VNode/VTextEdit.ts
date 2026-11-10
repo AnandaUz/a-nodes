@@ -161,4 +161,9 @@ export default class VTextEdit extends VNode {
   refreshListBtns() {
     refreshListBtns(this);
   }
+
+  remove(): void {
+    removeFramePowerBtn(this);
+    super.remove();
+  }
 }
