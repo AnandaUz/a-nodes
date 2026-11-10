@@ -3,6 +3,7 @@ import type { LNode } from "@/features/nodes/LNode/LNode";
 import { NODE_TYPES } from "../node-registry";
 import { DndController } from "./DndController";
 import { ResizeController } from "./ResizeController";
+import { layoutAnimator } from "./LayoutAnimator";
 
 export { DndController } from "./DndController";
 export { ResizeController } from "./ResizeController";
@@ -15,10 +16,13 @@ export class VNode {
 
   movingElement!: HTMLElement;
   protected unsubscribers: Array<() => void> = [];
-  private animationId: number | null = null;
 
-  protected elSVG?: SVGRectElement | null = null;
+  elSVG?: SVGRectElement | null = null;
   elFrameBg?: HTMLElement | null = null;
+  isFrameMode?: boolean;
+  _tabChanged?: boolean;
+
+  refreshListBtns(): void {}
 
   readonly dndController: DndController;
   readonly resizeController: ResizeController;
@@ -179,6 +183,7 @@ export class VNode {
     this.applyPosition();
   }
   remove() {
+    layoutAnimator.cancel(this);
     this.body.remove();
     this.unsubscribers.forEach((unsub) => unsub());
     this.unbind();
@@ -492,55 +497,7 @@ export class VNode {
   }
 
   moveAniTo(x: number | null = null, y: number | null = null, delay = 0) {
-    if (x === null && y === null) return;
-
-    // отменяем предыдущую анимацию
-    if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-    }
-
-    const targetX = x ?? this.node.x;
-    const targetY = y ?? this.node.y;
-
-    const startX = this.node.x;
-    const startY = this.node.y;
-    const duration = 200;
-
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 2);
-
-    const start = () => {
-      const startTime = performance.now();
-
-      const step = (now: number) => {
-        const elapsed = now - startTime;
-        const t = Math.min(elapsed / duration, 1);
-        const ease = easeOut(t);
-
-        const newX = startX + (targetX - startX) * ease;
-        const newY = startY + (targetY - startY) * ease;
-
-        this.node.x = newX;
-
-        this.node.y = newY;
-        this.applyPosition();
-
-        if (t < 1) {
-          this.animationId = requestAnimationFrame(step);
-        } else {
-          this.node.moveTo({ x: targetX, y: targetY });
-          this.animationId = null;
-        }
-      };
-
-      this.animationId = requestAnimationFrame(step);
-    };
-
-    if (delay > 0) {
-      setTimeout(start, delay);
-    } else {
-      start();
-    }
+    layoutAnimator.animate(this, x, y, delay);
   }
   onStop() {}
 }

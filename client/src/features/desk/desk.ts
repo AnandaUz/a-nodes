@@ -28,11 +28,17 @@ export class Desk {
   selectedPath: Ge_Path | null = null;
   private faviconCanvas = document.createElement("canvas");
 
+  private abortController = new AbortController();
+
   constructor() {
-    window.addEventListener("pointermove", (e) => {
-      this.pointer.x = e.clientX;
-      this.pointer.y = e.clientY;
-    });
+    window.addEventListener(
+      "pointermove",
+      (e) => {
+        this.pointer.x = e.clientX;
+        this.pointer.y = e.clientY;
+      },
+      { signal: this.abortController.signal },
+    );
 
     // удаление выделенной связи фреймов (capture — раньше других хоткеев)
     window.addEventListener(
@@ -58,10 +64,14 @@ export class Desk {
           e.stopImmediatePropagation();
         }
       },
-      true,
+      { capture: true, signal: this.abortController.signal },
     );
     // клик по пустому месту снимает выделение связи
-    window.addEventListener("pointerdown", () => this.selectPath(null), true);
+    window.addEventListener(
+      "pointerdown",
+      () => this.selectPath(null),
+      { capture: true, signal: this.abortController.signal },
+    );
 
     core.store.on(EVENTS.NodeManager.reInitAlnodes, () => {
       this.updateTitle();
@@ -193,6 +203,7 @@ export class Desk {
   }
 
   unmount() {
+    this.abortController.abort();
     this.svgLayer.destroy();
     this.viewport?.destroy();
   }

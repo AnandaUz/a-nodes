@@ -326,7 +326,7 @@ export default class TFrame {
     if (!core.nodeManager?.nodes) return;
     for (const node of core.nodeManager.nodes) {
       if (node === this.owner) continue;
-      const frame = (node as any).frame as TFrame | undefined;
+      const frame = node.frame;
       if (!frame) continue;
       if (mode === "in" && frame.isFrameIn) {
         frame.isFrameIn = false;

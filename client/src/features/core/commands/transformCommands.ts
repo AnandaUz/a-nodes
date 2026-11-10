@@ -93,7 +93,7 @@ export const transformCommands: UICommand[] = [
           e.preventDefault();
           const frameCommands: IHistoryCommand[] = [];
           core.selectManager.selectedNodes.forEach((node) => {
-            const frame = (node as any).frame;
+            const frame = node.frame;
             if (!frame) return;
             const wasFrame = frame.isFrame;
             if (!wasFrame) {

@@ -200,7 +200,7 @@ export class LNode_Page extends LNode_TextEdit {
 
     const hasChildren = Boolean(this.list?.children && this.list.children.size > 0);
     if (hasChildren) {
-      if (!this.frame.isFrame || !(this.vNode as any)?.isFrameMode) {
+      if (!this.frame.isFrame || !this.vNode?.isFrameMode) {
         this.frame.turnOn_frameMode();
       }
       applyTreeVisibility(this);
@@ -209,7 +209,7 @@ export class LNode_Page extends LNode_TextEdit {
       this.list.setPositionForChildren();
       this.vNode?.renderSVG();
     } else {
-      if (this.frame.isFrame || (this.vNode as any)?.isFrameMode) {
+      if (this.frame.isFrame || this.vNode?.isFrameMode) {
         this.frame.turnOff_frameMode();
         this.vNode?.renderSVG();
       }

@@ -10,12 +10,12 @@ router.post('/pageview', authenticate, recordPageView);
 // Получение статистики пользователей администратором
 router.get('/admin/stats', authenticate, requireAdmin, getAdminUsersStats);
 
-router.get('/', getAllUsers);
+router.get('/', authenticate, getAllUsers);
 
-router.get('/:id', getUserById);
+router.get('/:id', authenticate, getUserById);
 
 // Используем PUT для обновления
-router.put('/:id/settings', updateSettings);
+router.put('/:id/settings', authenticate, updateSettings);
 
 export default router;
 

@@ -6,14 +6,40 @@ import { router } from "@/router";
 import { routes, notFoundRoute } from "@/routes.config";
 import { CLoading } from "./components/loading/loading";
 import { CNetworkStatus } from "./components/c-network-status/c-network-status";
-import { registerNodeType, NODE_TYPES } from "@features/nodes/node-registry";
+import { registerNodeTypeDescriptor, NODE_TYPES } from "@features/nodes/node-registry";
 import { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
 import { LNode_Page } from "@features/nodes/LNode/LNode_Page";
+import VTextEdit from "@features/nodes/VNode/VTextEdit";
+import VTextEditClone from "@features/nodes/VNode/VTextEditClone";
+import { VPage } from "@features/nodes/VNode/VPage";
 
-registerNodeType(NODE_TYPES.TEXT_EDIT.id, LNode_TextEdit);
-registerNodeType(NODE_TYPES.TEXT_EDIT_CLONE.id, LNode_TEClone);
-registerNodeType(NODE_TYPES.PAGE.id, LNode_Page);
+registerNodeTypeDescriptor({
+  type: NODE_TYPES.TEXT_EDIT.id,
+  key: "text_edit",
+  label: "Текстовая нода",
+  shortcut: "1",
+  LNodeClass: LNode_TextEdit,
+  VNodeClass: VTextEdit,
+  capabilities: { canClone: true, canFrame: true, canList: true },
+});
+registerNodeTypeDescriptor({
+  type: NODE_TYPES.TEXT_EDIT_CLONE.id,
+  key: "text_edit_clone",
+  label: "Клон текстовой ноды",
+  LNodeClass: LNode_TEClone,
+  VNodeClass: VTextEditClone,
+  capabilities: { canClone: false, canFrame: true, canList: true },
+});
+registerNodeTypeDescriptor({
+  type: NODE_TYPES.PAGE.id,
+  key: "page",
+  label: "Страничная нода",
+  shortcut: "2",
+  LNodeClass: LNode_Page,
+  VNodeClass: VPage,
+  capabilities: { canClone: false, canFrame: true, canList: false },
+});
 
 const LOADER_DELAY_MS = 150;
 class App {

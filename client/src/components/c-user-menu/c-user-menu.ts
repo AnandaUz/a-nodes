@@ -1,6 +1,7 @@
 import { getUser } from "@/services/auth.service";
 import "./c-user-menu.scss";
 import Tools from "@/features/core/Tools";
+import { escapeHtml } from "@/features/core/escapeHtml";
 class CUserMenu extends HTMLElement {
   connectedCallback() {
     const user = getUser();
@@ -11,8 +12,8 @@ class CUserMenu extends HTMLElement {
     <div class="avatar">
         ${
           user?.picture
-            ? `<img class="header-avatar" src="${user.picture}" alt="${user.name}" referrerpolicy="no-referrer" />`
-            : `${user?.name ? user.name.charAt(0).toUpperCase() : ""}`
+            ? `<img class="header-avatar" src="${escapeHtml(user.picture)}" alt="${escapeHtml(user.name)}" referrerpolicy="no-referrer" />`
+            : `${user?.name ? escapeHtml(user.name.charAt(0).toUpperCase()) : ""}`
         }
     </div>
     <div class="dropdown">

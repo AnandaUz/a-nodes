@@ -4,7 +4,7 @@ import { Desk } from "@features/desk/desk";
 import { getToken } from "@services/auth.service";
 import { ServerPersistence } from "./serverPersistence";
 import { NodeManager } from "@features/nodes/NodeManager";
-import { initCommands } from "./comands";
+import { initCommands, resetCommands } from "./comands";
 import { History } from "@features/core/history";
 import { SelectManager } from "@/features/core/SelectManager/SelectManager";
 import { Clipboard } from "@features/core/Clipboard";
@@ -12,6 +12,7 @@ import { CPopupSort } from "@/components/c-popup-sort/c-popup-sort";
 import { breadcrumbsService } from "@/features/breadcrumbs/breadcrumbsService";
 import Tools from "./Tools";
 import { reInitAllNodes } from "../nodes/nodeLifecycle";
+import { createModeStore, type ReactiveModeStore } from "./modeStore";
 
 export { EVENTS };
 export class Core {
@@ -26,48 +27,75 @@ export class Core {
   clipboard!: Clipboard;
   popupSort: CPopupSort = new CPopupSort();
   private unsubscribers: (() => void)[] = [];
+  private abortController = new AbortController();
 
-  mode = {
-    textEditing: false,
-    selectMoving: false,
-    textNode: false,
-    threads: false,
-    threads_selected: false,
-    selectedVNodeCount: 0,
-    deskId: "root",
-    wasMoving: false, //переменная для того чтобы клик не снимал выделения
-    scale: 1,
-    inputMode: Tools.getInputMode(),
-    isPinching: false,
-    lastPinchEndTime: 0,
-    mobile_mode: {
-      navigation: false,
-      adding: false,
-      select: false,
-    },
-    mouseStatus: {
-      shift: false,
-      ctrl: false,
-      alt: false,
-    },
-    isShiftDrag: false,
-  };
+  mode: ReactiveModeStore;
 
   constructor() {
     this.history = new History();
-
     this.clipboard = new Clipboard();
+
+    this.mode = createModeStore(
+      {
+        textEditing: false,
+        selectMoving: false,
+        textNode: false,
+        threads: false,
+        threads_selected: false,
+        selectedVNodeCount: 0,
+        deskId: "root",
+        wasMoving: false, //переменная для того чтобы клик не снимал выделения
+        scale: 1,
+        inputMode: Tools.getInputMode(),
+        isPinching: false,
+        lastPinchEndTime: 0,
+        mobile_mode: {
+          navigation: false,
+          adding: false,
+          select: false,
+        },
+        mouseStatus: {
+          shift: false,
+          ctrl: false,
+          alt: false,
+        },
+        isShiftDrag: false,
+      },
+      (key, value) => {
+        this.store?.emit(EVENTS.mode.changed, { key, value });
+      },
+    );
 
     const updateModifiers = (e: MouseEvent | KeyboardEvent) => {
       this.mode.mouseStatus.shift = e.shiftKey;
       this.mode.mouseStatus.ctrl = e.ctrlKey;
       this.mode.mouseStatus.alt = e.altKey;
     };
-    window.addEventListener("pointerdown", updateModifiers, true);
-    window.addEventListener("pointerup", updateModifiers, true);
-    window.addEventListener("pointermove", updateModifiers, true);
-    window.addEventListener("keydown", updateModifiers, true);
-    window.addEventListener("keyup", updateModifiers, true);
+    window.addEventListener(
+      "pointerdown",
+      updateModifiers,
+      { capture: true, signal: this.abortController.signal },
+    );
+    window.addEventListener(
+      "pointerup",
+      updateModifiers,
+      { capture: true, signal: this.abortController.signal },
+    );
+    window.addEventListener(
+      "pointermove",
+      updateModifiers,
+      { capture: true, signal: this.abortController.signal },
+    );
+    window.addEventListener(
+      "keydown",
+      updateModifiers,
+      { capture: true, signal: this.abortController.signal },
+    );
+    window.addEventListener(
+      "keyup",
+      updateModifiers,
+      { capture: true, signal: this.abortController.signal },
+    );
   }
 
   async init(_params: Record<string, string>) {
@@ -132,6 +160,8 @@ export class Core {
     }
   }
   unmount() {
+    this.abortController.abort();
+    resetCommands();
     this.history.clear();
     this.store.clear();
     this.nodeManager.unmount();

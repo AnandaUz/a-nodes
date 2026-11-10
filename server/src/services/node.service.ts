@@ -475,7 +475,7 @@ const ALLOWED_NODE_FIELDS = new Set([
 ]);
 
 export async function bulkSaveNodes(nodes: any[], userId?: string) {
-  if (!nodes || nodes.length === 0) return [];
+  if (!nodes || nodes.length === 0) return { ids: [], serverTime: new Date() };
   if (!userId || !isValidObjectId(userId)) {
     throw new Error("Не указан авторизованный пользователь");
   }
@@ -568,11 +568,7 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
       setFields.c = new mongoose.Types.ObjectId(setFields.c);
     }
 
-    if (!setFields.lastUpdate) {
-      setFields.lastUpdate = now;
-    } else {
-      setFields.lastUpdate = new Date(setFields.lastUpdate);
-    }
+    setFields.lastUpdate = now;
 
     for (const key of Object.keys(setFields)) {
       delete unsetFields[key];
@@ -596,7 +592,7 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
     });
   });
 
-  if (operations.length === 0) return [];
+  if (operations.length === 0) return { ids: [], serverTime: now };
 
   const result = await Node.bulkWrite(operations, { ordered: true });
 
@@ -629,7 +625,7 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
     await syncPageOutSnapshot(pId);
   }
 
-  return ids;
+  return { ids, serverTime: now };
 }
 
 export async function deleteNodeById(id: string, userId?: string) {

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
+import { AuthRequest } from "../middleware/auth.middleware";
 // import { createUserSchema } from "../schemas/user.schema"; // проверь путь до своей модели
 
 export const createUser = async (_req: Request, _res: Response) => {
@@ -17,7 +18,7 @@ export const createUser = async (_req: Request, _res: Response) => {
 };
 export const getAllUsers = async (_req: Request, res: Response) => {
   try {
-    const users = await User.find({}).select("-__v").lean();
+    const users = await User.find({}).select("-__v -token").lean();
     const mappedUsers = users.map((u: any) => {
       const { _id, ...rest } = u;
       return { id: _id, ...rest };
@@ -33,7 +34,7 @@ export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params; // Берем ID из URL: /api/users/123...
 
-    const user = await User.findById(id).lean();
+    const user = await User.findById(id).select("-__v -token").lean();
 
     if (!user) {
       return res.status(404).json({ message: "Пользователь не найден" });
@@ -46,16 +47,23 @@ export const getUserById = async (req: Request, res: Response) => {
   }
 };
 
-export const updateSettings = async (req: Request, res: Response) => {
+export const updateSettings = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Не авторизован" });
+    }
     const { id } = req.params;
+    if (id && id !== userId) {
+      return res.status(403).json({ error: "Нет доступа для изменения настроек другого пользователя" });
+    }
     const { settings } = req.body; // Фронтенд пришлет объект с изменениями
 
     // Мы обновляем только поле settings.
     // { new: true } — возвращает уже обновленный документ.
     // { runValidators: true } — проверяет данные на соответствие схеме (enum, типы).
     const updatedUser = await User.findByIdAndUpdate(
-      id,
+      userId,
       { $set: { settings: settings } },
       { new: true, runValidators: true },
     );
@@ -64,7 +72,7 @@ export const updateSettings = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Пользователь не найден" });
     }
 
-    // res.json(updatedUser.settings);
+    return res.json(updatedUser.settings);
   } catch (error) {
     console.error("Ошибка обновления настроек:", error);
     res.status(500).json({ message: "Ошибка на сервере", error });

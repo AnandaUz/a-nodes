@@ -2,6 +2,7 @@ import { LNode } from "./LNode";
 import { LNode_TextEdit } from "./LNode_TextEdit";
 import VTextEditClone from "../VNode/VTextEditClone";
 import { core } from "@/features/core/core";
+import { escapeHtml } from "@/features/core/escapeHtml";
 import type VTextEdit from "../VNode/VTextEdit";
 
 export class LNode_TEClone extends LNode_TextEdit {
@@ -103,7 +104,7 @@ export class LNode_TEClone extends LNode_TextEdit {
     }
 
     vNode.elLineOfParentsTitle.innerHTML = parentsTitles
-      .map((s) => `<span>${s}</span>`)
+      .map((s) => `<span>${escapeHtml(s)}</span>`)
       .join("");
   }
   onInput() {

@@ -1,4 +1,5 @@
 import Tools from "@/features/core/Tools";
+import { escapeHtml } from "@/features/core/escapeHtml";
 import type { LNode_TextEdit } from "../LNode/LNode_TextEdit";
 import { VNode } from "./VNode";
 import type { LNode } from "../LNode/LNode";
@@ -132,7 +133,7 @@ export default class VTextEdit extends VNode {
     super.render(false);
     const title = this.title;
     if (title) {
-      const str = title.replace(/\n/g, "<br/>");
+      const str = escapeHtml(title).replace(/\n/g, "<br/>");
       if (str !== this.titleEl.innerHTML) {
         this.titleEl.innerHTML = str;
       }

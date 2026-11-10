@@ -68,13 +68,13 @@ export function checkTree(owner: LNode): void {
       chNode.list.parentNode?.list.children?.delete(chNode);
       oldParent?.list.invalidateChildrenOrder();
       oldParent?.list.invalidateRectCache();
-      (oldParent?.vNode as any)?.refreshListBtns?.();
+      oldParent?.vNode?.refreshListBtns?.();
       const s = mParent?.node.list;
       if (s && !s.children) s.children = new Set();
       s?.children?.add(chNode);
       s?.invalidateChildrenOrder();
       s?.invalidateRectCache();
-      (mParent?.node.vNode as any)?.refreshListBtns?.();
+      mParent?.node.vNode?.refreshListBtns?.();
       chNode.list.parentNode = mParent?.node || null;
       isChanged = true;
     }
@@ -107,7 +107,7 @@ export function checkTree(owner: LNode): void {
 }
 
 export function clearParent(list: TList, owner: LNode): LNode[] {
-  if ((owner as any).isLockedInOutFrame) {
+  if (owner.isLockedInOutFrame) {
     return list.parentNode ? [list.parentNode] : [];
   }
   const willRefParent: LNode[] = [];
@@ -116,7 +116,7 @@ export function clearParent(list: TList, owner: LNode): LNode[] {
     parentNode.list.children?.delete(owner);
     parentNode.list.invalidateChildrenOrder();
     parentNode.list.invalidateRectCache();
-    (parentNode.vNode as any)?.refreshListBtns?.();
+    parentNode.vNode?.refreshListBtns?.();
     willRefParent.push(parentNode);
 
     const isRepeat =
@@ -206,7 +206,7 @@ export function setParent(
     oldParent.list.children?.delete(owner);
     oldParent.list.invalidateChildrenOrder();
     oldParent.list.invalidateRectCache();
-    (oldParent.vNode as any)?.refreshListBtns?.();
+    oldParent.vNode?.refreshListBtns?.();
     willRefParent.push(oldParent);
   }
 
@@ -223,7 +223,7 @@ export function setParent(
   parent.list.children.add(owner);
   parent.list.invalidateChildrenOrder();
   parent.list.invalidateRectCache();
-  (parent.vNode as any)?.refreshListBtns?.();
+  parent.vNode?.refreshListBtns?.();
   const m = parent.list.getSortedChildren();
   m.forEach((node, index) => {
     if (node.list) {
@@ -327,18 +327,18 @@ function propagateTabsAndFrameClass(
     if (chVNode?.body) {
       if (chVNode.body.dataset && chVNode.body.dataset.totaltab !== strTab) {
         chVNode.body.dataset.totaltab = strTab;
-        (chVNode as any)._tabChanged = true;
+        chVNode._tabChanged = true;
       }
       if (chVNode.body.classList) {
         if (isFrame) {
           if (!chVNode.body.classList.contains("in-frame")) {
             chVNode.body.classList.add("in-frame");
-            (chVNode as any)._tabChanged = true;
+            chVNode._tabChanged = true;
           }
         } else {
           if (chVNode.body.classList.contains("in-frame")) {
             chVNode.body.classList.remove("in-frame");
-            (chVNode as any)._tabChanged = true;
+            chVNode._tabChanged = true;
           }
         }
       }
@@ -352,11 +352,11 @@ function propagateTabsAndFrameClass(
 
 function measureSubtree(node: LNode, isDrag: boolean): void {
   const vNode = node.vNode;
-  if (vNode && typeof (vNode as any).refreshBodyRect === "function") {
-    const tabChanged = Boolean((vNode as any)._tabChanged);
+  if (vNode && typeof vNode.refreshBodyRect === "function") {
+    const tabChanged = Boolean(vNode._tabChanged);
     if (!isDrag || tabChanged || !vNode.height) {
-      (vNode as any).refreshBodyRect();
-      (vNode as any)._tabChanged = false;
+      vNode.refreshBodyRect();
+      vNode._tabChanged = false;
     }
   }
   if (!node.list.children?.size) return;
@@ -397,11 +397,11 @@ function layoutTree(
       if (
         animate &&
         (oldX !== child.x || oldY !== child.y) &&
-        typeof (chVNode as any).animateMove === "function"
+        typeof chVNode.animateMove === "function"
       ) {
-        (chVNode as any).animateMove(oldX, oldY, child.x, child.y);
+        chVNode.animateMove(oldX, oldY, child.x, child.y);
       }
-      const skipChildSVG = !((chVNode as any).elSVG || chVNode.elFrameBg);
+      const skipChildSVG = !(chVNode.elSVG || chVNode.elFrameBg);
       chVNode.applyPosition(skipChildSVG);
       h += chVNode.height;
     }
