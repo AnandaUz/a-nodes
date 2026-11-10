@@ -93,8 +93,10 @@ export const saveNodesController = async (req: Request, res: Response) => {
     if (!Array.isArray(nodes)) {
       return res.status(400).json({ message: "Ожидался массив нод" });
     }
-    const ids = await bulkSaveNodes(nodes, userId);
-    const serverTime = new Date();
+    const saveResult = await bulkSaveNodes(nodes, userId);
+    const ids = Array.isArray(saveResult) ? saveResult : saveResult.ids;
+    const serverTime =
+      (!Array.isArray(saveResult) && saveResult.serverTime) || new Date();
 
     const affectedDesks = new Set<string>();
     const nodeObjectIds: mongoose.Types.ObjectId[] = [];
@@ -168,7 +170,7 @@ export const saveNodesController = async (req: Request, res: Response) => {
       );
     }
 
-    res.json({ ids, updatedAt: serverTime });
+    res.json({ ids, serverTime, updatedAt: serverTime });
   } catch (err: any) {
     console.error("[saveNodes Error]:", err);
     res

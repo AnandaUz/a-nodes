@@ -2,6 +2,7 @@ import "./VNode/vNode.scss";
 import { VNode } from "./VNode/VNode";
 import { core, EVENTS } from "../core/core";
 import type { LNode } from "@/features/nodes/LNode/LNode";
+import { getNodeDescriptor } from "./node-registry";
 
 export class NodeRenderer {
   // private vNodes = new Map<string, VNode>();
@@ -30,7 +31,8 @@ export class NodeRenderer {
   }
 
   createVNode(node: LNode, measure = true): VNode | null {
-    const NodeClass = node.getVNodeType();
+    const descriptor = getNodeDescriptor(node.type);
+    const NodeClass = descriptor?.VNodeClass || node.getVNodeType();
     if (!NodeClass) return null;
     try {
       const vNode = new NodeClass(node, this.nodesEl);

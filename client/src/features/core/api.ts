@@ -92,8 +92,11 @@ class API {
       method: "PUT",
       body: JSON.stringify(data),
     });
-    const result = (await response.json()) as { ids: string[] };
-    return result.ids;
+    const result = (await response.json()) as
+      | { ids?: string[]; serverTime?: string }
+      | string[];
+    if (Array.isArray(result)) return result;
+    return result.ids || [];
   }
   async deleteNode(id: string) {
     if (!id) return;

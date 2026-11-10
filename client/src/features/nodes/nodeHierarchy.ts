@@ -101,8 +101,8 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
       node.list.children.clear();
       node.list.invalidateChildrenOrder();
       node.list.invalidateRectCache();
-      (node.vNode as any)?.refreshListBtns?.();
-      (adoptParent.vNode as any)?.refreshListBtns?.();
+      node.vNode?.refreshListBtns?.();
+      adoptParent.vNode?.refreshListBtns?.();
     }
   };
 
@@ -127,7 +127,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   const frameNodes: LNode_TextEdit[] = [];
   const regularNodes: LNode[] = [];
   selectedParentsNodes.forEach((node) => {
-    if ((node as any).frame?.isFrame) {
+    if (node.frame?.isFrame) {
       frameNodes.push(node as LNode_TextEdit);
     } else {
       regularNodes.push(node);
@@ -191,7 +191,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
       byNode.list.parentNode && refNode && refNode.x <= byNode.x;
 
     regularNodes.forEach((node, i) => {
-      if ((node as any).isLockedInOutFrame) {
+      if (node.isLockedInOutFrame) {
         const mainParent = node.list.mainParent || node.list.parentNode;
         const byNodeRoot = byNode.list?.mainParent || byNode;
         if (mainParent !== byNodeRoot) {
@@ -227,7 +227,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
 
       const oldPositions = new Map<LNode, { x: number; y: number }>();
       const oldFrameRect =
-        (mainParent as any).frame?.isFrame && mainParent.vNode?.elFrameBg
+        mainParent.frame?.isFrame && mainParent.vNode?.elFrameBg
           ? mainParent.getNodeRect()
           : null;
       mainParent.list.forEachChildren((ch) => {
@@ -247,23 +247,23 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
         oldFrameRect,
       );
 
-      if ((mainParent as any).frame?.isFrame) {
+      if (mainParent.frame?.isFrame) {
         const fp = mainParent as LNode_TextEdit;
         fp.frame.initBtns();
         fp.frame.setBtnsState();
       }
 
       mainParent.list.forEachChildren((child) => {
-        (child.vNode as any)?.refreshListBtns?.();
+        child.vNode?.refreshListBtns?.();
       });
-      (mainParent.vNode as any)?.refreshListBtns?.();
+      mainParent.vNode?.refreshListBtns?.();
 
       mainParent.save();
     });
   } else {
     const willRefParent: LNode[] = [];
     regularNodes.forEach((node) => {
-      if ((node as any).isLockedInOutFrame) {
+      if (node.isLockedInOutFrame) {
         const mainParent = node.list.mainParent || node.list.parentNode;
         if (mainParent) {
           willRefParent.push(mainParent);
@@ -333,7 +333,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
 
       const oldPositions = new Map<LNode, { x: number; y: number }>();
       const oldFrameRect =
-        (mainParent as any).frame?.isFrame && mainParent.vNode?.elFrameBg
+        mainParent.frame?.isFrame && mainParent.vNode?.elFrameBg
           ? mainParent.getNodeRect()
           : null;
       mainParent.list.forEachChildren((ch) => {

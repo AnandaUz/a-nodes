@@ -69,11 +69,11 @@ export async function addTextEditNodeByEnter(
       mainNode.list.setPositionForChildren();
       mainNode.vNode?.renderSVG();
     }
-    (node.vNode as any)?.refreshListBtns?.();
+    node.vNode?.refreshListBtns?.();
 
     core.selectManager.selectNode(newNode);
-    (newNode as any).isCreatedByEnter = true;
-    (newNode as any).turnOn_EditTitleMode?.();
+    newNode.isCreatedByEnter = true;
+    newNode.turnOn_EditTitleMode?.();
 
     if (core.history) {
       core.history.push({
@@ -117,7 +117,7 @@ export function addTextEditNodeUnderSelected(
     ? selectedNode.x
     : selectedNode.x + GRID.x;
   const newY =
-    (selectedNode.y ?? 0) + ((selectedNode.vNode as any)?.height || 25);
+    (selectedNode.y ?? 0) + (selectedNode.vNode?.height || 25);
 
   manager.ensureLID(parent);
 
@@ -149,8 +149,8 @@ export function addTextEditNodeUnderSelected(
       mainNode.vNode?.renderSVG();
     }
 
-    (selectedNode.vNode as any)?.refreshListBtns?.();
-    (parent.vNode as any)?.refreshListBtns?.();
+    selectedNode.vNode?.refreshListBtns?.();
+    parent.vNode?.refreshListBtns?.();
 
     core.selectManager.clearSelection();
     core.selectManager.selectNode(newNode);

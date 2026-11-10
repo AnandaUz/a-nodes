@@ -51,3 +51,5 @@ dist-ssr
 
 # AI Agents, Skills & Glossary
 !.agents/
+
+db_backups/

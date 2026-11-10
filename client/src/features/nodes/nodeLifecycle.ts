@@ -49,7 +49,7 @@ export function reInitAllNodes(manager: NodeManager): void {
 
   manager.nodes.forEach((node) => {
     if (node.type === 4) {
-      (node as any).checkOutNodesMode?.();
+      node.checkOutNodesMode?.();
     }
   });
 

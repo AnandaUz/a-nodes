@@ -211,7 +211,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
         if (node.list.parentNode) {
           node.list.parentNode.list.children?.delete(node);
           node.list.parentNode.list.invalidateChildrenOrder();
-          (node.list.parentNode.vNode as any)?.refreshListBtns?.();
+          node.list.parentNode.vNode?.refreshListBtns?.();
         }
         node.list.initParent(parentNode);
       }
@@ -219,7 +219,7 @@ function processNodeLinksAndCompatibility(node: LNode, manager: NodeManager) {
   } else if (node.list.parentNode) {
     node.list.parentNode.list.children?.delete(node);
     node.list.parentNode.list.invalidateChildrenOrder();
-    (node.list.parentNode.vNode as any)?.refreshListBtns?.();
+    node.list.parentNode.vNode?.refreshListBtns?.();
     node.list.parentNode = null;
   }
 }
@@ -350,10 +350,10 @@ export function diffDeskSnapshot(
     // а уступающая нода каскадно переназначается через reassignNodeLID
     const nodeHasLinks =
       (node.list?.children?.size ?? 0) > 0 ||
-      ((node as any).frame?.children?.size ?? 0) > 0;
+      (node.frame?.children?.size ?? 0) > 0;
     const existingHasLinks =
       (existing.list?.children?.size ?? 0) > 0 ||
-      ((existing as any).frame?.children?.size ?? 0) > 0;
+      (existing.frame?.children?.size ?? 0) > 0;
 
     let targetToReassign = node;
     if (nodeHasLinks && !existingHasLinks) {

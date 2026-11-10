@@ -33,8 +33,8 @@ export default class SelectionRect {
     if (core.mode.textEditing) {
       (document.activeElement as HTMLElement)?.blur();
       core.selectManager.selectedNodes.forEach((node) => {
-        if ((node as any).isEditMode) {
-          (node as any).turnOff_EditTitleMode();
+        if (node.isEditMode) {
+          node.turnOff_EditTitleMode?.();
         }
       });
       core.selectManager.clearSelection();

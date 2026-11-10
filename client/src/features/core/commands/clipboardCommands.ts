@@ -1,9 +1,11 @@
 import { core } from "@features/core/core";
 import { toDB, type INodeDB } from "@shared/types/INodeDB";
-import { NODE_TYPES } from "../../nodes/node-registry";
+import { cloneExDataForCopy } from "@shared/types/IExData";
 import { instantiateSubgraph } from "../../nodes/nodeSerialization";
+import { importNodesFromMarkdown } from "../../nodes/deskExportImport";
 import Tools from "../Tools";
 import type { LNode } from "../../nodes/LNode/LNode";
+import { isTextEditNode, isCloneNode } from "../../nodes/nodeGuards";
 import type { LNode_TextEdit } from "../../nodes/LNode/LNode_TextEdit";
 import { BatchCommand } from "../history";
 import type { UICommand } from "./types";
@@ -52,7 +54,40 @@ export const clipboardCommands: UICommand[] = [
     execute: async () => {
       if (core.mode.textEditing) return;
       const clipboardData = await core.clipboard.paste();
-      if (!clipboardData?.nodes || clipboardData.nodes.length === 0) return;
+      if (!clipboardData) return;
+
+      if (!clipboardData.nodes || clipboardData.nodes.length === 0) {
+        if (clipboardData.text && clipboardData.text.trim()) {
+          const pointerPos = core.desk.viewport.screenToWorld(
+            core.desk.pointer.x,
+            core.desk.pointer.y,
+          );
+          const importedNodes = importNodesFromMarkdown(
+            clipboardData.text,
+            pointerPos,
+          );
+          if (importedNodes.length > 0) {
+            core.selectManager.clearSelection();
+            importedNodes.forEach((node) => {
+              core.selectManager.selectNode(node, { ctrlKey: true });
+            });
+            core.history.push({
+              execute: () => {
+                importedNodes.forEach((node) =>
+                  core.nodeManager.restoreNodeFromTrash(node),
+                );
+              },
+              undo: () => {
+                importedNodes.forEach((node) =>
+                  core.nodeManager.putNodeInTrash(node),
+                );
+              },
+            });
+            core.selectManager.transformMove.start();
+          }
+        }
+        return;
+      }
 
       const rawNodes = clipboardData.nodes;
 
@@ -136,6 +171,9 @@ export const clipboardCommands: UICommand[] = [
 
       const rawNodes: INodeDB[] = Array.from(subgraphNodes).map((n) => {
         const db = toDB(n);
+        if (db.exData) {
+          db.exData = cloneExDataForCopy(db.exData);
+        }
         if (n.list?.parentLID && !selectedLIDs.has(n.list.parentLID)) {
           db.L = undefined;
           db.x = n.x;
@@ -181,14 +219,10 @@ export const clipboardCommands: UICommand[] = [
 
       const newNodes: LNode[] = [];
       nodes.forEach((node) => {
-        if (
-          node.type !== NODE_TYPES.TEXT_EDIT.id &&
-          node.type !== NODE_TYPES.TEXT_EDIT_CLONE.id
-        )
-          return;
+        if (!isTextEditNode(node) && !isCloneNode(node)) return;
 
         const nNode = core.nodeManager.create_TextEditCloneNode(
-          node as any,
+          node,
           node.x,
           node.y,
         );

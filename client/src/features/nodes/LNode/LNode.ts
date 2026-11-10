@@ -7,6 +7,7 @@ import type { IOutFrameData } from "@shared/types/INodeDB";
 
 import TRepeatMode from "./TRepeatMode";
 import TClones from "./TClones";
+import type TFrame from "./TFrame";
 
 export class LNode implements ILNode {
   private __id: string | undefined = "";
@@ -68,6 +69,12 @@ export class LNode implements ILNode {
     }
   }
   vNode?: VNode | undefined;
+  frame?: TFrame | undefined;
+  isEditMode?: boolean | undefined;
+  isCreatedByEnter?: boolean | undefined;
+  turnOff_EditTitleMode(): void {}
+  turnOn_EditTitleMode(): void {}
+  checkOutNodesMode(): void {}
   /** поле которое я сохраняю в базе */
   hiddenBD: boolean = false;
   /** поле которое показывает видна нода или нет */
@@ -135,7 +142,7 @@ export class LNode implements ILNode {
       parentNode.list.children?.delete(this);
       parentNode.list.invalidateChildrenOrder();
       parentNode.list.invalidateRectCache();
-      (parentNode.vNode as any)?.refreshListBtns?.();
+      parentNode.vNode?.refreshListBtns?.();
       const mainParent = this.list.mainParent;
       if (mainParent) {
         mainParent.list.setPositionForChildren();
@@ -164,7 +171,7 @@ export class LNode implements ILNode {
         mainParent.list.setPositionForChildren();
         mainParent.vNode?.renderSVG();
       }
-      (this.list.parentNode.vNode as any)?.refreshListBtns?.();
+      this.list.parentNode.vNode?.refreshListBtns?.();
     } else {
       this.vNode?.renderSVG();
     }
@@ -195,11 +202,11 @@ export class LNode implements ILNode {
         mainParent.list.setPositionForChildren();
         mainParent.vNode?.renderSVG();
       }
-      (this.list.parentNode.vNode as any)?.refreshListBtns?.();
+      this.list.parentNode.vNode?.refreshListBtns?.();
     } else {
       this.vNode?.renderSVG();
     }
-    (this.vNode as any)?.refreshListBtns?.();
+    this.vNode?.refreshListBtns?.();
   }
   /** возращает тип для VNode */
   getVNodeType(): typeof VNode | undefined {

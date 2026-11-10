@@ -21,8 +21,8 @@ export const nodeCreationCommands: UICommand[] = [
         const selectedNode = selectedNodes[0] as LNode_TextEdit;
         const isNodeInList = !!(
           selectedNode.list?.parentNode ||
-          (selectedNode as any).frame?.isInFrame ||
-          (selectedNode as any).frame?.isFrame ||
+          selectedNode.frame?.isInFrame ||
+          selectedNode.frame?.isFrame ||
           (selectedNode.list?.hasChildren &&
             selectedNode.list.children!.size > 0)
         );
@@ -82,8 +82,8 @@ export const nodeCreationCommands: UICommand[] = [
         core.nodeManager.createNodeWithTypeAndPositionFromCursor(
           NODE_TYPES.TEXT_EDIT.id,
         );
-      if (node && (node as any).frame) {
-        (node as any).frame.turnOn_frameMode();
+      if (node && node.frame) {
+        node.frame.turnOn_frameMode();
         node.save();
         core.history.push({
           execute: () => core.nodeManager.restoreNodeFromTrash(node),

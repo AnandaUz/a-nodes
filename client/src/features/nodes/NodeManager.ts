@@ -2,7 +2,7 @@ import { LNode } from "@/features/nodes/LNode/LNode";
 import { core, EVENTS } from "../core/core";
 import type { DeskSnapshot, Command } from "../core/interfaces";
 import Tools from "../core/Tools";
-import { NODE_REGISTRY, NODE_TYPES } from "./node-registry";
+import { getNodeDescriptor, NODE_REGISTRY, NODE_TYPES } from "./node-registry";
 import type { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import type { LNode_TEClone } from "@features/nodes/LNode/LNode_TEClone";
 import type { LNode_Page } from "./LNode/LNode_Page";
@@ -13,6 +13,7 @@ import {
   setPositionForAllLinkedChildNodes,
 } from "./nodeHierarchy";
 import { diffDeskSnapshot, loadDeskSnapshot } from "./nodeSerialization";
+import { cloneExDataForCopy } from "@shared/types/IExData";
 import {
   addTextEditNodeByEnter,
   addTextEditNodeUnderSelected,
@@ -86,7 +87,7 @@ export class NodeManager {
 
   clear(): void {
     this.nodes.forEach((node) => {
-      (node as any).frame?.parents?.forEach((p: any) => p.path?.remove?.());
+      node.frame?.parents?.forEach((p: any) => p.path?.remove?.());
       node.vNode?.remove();
     });
     this.nodes.clear();
@@ -275,7 +276,7 @@ export class NodeManager {
     newNode.title = node.title;
     // то что нужно склонировать из родителя
     if (node.exData) {
-      newNode.exData = structuredClone(node.exData);
+      newNode.exData = cloneExDataForCopy(node.exData);
     }
 
     if (node.type === NODE_TYPES.TEXT_EDIT_CLONE.id) {
@@ -310,13 +311,14 @@ export class NodeManager {
       core.nodeRenderer.createVNode(newNode);
       newNode.select();
       core.selectManager.selectNode(newNode);
-      (newNode as any).turnOn_EditTitleMode?.();
+      newNode.turnOn_EditTitleMode?.();
     }
     this.onSelectedNodesMoved();
     return newNode;
   }
   addNode(type: number): LNode {
-    const NodeClass = NODE_REGISTRY[type] || LNode;
+    const descriptor = getNodeDescriptor(type);
+    const NodeClass = descriptor?.LNodeClass || NODE_REGISTRY[type] || LNode;
     const node: LNode = new NodeClass();
     node.type = type;
     return node;
@@ -388,12 +390,16 @@ export class NodeManager {
     // отключаем паур кнопку
     if (
       node.type === NODE_TYPES.TEXT_EDIT.id &&
-      (node as any).clones?.mainNode
+      node.clones?.mainNode
     ) {
-      if ((node as any).clones.mainNode.type === NODE_TYPES.TEXT_EDIT.id)
-        (node as any).clones.mainNode.frame.turnOff_PowerBtn(
-          (node as any).frame?.frameLID,
-        );
+      const main = node.clones.mainNode;
+      if (
+        main.type === NODE_TYPES.TEXT_EDIT.id &&
+        main.frame &&
+        typeof node.frame?.frameLID === "number"
+      ) {
+        main.frame.turnOff_PowerBtn(node.frame.frameLID);
+      }
     }
   }
 
@@ -419,7 +425,7 @@ export class NodeManager {
         if (!parentNode.list.children) parentNode.list.children = new Set();
         parentNode.list.children.add(node);
         node.list.parentNode = parentNode;
-        (parentNode.vNode as any)?.refreshListBtns?.();
+        parentNode.vNode?.refreshListBtns?.();
       }
     }
 
@@ -446,10 +452,11 @@ export class NodeManager {
 
     if (
       node.type === NODE_TYPES.TEXT_EDIT.id &&
-      (node as any).clones?.mainNode
+      node.clones?.mainNode
     ) {
-      if ((node as any).clones.mainNode.type === NODE_TYPES.TEXT_EDIT.id) {
-        (node as any).clones.mainNode.frame?.setBtnsState();
+      const main = node.clones.mainNode;
+      if (main.type === NODE_TYPES.TEXT_EDIT.id) {
+        main.frame?.setBtnsState();
       }
     }
   }
@@ -524,7 +531,7 @@ export class NodeManager {
     }
   }
 
-  create_TextEditCloneNode(mainNode: LNode_TextEdit, x?: number, y?: number) {
+  create_TextEditCloneNode(mainNode: LNode_TextEdit | LNode_TEClone, x?: number, y?: number) {
     const cloneNode = this.createNode({
       x: x || 0,
       y: y ?? 0,
@@ -561,7 +568,7 @@ export class NodeManager {
       if (node.list?.parentLID && node.list.parentLID > this.maxLID) {
         this.maxLID = node.list.parentLID;
       }
-      const frame = (node as any).frame;
+      const frame = node.frame;
       if (frame && Array.isArray(frame.parentsLID)) {
         for (const pid of frame.parentsLID) {
           if (typeof pid === "number" && pid > this.maxLID) {
@@ -622,7 +629,7 @@ export class NodeManager {
         if (other === node) continue;
         let changed = false;
 
-        const frame = (other as any).frame;
+        const frame = other.frame;
         if (
           frame &&
           Array.isArray(frame.parentsLID) &&

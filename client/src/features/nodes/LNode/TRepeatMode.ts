@@ -49,7 +49,7 @@ export default class TRepeatMode {
     }
     const parentNode = this.owner.list.parentNode;
     if (parentNode) {
-      (parentNode.vNode as any)?.refreshListBtns?.();
+      parentNode.vNode?.refreshListBtns?.();
     }
   }
   // set showAtDay(date: Date) {}

@@ -1,5 +1,6 @@
 import type { LNode } from "../nodes/LNode/LNode";
 import { toDB, type INodeDB } from "@shared/types/INodeDB";
+import { cloneExDataForCopy } from "@shared/types/IExData";
 
 export class Clipboard {
   nodesToPlainText(nodes: LNode[]): string {
@@ -52,6 +53,9 @@ export class Clipboard {
     // Сериализуем ноды в формат INodeDB. Связи с родителем сохраняем ТОЛЬКО если родитель тоже скопирован.
     const nodesData: INodeDB[] = selectedNodes.map((n) => {
       const db = toDB(n);
+      if (db.exData) {
+        db.exData = cloneExDataForCopy(db.exData);
+      }
       // Если родитель не среди скопированных нод, сбрасываем привязку к родителю
       if (n.list?.parentLID && !selectedLIDs.has(n.list.parentLID)) {
         db.L = undefined;
