@@ -1,5 +1,5 @@
 import { rmSync, cpSync, copyFileSync, readFileSync, writeFileSync } from "fs";
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
 import { join } from "path";
 
 const projectName = "a-nodes";
@@ -9,6 +9,27 @@ const CLIENT_PORT = "4000";
 
 const DEPLOY = `D:/_sites/worked/${projectName}`;
 const SOURCE = __dirname.replace(/\\/g, "/");
+
+function stopPort(port: string) {
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }"`,
+      { stdio: "ignore" },
+    );
+  } catch {}
+}
+
+function isPortInUse(port: string): boolean {
+  try {
+    const res = execSync(
+      `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue"`,
+      { encoding: "utf-8" },
+    );
+    return res.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
 
 console.log("Starting build client");
 
@@ -23,6 +44,9 @@ console.log("Starting removing old client");
 rmSync(`${DEPLOY}/client`, { recursive: true, force: true });
 console.log("Starting copying new client");
 cpSync(`${SOURCE}/client/dist`, `${DEPLOY}/client`, { recursive: true });
+console.log("Stopping old server on port", SERVER_PORT);
+stopPort(SERVER_PORT);
+
 console.log("Starting removing old server");
 
 // // копирование сервера
@@ -49,6 +73,30 @@ execSync("npm install --omit=dev --loglevel=error", {
   cwd: join(DEPLOY, "server"),
   stdio: "inherit", // выводит логи npm в консоль
 });
+
+console.log(`Starting server on port ${SERVER_PORT}`);
+const serverChild = spawn("node", ["server/server/src/index.js"], {
+  cwd: DEPLOY,
+  detached: true,
+  stdio: "ignore",
+  windowsHide: true,
+});
+serverChild.unref();
+
+if (!isPortInUse(CLIENT_PORT)) {
+  console.log(`Starting client on port ${CLIENT_PORT}`);
+  const clientChild = spawn(
+    "cmd",
+    ["/c", "npx", "serve", "client", "--single", "--listen", CLIENT_PORT],
+    {
+      cwd: DEPLOY,
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    },
+  );
+  clientChild.unref();
+}
 
 console.log(`
 
