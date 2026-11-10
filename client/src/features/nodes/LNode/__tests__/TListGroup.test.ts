@@ -249,4 +249,71 @@ describe("TList (листГруппа)", () => {
     expect(node3.list.children?.has(node4)).toBe(true);
     expect(node4.x).toBe(100 + 3 * GRID.x);
   });
+
+  it("ограничение сдвига для существующего ребёнка максимум 2 при перемещении", () => {
+    const node1 = createTestTextNode({
+      lID: 1,
+      x: 100,
+      y: 100,
+      container: env.container,
+    });
+    const node2 = createTestTextNode({
+      lID: 2,
+      x: 100 + GRID.x,
+      y: 130,
+      container: env.container,
+    });
+
+    node2.list.initParent(node1);
+    node2.list.tab = 1;
+
+    core.selectManager.selectNode(node2);
+    dragNode(node2, 100 + 4 * GRID.x, node2.y);
+
+    expect(node2.list.parentNode).toBe(node1);
+    expect(node1.list.children?.has(node2)).toBe(true);
+    expect(node2.x).toBe(100 + 2 * GRID.x);
+  });
+
+  it("элемент не добавляется в дерево при сдвиге больше 2 если он не ребёнок", () => {
+    const node1 = createTestTextNode({
+      lID: 1,
+      x: 100,
+      y: 100,
+      container: env.container,
+    });
+    const node2 = createTestTextNode({
+      lID: 2,
+      x: 500,
+      y: 500,
+      container: env.container,
+    });
+
+    core.selectManager.selectNode(node2);
+    dragNode(node2, 100 + 3 * GRID.x, node1.y + 10);
+
+    expect(node2.list.parentNode).toBeNull();
+    expect(node1.list.children?.has(node2)).toBeFalsy();
+  });
+
+  it("элемент добавляется в дерево если он не ребёнок и сдвиг не превышает 2", () => {
+    const node1 = createTestTextNode({
+      lID: 1,
+      x: 100,
+      y: 100,
+      container: env.container,
+    });
+    const node2 = createTestTextNode({
+      lID: 2,
+      x: 500,
+      y: 500,
+      container: env.container,
+    });
+
+    core.selectManager.selectNode(node2);
+    dragNode(node2, 100 + GRID.x, node1.y + 10);
+
+    expect(node2.list.parentNode).toBe(node1);
+    expect(node1.list.children?.has(node2)).toBe(true);
+  });
 });

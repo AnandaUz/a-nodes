@@ -108,13 +108,6 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
 
   const movedNodeRect = getRectForNodes(movedNodes);
 
-  const overRect = {
-    x: movedNodeRect.x,
-    y: movedNodeRect.y - 1,
-    width: movedNodeRect.width,
-    height: movedNodeRect.height + 1,
-  } as DOMRect;
-
   const selectedParentsNodes: LNode[] = [];
   const refFunc = (node: LNode) => {
     const parentNode = node.list.parentNode;
@@ -136,6 +129,28 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
 
   const refNode = regularNodes[0] || selectedParentsNodes[0];
   const refRoot = refNode?.list?.mainParent;
+  const isExistingChild = Boolean(
+    refNode?.list.parentNode && refRoot && refRoot !== refNode,
+  );
+
+  const overRectX =
+    isExistingChild && refRoot
+      ? Math.min(movedNodeRect.x, refRoot.x)
+      : movedNodeRect.x;
+  const overRectWidth =
+    isExistingChild && refRoot
+      ? Math.max(
+          movedNodeRect.x + movedNodeRect.width,
+          refRoot.x + (refRoot.vNode?.width || 100),
+        ) - overRectX
+      : movedNodeRect.width;
+
+  const overRect = {
+    x: overRectX,
+    y: movedNodeRect.y - 1,
+    width: overRectWidth,
+    height: movedNodeRect.height + 1,
+  } as DOMRect;
 
   const candidates = core.selectManager
     .getNodeOverRect(overRect)
@@ -167,8 +182,15 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
     const candRoot = cand.list.mainParent || cand;
     const refNode = regularNodes[0] || selectedParentsNodes[0];
     if (!refNode) return true;
+    const isSameTree = Boolean(refRoot && candRoot && refRoot === candRoot);
+    const isChild = Boolean(
+      refNode.list.parentNode &&
+      (isSameTree || refNode.list.parentNode === cand)
+    );
     const tab = Math.round((refNode.x - candRoot.x) / GRID.x);
-    return tab >= 0;
+    if (tab < 0) return false;
+    if (!isChild && tab > 2) return false;
+    return true;
   });
 
   const byNode = validCandidates?.[0];
@@ -187,6 +209,25 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
     const willRefParent: LNode[] = [];
     const baseIndex = byNode.list.index || 0;
     const refNode = regularNodes[0] || selectedParentsNodes[0];
+    const candRoot = byNode.list.mainParent || byNode;
+    const isSameTree = Boolean(refRoot && candRoot && refRoot === candRoot);
+    const isChild = Boolean(
+      refNode &&
+      refNode.list.parentNode &&
+      (isSameTree || refNode.list.parentNode === byNode)
+    );
+    if (refNode && isChild) {
+      const rawTab = Math.round((refNode.x - candRoot.x) / GRID.x);
+      if (rawTab > 2) {
+        const targetX = candRoot.x + 2 * GRID.x;
+        const deltaX = targetX - refNode.x;
+        movedNodes.forEach((node) => {
+          node.moveTo({ x: node.x + deltaX, y: node.y }, false);
+          node.vNode?.refreshBodyRect?.();
+        });
+      }
+    }
+
     const isSiblingAfter =
       byNode.list.parentNode && refNode && refNode.x <= byNode.x;
 
@@ -292,14 +333,27 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
             width: 100,
             height: 30,
           };
+          const isExistingChild = Boolean(node.list.parentNode);
+          const rawTab = Math.round((node.x - mainParent.x) / GRID.x);
+          const isRightOverflow = isExistingChild && rawTab > 2;
+
           const toleranceY = 5;
           const isStillInList =
-            nodeRect.x < listRect.x + listRect.width + GRID.x &&
+            (isRightOverflow ||
+              nodeRect.x < listRect.x + listRect.width + GRID.x) &&
             nodeRect.x + nodeRect.width > listRect.x - GRID.x &&
             nodeRect.y <= listRect.y + listRect.height + toleranceY &&
             nodeRect.y + nodeRect.height >= listRect.y - toleranceY;
 
           if (isStillInList) {
+            if (isRightOverflow) {
+              const targetX = mainParent.x + 2 * GRID.x;
+              const deltaX = targetX - node.x;
+              movedNodes.forEach((n) => {
+                n.moveTo({ x: n.x + deltaX, y: n.y }, false);
+                n.vNode?.refreshBodyRect?.();
+              });
+            }
             adoptChildren(node);
             willRefParent.push(mainParent);
             return;
