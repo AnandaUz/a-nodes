@@ -309,6 +309,7 @@ export function diffDeskSnapshot(
       }
       const currentDB = toDB(existing);
       if (!areNodesEqual(currentDB, nodeData)) {
+        console.log("[DEBUG diffDeskSnapshot updated]", { id, nodeData_T: nodeData.T, currentDB_T: currentDB.T });
         fromDB(nodeData, existing);
         manager.registerNode(existing);
         updatedNodes.push(existing);
@@ -320,6 +321,7 @@ export function diffDeskSnapshot(
       const newNode = manager.addNode(
         isFrameAdaptation ? NODE_TYPES.TEXT_EDIT.id : rawType || 0,
       );
+      console.log("[DEBUG diffDeskSnapshot added]", { id, rawType, nodeData_T: nodeData.T, keys: Object.keys(nodeData) });
       if (!newNode) continue;
       fromDB(nodeData, newNode);
       if (isFrameAdaptation) {
@@ -443,6 +445,7 @@ export function loadDeskSnapshot(
       isFrameAdaptation = true;
     }
     const node = manager.addNode(rawType || 0);
+    console.log("[DEBUG loadDeskSnapshot]", { id: _id, rawType, nodeData_T: nodeData.T, keys: Object.keys(nodeData) });
     if (!node) continue;
     fromDB(nodeData, node);
     manager.registerNode(node);

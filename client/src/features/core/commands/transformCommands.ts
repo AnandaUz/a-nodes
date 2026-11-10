@@ -16,6 +16,7 @@ export const transformCommands: UICommand[] = [
         label: "Сдвиг по Tab",
         description: "Сдвигает выделенную ноду вправо по сетке",
         shortcuts: ["tab"],
+        when: "always",
         execute: (e: KeyboardEvent) => {
           if (core.mode.selectedVNodeCount !== 1) return;
           e.preventDefault();
@@ -52,6 +53,7 @@ export const transformCommands: UICommand[] = [
         label: "Обратный сдвиг по Tab",
         description: "Сдвигает выделенную ноду влево по сетке",
         shortcuts: ["shift+tab"],
+        when: "always",
         execute: (e: KeyboardEvent) => {
           if (core.mode.selectedVNodeCount !== 1) return;
           e.preventDefault();

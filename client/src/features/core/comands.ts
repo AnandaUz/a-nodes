@@ -99,6 +99,7 @@ export function initCommands(signal?: AbortSignal): () => void {
       const key = e.code
         .replace("Key", "") // "KeyN" → "N"
         .replace("Digit", "") // "Digit1" → "1"
+        .replace("Numpad", "num-")
         .toLowerCase();
 
       const isCtrlOrMeta = Boolean(e.ctrlKey || e.metaKey);
@@ -114,16 +115,18 @@ export function initCommands(signal?: AbortSignal): () => void {
       const cmd = map.get(pressed);
       if (!cmd || !cmd.execute) return;
 
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isFormInput = Boolean(
+        activeEl &&
+          (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA"),
+      );
+      if (isFormInput) return;
+
       const when = cmd.when || "canvas";
       if (when !== "always") {
-        const activeEl = document.activeElement as HTMLElement | null;
-        const isInputFocused = Boolean(
-          activeEl &&
-            (activeEl.tagName === "INPUT" ||
-              activeEl.tagName === "TEXTAREA" ||
-              activeEl.isContentEditable),
+        const isEditing = Boolean(
+          core.mode.textEditing || activeEl?.isContentEditable,
         );
-        const isEditing = Boolean(core.mode.textEditing || isInputFocused);
 
         if (when === "canvas" && isEditing) return;
         if (when === "editing" && !isEditing) return;

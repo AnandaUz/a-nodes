@@ -414,6 +414,7 @@ export function toDB(node: ILNode): INodeDB {
   return res;
 }
 export function fromDB(db: INodeDB, node: ILNode) {
+  console.log("[DEBUG fromDB]", { db_id: db._id, db_T: db.T, db_type: (db as any).type, node_class: node.constructor?.name, node_type_before: node.type });
   node._id = db._id ?? "";
   node.userId = db.UI ?? (db as any).userId;
   node.pageId = db.pI ?? (db as any).pageId;
