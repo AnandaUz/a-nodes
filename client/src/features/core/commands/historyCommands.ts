@@ -76,8 +76,8 @@ function areFrameArraysEqual(
 }
 
 export function areHistoryStatesEqual(a: INodeDB, b: INodeDB): boolean {
-  if (a.type !== b.type) return false;
-  if (a.title !== b.title) return false;
+  if (a.T !== b.T) return false;
+  if (a.t !== b.t) return false;
   if (Boolean(a.inTrash) !== Boolean(b.inTrash)) return false;
   if ((a.L ?? 0) !== (b.L ?? 0)) return false;
   if (a.L === undefined && b.L === undefined) {
@@ -108,8 +108,8 @@ function compactPair(
   before: INodeDB,
   after: INodeDB,
 ): { before: INodeDB; after: INodeDB } {
-  const b: INodeDB = { ...before, lastUpdate: undefined };
-  const a: INodeDB = { ...after, lastUpdate: undefined };
+  const b: INodeDB = { ...before, lU: undefined };
+  const a: INodeDB = { ...after, lU: undefined };
   if (areExDataEqual(b.exData, a.exData)) {
     a.exData = b.exData;
   }
@@ -149,9 +149,9 @@ export class SnapshotDiffCommand implements Command {
         this.before.set(key, compacted.before);
         this.after.set(key, compacted.after);
       } else if (b) {
-        this.before.set(key, { ...b, lastUpdate: undefined });
+        this.before.set(key, { ...b, lU: undefined });
       } else if (a) {
-        this.after.set(key, { ...a, lastUpdate: undefined });
+        this.after.set(key, { ...a, lU: undefined });
       }
     }
   }

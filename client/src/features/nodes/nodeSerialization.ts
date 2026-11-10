@@ -23,11 +23,12 @@ export function instantiateSubgraph(
   const createdNodes: LNode[] = [];
 
   for (const nodeData of rawNodes) {
+    const rawType = nodeData.T ?? (nodeData as any).type;
     const isFrameAdaptation =
-      nodeData.type === NODE_TYPES.FRAME.main || nodeData.type === 21;
+      rawType === NODE_TYPES.FRAME.main || rawType === 21;
     const type = isFrameAdaptation
       ? NODE_TYPES.TEXT_EDIT.id
-      : (nodeData.type ?? 0);
+      : (rawType ?? 0);
     const node = manager.addNode(type);
 
     fromDB(nodeData, node);
@@ -255,8 +256,9 @@ export function diffDeskSnapshot(
     const id = rawData._id;
     if (!id) continue;
     const nodeData = { ...rawData };
-    if (nodeData.type === NODE_TYPES.FRAME.main || nodeData.type === 21) {
-      nodeData.type = NODE_TYPES.TEXT_EDIT.id;
+    const rawType = nodeData.T ?? (nodeData as any).type;
+    if (rawType === NODE_TYPES.FRAME.main || rawType === 21) {
+      nodeData.T = NODE_TYPES.TEXT_EDIT.id;
     }
     snapshotMap.set(id, nodeData);
   }
@@ -312,10 +314,11 @@ export function diffDeskSnapshot(
         updatedNodes.push(existing);
       }
     } else {
+      const rawType = nodeData.T ?? (nodeData as any).type;
       const isFrameAdaptation =
-        nodeData.type === NODE_TYPES.FRAME.main || nodeData.type === 21;
+        rawType === NODE_TYPES.FRAME.main || rawType === 21;
       const newNode = manager.addNode(
-        isFrameAdaptation ? NODE_TYPES.TEXT_EDIT.id : nodeData.type || 0,
+        isFrameAdaptation ? NODE_TYPES.TEXT_EDIT.id : rawType || 0,
       );
       if (!newNode) continue;
       fromDB(nodeData, newNode);
@@ -433,11 +436,13 @@ export function loadDeskSnapshot(
 
     // адаптация - переделываю тип фреймов, в ноду фрейм
     let isFrameAdaptation = false;
-    if (nodeData.type === NODE_TYPES.FRAME.main || nodeData.type === 21) {
-      nodeData.type = NODE_TYPES.TEXT_EDIT.id;
+    let rawType = nodeData.T ?? (nodeData as any).type;
+    if (rawType === NODE_TYPES.FRAME.main || rawType === 21) {
+      nodeData.T = NODE_TYPES.TEXT_EDIT.id;
+      rawType = NODE_TYPES.TEXT_EDIT.id;
       isFrameAdaptation = true;
     }
-    const node = manager.addNode(nodeData.type || 0);
+    const node = manager.addNode(rawType || 0);
     if (!node) continue;
     fromDB(nodeData, node);
     manager.registerNode(node);

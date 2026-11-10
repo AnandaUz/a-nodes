@@ -132,8 +132,8 @@ export class NodeManager {
                   (node._id && it._id === node._id) ||
                   (!node._id && it.lID === node.lID)
                 ) {
-                  if (it.title !== (node.title || "")) {
-                    it.title = node.title || "";
+                  if (it.t !== (node.title || "")) {
+                    it.t = node.title || "";
                     changed = true;
                   }
                 }
@@ -189,7 +189,7 @@ export class NodeManager {
           _id: ch._id || undefined,
           lID: ch.lID || 0,
           parentLID: ch.list.parentNode?.lID || frame.lID || 0,
-          title: ch.title || "",
+          t: ch.title || "",
           tab: ch.list.tab || 1,
           index: ch.list.index || 0,
           c: dbCh.c,
@@ -200,7 +200,7 @@ export class NodeManager {
       nextOut.push({
         _id: frame._id || undefined,
         lID: frame.lID,
-        title: frame.title || "",
+        t: frame.title || "",
         items,
       });
     }
@@ -388,10 +388,7 @@ export class NodeManager {
       return;
     }
     // отключаем паур кнопку
-    if (
-      node.type === NODE_TYPES.TEXT_EDIT.id &&
-      node.clones?.mainNode
-    ) {
+    if (node.type === NODE_TYPES.TEXT_EDIT.id && node.clones?.mainNode) {
       const main = node.clones.mainNode;
       if (
         main.type === NODE_TYPES.TEXT_EDIT.id &&
@@ -450,10 +447,7 @@ export class NodeManager {
       return;
     }
 
-    if (
-      node.type === NODE_TYPES.TEXT_EDIT.id &&
-      node.clones?.mainNode
-    ) {
+    if (node.type === NODE_TYPES.TEXT_EDIT.id && node.clones?.mainNode) {
       const main = node.clones.mainNode;
       if (main.type === NODE_TYPES.TEXT_EDIT.id) {
         main.frame?.setBtnsState();
@@ -531,7 +525,11 @@ export class NodeManager {
     }
   }
 
-  create_TextEditCloneNode(mainNode: LNode_TextEdit | LNode_TEClone, x?: number, y?: number) {
+  create_TextEditCloneNode(
+    mainNode: LNode_TextEdit | LNode_TEClone,
+    x?: number,
+    y?: number,
+  ) {
     const cloneNode = this.createNode({
       x: x || 0,
       y: y ?? 0,

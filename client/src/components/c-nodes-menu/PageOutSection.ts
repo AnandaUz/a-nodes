@@ -75,7 +75,7 @@ export class PageOutSection {
         for (const frame of outFrames) {
           const btn = document.createElement("div");
           btn.className = `btn${selectedLID === frame.lID ? " active" : ""}`;
-          btn.textContent = frame.title || `Фрейм #${frame.lID}`;
+          btn.textContent = frame.t || (frame as any).title || `Фрейм #${frame.lID}`;
           btn.addEventListener("click", () => {
             pageNode.setSelectedOutFrame(frame.lID);
             this.render(pageNode);

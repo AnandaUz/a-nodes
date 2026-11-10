@@ -20,7 +20,7 @@ export async function syncPageOutSnapshot(
   const pageObjId = new mongoose.Types.ObjectId(pageIdStr);
 
   const outFrames = await Node.find({
-    pageId: pageObjId,
+    pI: pageObjId,
     o: true,
     inTrash: { $ne: true },
   })
@@ -30,13 +30,13 @@ export async function syncPageOutSnapshot(
   if (outFrames.length === 0) {
     await Node.updateOne(
       { _id: pageObjId },
-      { $set: { out: [], lastUpdate: new Date() } },
+      { $set: { out: [], lU: new Date() } },
     );
     return [];
   }
 
   const subNodes = await Node.find({
-    pageId: pageObjId,
+    pI: pageObjId,
     inTrash: { $ne: true },
     ok: { $ne: true },
   }).lean();
@@ -86,7 +86,7 @@ export async function syncPageOutSnapshot(
           _id: String(ch.raw._id),
           lID: ch.nodeLID,
           parentLID: pLID,
-          title: ch.raw.title || "",
+          t: ch.raw.t ?? ch.raw.title ?? "",
           tab: ch.tab || 1,
           index: ch.index,
           c: ch.raw.c ? String(ch.raw.c) : undefined,
@@ -105,14 +105,14 @@ export async function syncPageOutSnapshot(
     out.push({
       _id: String(frame._id),
       lID: outFrameLID,
-      title: frame.title || "",
+      t: frame.t ?? (frame as any).title ?? "",
       items,
     });
   }
 
   await Node.updateOne(
     { _id: pageObjId },
-    { $set: { out, lastUpdate: new Date() } },
+    { $set: { out, lU: new Date() } },
   );
 
   return out;
@@ -172,7 +172,7 @@ export async function getUserOwnedPageIds(userId: string): Promise<Set<string>> 
 
   const [userDoc, directPages] = await Promise.all([
     User.findById(userObjId).select("settings.homeId").lean(),
-    Node.find({ userId: userObjId }).select("_id").lean(),
+    Node.find({ UI: userObjId }).select("_id").lean(),
   ]);
 
   if (userDoc?.settings?.homeId) {
@@ -184,16 +184,16 @@ export async function getUserOwnedPageIds(userId: string): Promise<Set<string>> 
 
   if (owned.size > 0) {
     const allPages = await Node.find({
-      $or: [{ type: 4 }, { "exData.url": { $exists: true, $ne: null } }],
+      $or: [{ T: 4 }, { "exData.url": { $exists: true, $ne: null } }],
     })
-      .select("_id pageId exData.url")
+      .select("_id pI exData.url")
       .lean();
 
     let added = true;
     while (added) {
       added = false;
       for (const p of allPages) {
-        const pid = p.pageId ? String(p.pageId) : null;
+        const pid = p.pI ? String(p.pI) : null;
         if (pid && owned.has(pid)) {
           const nid = String(p._id);
           if (!owned.has(nid)) {
@@ -235,13 +235,13 @@ export async function canUserAccessPage(
   if (owned.has(nodeId)) return true;
 
   if (isValidObjectId(nodeId)) {
-    const pageDoc = await Node.findById(nodeId).select("userId pageId").lean();
+    const pageDoc = await Node.findById(nodeId).select("UI pI").lean();
     if (pageDoc) {
-      if (pageDoc.userId && String(pageDoc.userId) === userId) {
+      if (pageDoc.UI && String(pageDoc.UI) === userId) {
         owned.add(nodeId);
         return true;
       }
-      if (pageDoc.pageId && owned.has(String(pageDoc.pageId))) {
+      if (pageDoc.pI && owned.has(String(pageDoc.pI))) {
         owned.add(nodeId);
         return true;
       }
@@ -271,15 +271,15 @@ export async function getNodesAndPageByNodeId(
   const pageFilter = isRoot ? null : new mongoose.Types.ObjectId(nodeId);
 
   const nodeQuery: any = {
-    pageId: pageFilter,
+    pI: pageFilter,
   };
   if (isRoot && userId && isValidObjectId(userId)) {
-    nodeQuery.userId = new mongoose.Types.ObjectId(userId);
+    nodeQuery.UI = new mongoose.Types.ObjectId(userId);
   }
 
   // Дельта-синхронизация: возвращаем только изменившиеся/удаленные после since
   if (since && !isNaN(since.getTime())) {
-    nodeQuery.lastUpdate = { $gt: since };
+    nodeQuery.lU = { $gt: since };
   } else {
     nodeQuery.$or = [
       { inTrash: { $ne: true }, ok: { $ne: true } },
@@ -287,7 +287,7 @@ export async function getNodesAndPageByNodeId(
     ];
   }
 
-  const exStr = since ? "-__v -userId" : "-__v -inTrash -ok -userId";
+  const exStr = since ? "-__v -UI" : "-__v -inTrash -ok -UI";
 
   const pageQuery: any = isRoot
     ? null
@@ -300,9 +300,9 @@ export async function getNodesAndPageByNodeId(
 
   const isDelta = Boolean(since && !isNaN(since.getTime()));
 
-  // Однократная миграция `out` только для старых нод-страниц (type === 4), где `out` ещё не сохранён
+  // Однократная миграция `out` только для старых нод-страниц (T === 4), где `out` ещё не сохранён
   for (const n of nodes as any[]) {
-    if (n.type === 4 && n.out === undefined && n._id) {
+    if (n.T === 4 && n.out === undefined && n._id) {
       n.out = await syncPageOutSnapshot(n._id);
     }
   }
@@ -314,7 +314,7 @@ export async function getNodesAndPageByNodeId(
     if (n.c && !loadedIds.has(String(n.c))) {
       cloneSourceIds.add(String(n.c));
     }
-    if (n.type === 4 && Array.isArray(n.out)) {
+    if (n.T === 4 && Array.isArray(n.out)) {
       for (const group of n.out) {
         for (const item of group.items || []) {
           if (item.c && !loadedIds.has(String(item.c))) {
@@ -336,7 +336,7 @@ export async function getNodesAndPageByNodeId(
 
     const missingSources = await Node.find({
       _id: { $in: missingSourceIds },
-      pageId: { $in: ownedPageObjIds },
+      pI: { $in: ownedPageObjIds },
       inTrash: { $ne: true },
     })
       .select(exStr)
@@ -365,23 +365,23 @@ export async function getNodesAndPageByNodeId(
       .filter((id) => isValidObjectId(id))
       .map((id) => new mongoose.Types.ObjectId(id));
     targetPageNode = await Node.findOne({
-      pageId: { $in: ownedPageObjIds },
+      pI: { $in: ownedPageObjIds },
       $or: [
         { "exData.url": nodeId },
         { "exData.url": `/desk/${nodeId}` },
       ],
     })
-      .select("_id title pageId")
+      .select("_id t pI")
       .lean();
   }
 
   if (targetPageNode && !isRoot) {
     breadcrumbs.unshift({
       id: targetPageNode._id.toString(),
-      title: targetPageNode.title || "",
+      title: targetPageNode.t || targetPageNode.title || "",
     });
 
-    const firstParentId = targetPageNode.pageId;
+    const firstParentId = targetPageNode.pI;
     if (firstParentId && isValidObjectId(firstParentId.toString())) {
       const collectionName = Node.collection?.name || "nodes";
       const aggResult = await Node.aggregate([
@@ -393,8 +393,8 @@ export async function getNodesAndPageByNodeId(
         {
           $graphLookup: {
             from: collectionName,
-            startWith: "$pageId",
-            connectFromField: "pageId",
+            startWith: "$pI",
+            connectFromField: "pI",
             connectToField: "_id",
             as: "ancestors",
             maxDepth: 19,
@@ -403,11 +403,11 @@ export async function getNodesAndPageByNodeId(
         {
           $project: {
             _id: 1,
-            title: 1,
-            pageId: 1,
+            t: 1,
+            pI: 1,
             "ancestors._id": 1,
-            "ancestors.title": 1,
-            "ancestors.pageId": 1,
+            "ancestors.t": 1,
+            "ancestors.pI": 1,
           },
         },
       ]);
@@ -440,10 +440,10 @@ export async function getNodesAndPageByNodeId(
 
           breadcrumbs.unshift({
             id: parentNode._id.toString(),
-            title: parentNode.title || "",
+            title: parentNode.t || parentNode.title || "",
           });
 
-          currentParentId = parentNode.pageId;
+          currentParentId = parentNode.pI;
         }
       }
     }
@@ -453,13 +453,13 @@ export async function getNodesAndPageByNodeId(
 }
 
 const ALLOWED_NODE_FIELDS = new Set([
-  "pageId",
+  "pI",
   "inTrash",
-  "lastUpdate",
-  "type",
+  "lU",
+  "T",
   "x",
   "y",
-  "title",
+  "t",
   "ok",
   "L",
   "s",
@@ -492,18 +492,20 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
   const existingDocs =
     incomingIds.length > 0
       ? await Node.find({ _id: { $in: incomingIds } })
-          .select("_id pageId userId type")
+          .select("_id pI UI T")
           .lean()
       : [];
   const existingMap = new Map(existingDocs.map((d) => [String(d._id), d]));
 
   const allowedPageIds = new Set(ownedPages);
   for (const node of nodes) {
+    const nType = node?.T ?? node?.type;
+    const nPI = node?.pI ?? node?.pageId;
     if (
-      node?.type === 4 &&
+      nType === 4 &&
       node?._id &&
       isValidObjectId(String(node._id)) &&
-      (!node.pageId || allowedPageIds.has(String(node.pageId)))
+      (!nPI || allowedPageIds.has(String(nPI)))
     ) {
       allowedPageIds.add(String(node._id));
     }
@@ -514,21 +516,22 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
   const operations: any[] = [];
 
   nodes.forEach((node: any, index: number) => {
-    const { _id, userId: _ignoredUserId, ...updateData } = node;
+    const { _id, UI: _ignoredUI, userId: _ignoredUserId, ...updateData } = node;
     const idStr = _id && isValidObjectId(String(_id)) ? String(_id) : undefined;
     const existingDoc = idStr ? existingMap.get(idStr) : undefined;
 
     if (existingDoc) {
-      const existingOwned = existingDoc.pageId
-        ? ownedPages.has(String(existingDoc.pageId))
-        : (existingDoc.userId && String(existingDoc.userId) === userId) ||
+      const existingOwned = existingDoc.pI
+        ? ownedPages.has(String(existingDoc.pI))
+        : (existingDoc.UI && String(existingDoc.UI) === userId) ||
           ownedPages.has(String(existingDoc._id));
       if (!existingOwned) return;
     }
 
+    const targetPageId = updateData.pI ?? updateData.pageId;
     if (
-      updateData.pageId &&
-      !allowedPageIds.has(String(updateData.pageId))
+      targetPageId &&
+      !allowedPageIds.has(String(targetPageId))
     ) {
       return;
     }
@@ -545,19 +548,19 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
       }
     }
 
-    const effectiveType = setFields.type ?? existingDoc?.type;
+    const effectiveType = setFields.T ?? existingDoc?.T;
     const effectivePageId =
-      "pageId" in setFields || "pageId" in unsetFields
-        ? setFields.pageId
-        : existingDoc?.pageId;
+      "pI" in setFields || "pI" in unsetFields
+        ? setFields.pI
+        : existingDoc?.pI;
     const isRootNode = !effectivePageId;
 
     if (isRootNode) {
-      setFields.userId = userObjectId;
+      setFields.UI = userObjectId;
       hasPageChanges = true;
     } else {
-      if (existingDoc?.userId) {
-        unsetFields.userId = "";
+      if (existingDoc?.UI) {
+        unsetFields.UI = "";
       }
       if (effectiveType === 4) {
         hasPageChanges = true;
@@ -568,7 +571,7 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
       setFields.c = new mongoose.Types.ObjectId(setFields.c);
     }
 
-    setFields.lastUpdate = now;
+    setFields.lU = now;
 
     for (const key of Object.keys(setFields)) {
       delete unsetFields[key];
@@ -617,8 +620,9 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
   const affectedPageIds = new Set<string>();
   for (const idx of validNodeIndexes) {
     const node = nodes[idx];
-    if (node.pageId && isValidObjectId(String(node.pageId))) {
-      affectedPageIds.add(String(node.pageId));
+    const pid = node.pI ?? node.pageId;
+    if (pid && isValidObjectId(String(pid))) {
+      affectedPageIds.add(String(pid));
     }
   }
   for (const pId of affectedPageIds) {
@@ -631,23 +635,23 @@ export async function bulkSaveNodes(nodes: any[], userId?: string) {
 export async function deleteNodeById(id: string, userId?: string) {
   if (!userId || !isValidObjectId(userId) || !isValidObjectId(id)) return null;
   const ownedPages = await getUserOwnedPageIds(userId);
-  const existing = await Node.findById(id).select("_id pageId userId type").lean();
+  const existing = await Node.findById(id).select("_id pI UI T").lean();
   if (!existing) return null;
 
-  const isOwned = existing.pageId
-    ? ownedPages.has(String(existing.pageId))
-    : (existing.userId && String(existing.userId) === userId) ||
+  const isOwned = existing.pI
+    ? ownedPages.has(String(existing.pI))
+    : (existing.UI && String(existing.UI) === userId) ||
       ownedPages.has(String(existing._id));
   if (!isOwned) return null;
 
   const deleted = await Node.findOneAndDelete({
     _id: new mongoose.Types.ObjectId(id),
   });
-  if (deleted?.type === 4) {
+  if (deleted?.T === 4) {
     invalidateUserPagesCache(userId);
   }
-  if (deleted?.pageId && isValidObjectId(String(deleted.pageId))) {
-    await syncPageOutSnapshot(String(deleted.pageId));
+  if (deleted?.pI && isValidObjectId(String(deleted.pI))) {
+    await syncPageOutSnapshot(String(deleted.pI));
   }
   return deleted;
 }
@@ -665,20 +669,20 @@ export async function deleteNodesByIds(ids: string[], userId?: string) {
 
   const ownedPages = await getUserOwnedPageIds(userId);
   const docs = await Node.find({ _id: { $in: objectIds } })
-    .select("_id pageId userId type")
+    .select("_id pI UI T")
     .lean();
 
   const allowedIds: mongoose.Types.ObjectId[] = [];
   let hasDeletedPage = false;
 
   for (const doc of docs) {
-    const isOwned = doc.pageId
-      ? ownedPages.has(String(doc.pageId))
-      : (doc.userId && String(doc.userId) === userId) ||
+    const isOwned = doc.pI
+      ? ownedPages.has(String(doc.pI))
+      : (doc.UI && String(doc.UI) === userId) ||
         ownedPages.has(String(doc._id));
     if (isOwned) {
       allowedIds.push(doc._id);
-      if (doc.type === 4) hasDeletedPage = true;
+      if (doc.T === 4) hasDeletedPage = true;
     }
   }
 
@@ -701,22 +705,22 @@ export async function findQuickTargets(
   const escapedMarker = safeMarker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   const query: any = {
-    title: { $regex: escapedMarker },
+    t: { $regex: escapedMarker },
     inTrash: { $ne: true },
   };
 
   if (pageId) {
     if (pageId === "root") {
-      query.pageId = null;
+      query.pI = null;
     } else if (isValidObjectId(pageId)) {
-      query.pageId = new mongoose.Types.ObjectId(pageId);
+      query.pI = new mongoose.Types.ObjectId(pageId);
     }
   }
 
-  const nodes = await Node.find(query).select("_id title pageId s L").lean();
+  const nodes = await Node.find(query).select("_id t pI s L").lean();
 
   return nodes.map((n) => {
-    const rawTitle = n.title || "";
+    const rawTitle = n.t || "";
     const cleanTitle = rawTitle.replace(safeMarker, "").trim();
     const parentLID = (n.s || 0) & 0x1ffff;
     return {
@@ -724,7 +728,7 @@ export async function findQuickTargets(
       title: rawTitle,
       cleanTitle: cleanTitle || rawTitle,
       parentLID,
-      pageId: n.pageId ? n.pageId.toString() : "root",
+      pageId: n.pI ? n.pI.toString() : "root",
     };
   });
 }
@@ -750,24 +754,24 @@ export async function createQuickNode(input: QuickAddNodeInput) {
     const cleanParentSearch = customParentTitle.trim();
     const escaped = cleanParentSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const parentFilter: any = {
-      title: { $regex: escaped, $options: "i" },
+      t: { $regex: escaped, $options: "i" },
       inTrash: { $ne: true },
     };
     if (customPageId) {
-      parentFilter.pageId =
+      parentFilter.pI =
         customPageId === "root"
           ? null
           : new mongoose.Types.ObjectId(customPageId);
     }
     const parentNode = await Node.findOne(parentFilter);
     if (parentNode) {
-      targetPageId = parentNode.pageId
-        ? parentNode.pageId.toString()
+      targetPageId = parentNode.pI
+        ? parentNode.pI.toString()
         : "root";
       let pLID = extractLIDFromS(parentNode.s);
       if (!pLID) {
         const pageNodesForLID = await Node.find({
-          pageId: parentNode.pageId ?? null,
+          pI: parentNode.pI ?? null,
           inTrash: { $ne: true },
         })
           .select("s")
@@ -798,7 +802,7 @@ export async function createQuickNode(input: QuickAddNodeInput) {
 
   // Ищем детей целевого родителя, чтобы вычислить следующий index
   const pageNodes = await Node.find({
-    pageId: pageFilter as any,
+    pI: pageFilter as any,
     inTrash: { $ne: true },
   })
     .select("L")
@@ -828,11 +832,11 @@ export async function createQuickNode(input: QuickAddNodeInput) {
   const newL = packL(targetTab, finalIndex, targetParentLID);
 
   const nodeData: Record<string, any> = {
-    title: rawText,
-    type: 1, // TEXT_EDIT
-    pageId: pageFilter,
+    t: rawText,
+    T: 1, // TEXT_EDIT
+    pI: pageFilter,
     L: newL,
-    lastUpdate: new Date(),
+    lU: new Date(),
   };
 
   if (customS !== undefined) {
@@ -840,7 +844,7 @@ export async function createQuickNode(input: QuickAddNodeInput) {
   }
 
   if (targetUserId) {
-    nodeData["userId"] = new mongoose.Types.ObjectId(targetUserId);
+    nodeData.UI = new mongoose.Types.ObjectId(targetUserId);
   }
 
   const newNode = new Node(nodeData);
@@ -852,8 +856,8 @@ export async function createQuickNode(input: QuickAddNodeInput) {
 
   return {
     _id: newNode._id,
-    title: newNode.title,
-    type: newNode.type,
+    title: newNode.t,
+    type: newNode.T,
     L: newL,
     parentLID: targetParentLID,
     tab: targetTab,
