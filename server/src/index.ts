@@ -6,6 +6,7 @@ import { connectDB, isDbReady, waitForDb } from "./db";
 import userRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
 import nodeRoutes from "./routes/node.routes";
+import { runDailyBackup } from "./services/backup.service";
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use("/nodes", nodeRoutes);
 
 const start = async () => {
   await connectDB();
+  runDailyBackup().catch((err) => console.error("[backup] Ошибка фонового бэкапа:", err));
   app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
   });
