@@ -6,8 +6,8 @@ const template = document.createElement("template");
 template.innerHTML = `<style>${styleContent}</style>${htmlContent}`;
 
 const ARROW_RIGHT_SVG = `
-  <svg width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#ef7700" stroke-width="1.5" stroke-linecap="round"/>
+  <svg width="9" height="18" viewBox="0 0 9 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 14L7 9L2 4" stroke="var(--main-menu-arrow-color, #d94302)" stroke-width="2" stroke-linecap="round"/>
   </svg>
 `;
 
@@ -62,10 +62,12 @@ export class CMainMenu extends HTMLElement {
     items.forEach((tabCmd, index) => {
       const wrapper = document.createElement("div");
       wrapper.className = "menu-tab-wrapper";
+      wrapper.dataset.name = "таб";
 
       const tabBtn = document.createElement("button");
       tabBtn.type = "button";
       tabBtn.className = "menu-tab-btn";
+      tabBtn.dataset.name = tabCmd.label;
       tabBtn.textContent = tabCmd.label;
       if (tabCmd.description) {
         tabBtn.title = tabCmd.description;
@@ -114,23 +116,32 @@ export class CMainMenu extends HTMLElement {
   private createDropdown(items: UICommand[], isSubmenu = false): HTMLElement {
     const list = document.createElement("div");
     list.className = isSubmenu ? "submenu-dropdown" : "menu-dropdown";
+    list.dataset.name = isSubmenu ? "раскрывающийся список" : "всплывающее меню";
 
     items.forEach((item) => {
       if (item.divider) {
         const divider = document.createElement("div");
         divider.className = "menu-divider";
+        divider.dataset.name = "разделитель";
+        divider.innerHTML = `
+          <span class="menu-divider-line"></span>
+          <span class="menu-divider-dot"></span>
+          <span class="menu-divider-line"></span>
+        `;
         list.appendChild(divider);
         return;
       }
 
       const itemEl = document.createElement("div");
       itemEl.className = "menu-item";
+      itemEl.dataset.name = item.children && item.children.length > 0 ? "раскрывающийся список" : item.label;
       if (item.description) {
         itemEl.title = item.description;
       }
 
       const labelEl = document.createElement("span");
       labelEl.className = "menu-item-label";
+      labelEl.dataset.name = "название";
       labelEl.textContent = item.label;
       itemEl.appendChild(labelEl);
 
@@ -140,6 +151,7 @@ export class CMainMenu extends HTMLElement {
         itemEl.classList.add("has-children");
         const arrowEl = document.createElement("span");
         arrowEl.className = "menu-item-arrow";
+        arrowEl.dataset.name = "стрелка";
         arrowEl.innerHTML = ARROW_RIGHT_SVG;
         itemEl.appendChild(arrowEl);
 
@@ -164,6 +176,7 @@ export class CMainMenu extends HTMLElement {
         if (item.shortcuts && item.shortcuts.length > 0) {
           const shortcutEl = document.createElement("span");
           shortcutEl.className = "menu-item-shortcut";
+          shortcutEl.dataset.name = "горячая клавиша";
           shortcutEl.textContent = item.shortcuts.join(", ");
           itemEl.appendChild(shortcutEl);
         }
@@ -185,4 +198,3 @@ export class CMainMenu extends HTMLElement {
 if (!customElements.get("c-main-menu")) {
   customElements.define("c-main-menu", CMainMenu);
 }
-
