@@ -146,7 +146,7 @@ export const clipboardCommands: UICommand[] = [
     description: "Дублировать выделенные ноды со смещением",
     shortcuts: ["ctrl+d", "cmd+d"],
     execute: async (e) => {
-      if (core.mode.textEditing) return;
+      // if (core.mode.textEditing) return;
       Tools.stopEvent(e);
       const nodes = Array.from(core.selectManager.selectedNodes.values());
       if (nodes.length === 0) return;
