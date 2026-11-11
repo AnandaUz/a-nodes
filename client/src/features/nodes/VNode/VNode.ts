@@ -13,6 +13,7 @@ export class VNode {
   body: HTMLElement;
   node!: LNode;
   hidden: boolean = false;
+  isOffscreen: boolean = false;
 
   movingElement!: HTMLElement;
   protected unsubscribers: Array<() => void> = [];
@@ -158,6 +159,28 @@ export class VNode {
     this.hidden = false;
     this.body.style.display = "";
     this.render();
+  }
+  setOffscreen(offscreen: boolean): void {
+    if (this.isOffscreen === offscreen) return;
+    if (offscreen) {
+      if (
+        this.node.isSelected ||
+        this.isDragging ||
+        (typeof document !== "undefined" &&
+          document.activeElement &&
+          this.body.contains(document.activeElement))
+      ) {
+        return;
+      }
+    }
+    this.isOffscreen = offscreen;
+    this.body.classList.toggle("is-offscreen", offscreen);
+    if (this.elFrameBg) {
+      this.elFrameBg.classList.toggle("is-offscreen", offscreen);
+    }
+    if (this.elSVG) {
+      this.elSVG.style.display = offscreen ? "none" : "";
+    }
   }
   initMovingElement() {
     this.movingElement = this.body;

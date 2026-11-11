@@ -13,6 +13,7 @@ import { breadcrumbsService } from "@/features/breadcrumbs/breadcrumbsService";
 import Tools from "./Tools";
 import { reInitAllNodes } from "../nodes/nodeLifecycle";
 import { createModeStore, type ReactiveModeStore } from "./modeStore";
+import { ViewportCuller } from "../desk/viewportCuller";
 
 export { EVENTS };
 export class Core {
@@ -21,6 +22,7 @@ export class Core {
   nodeRenderer!: NodeRenderer;
   selectManager!: SelectManager;
   desk!: Desk;
+  viewportCuller!: ViewportCuller;
   // localPersistence: LocalPersistence;
   serverPersistence!: ServerPersistence;
   history!: History;
@@ -127,6 +129,8 @@ export class Core {
     this.desk = new Desk();
     this.nodeManager = new NodeManager();
     this.nodeRenderer = new NodeRenderer();
+    this.viewportCuller = new ViewportCuller();
+    this.unsubscribers.push(() => this.viewportCuller.destroy());
  
 
     if (typeof window !== "undefined") {

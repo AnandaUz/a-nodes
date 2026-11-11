@@ -60,6 +60,7 @@ export class Viewport {
           this.maxScale,
         );
         this.applyTransform();
+        core.viewportCuller?.scheduleUpdate();
       },
       getOnDoubleTap: () => this.onDoubleTap,
     });
@@ -109,6 +110,7 @@ export class Viewport {
     this.flushPan();
     this.isPanning = false;
     this.el.classList.remove("is-panning");
+    core.viewportCuller?.update();
   }
 
   private movePan(clientX: number, clientY: number) {
@@ -128,6 +130,7 @@ export class Viewport {
       this.panOrigin.y + (this.pendingPan.clientY - this.panStart.y),
     );
     this.applyTransform();
+    core.viewportCuller?.scheduleUpdate();
   };
 
   private flushPan() {
@@ -202,6 +205,7 @@ export class Viewport {
       this.maxScale,
     );
     this.applyTransform();
+    core.viewportCuller?.scheduleUpdate();
   }
 
   // ─── Space + drag ─────────────────────────────────────────────

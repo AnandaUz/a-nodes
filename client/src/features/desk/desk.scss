@@ -73,10 +73,6 @@
     width: 0;
     height: 0;
     transform-origin: 0 0;
-
-    &.is-panning {
-        will-change: transform;
-    }
 }
 
 .desk-origin {

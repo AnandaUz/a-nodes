@@ -133,10 +133,10 @@ export default class TList {
     this._onChangeListeners.forEach((fn) => fn());
   }
   get tab() {
-    return Math.max(0, this._tab ?? 0);
+    return Math.min(2, Math.max(0, this._tab ?? 0));
   }
   set tab(tab: number) {
-    const val = Math.max(0, tab);
+    const val = Math.min(2, Math.max(0, tab));
     if (this._tab === val) return;
     this._tab = val;
     this._onChangeListeners.forEach((fn) => fn());

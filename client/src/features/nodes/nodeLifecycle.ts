@@ -62,12 +62,15 @@ export function reInitAllNodes(manager: NodeManager): void {
     node.frame.bringToFront();
   });
 
+  core.viewportCuller?.update();
+
   if (typeof document !== "undefined" && "fonts" in document) {
     document.fonts.ready.then(() => {
       manager.setPositionForAllLinkedChildNodes();
       manager.nodes.forEach((node) => {
         node.vNode?.renderSVG();
       });
+      core.viewportCuller?.update();
     });
   }
 

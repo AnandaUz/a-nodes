@@ -4,13 +4,23 @@ import { core } from "@/features/core/core";
 import type { LNode } from "./LNode";
 import type TList from "./TList";
 
+function getNodeGlobalTab(node: LNode, root: LNode): number {
+  let total = 0;
+  let curr: LNode | null | undefined = node;
+  while (curr && curr !== root) {
+    total += curr.list.tab ?? 0;
+    curr = curr.list.parentNode;
+  }
+  return total;
+}
+
 /**
  * @contract
  *   Предусловия: owner — корневой или промежуточный узел иерархии списка.
  *   Постусловия: производит балансировку табов (tab) и индексов (index) всех потомков
  *                относительно уровней отступа GRID.x; исключает циклические ссылки.
  * @invariants
- *   Ни один ребенок не может иметь tab > lastLevel + 1.
+ *   Ни один ребенок не может иметь tab > 2 относительно своего родителя.
  */
 export function checkTree(owner: LNode): void {
   if (owner.type === 4) return;
@@ -41,7 +51,9 @@ export function checkTree(owner: LNode): void {
 
     const rawTabIndex =
       chNode.hidden || chNode.hiddenBD
-        ? (chNode.list.tab ?? 0)
+        ? (chNode.list.parentNode
+            ? getNodeGlobalTab(chNode, owner)
+            : (chNode.list.tab ?? 0))
         : Math.round(
             (Tools.getDiskPosition(chNode.x) - Tools.getDiskPosition(owner.x)) /
               GRID.x,
@@ -57,7 +69,7 @@ export function checkTree(owner: LNode): void {
       return;
     }
 
-    const tabIndex = Math.min(rawTabIndex, lastLevel + 1);
+    const tabIndex = Math.min(rawTabIndex, lastLevel + 2);
     lastLevel = tabIndex;
 
     levelsParents[tabIndex] = { node: chNode, count: 0 };
@@ -65,12 +77,10 @@ export function checkTree(owner: LNode): void {
 
     let t = 1;
     let mParent: TLevelParent = null;
-    let tt = 10;
-    while (1) {
+    while (tabIndex - t >= -1) {
       mParent = levelsParents[tabIndex - t];
-      t++;
       if (mParent) break;
-      if (tt-- < 0) break;
+      t++;
     }
 
     let isChanged = false;
@@ -95,12 +105,15 @@ export function checkTree(owner: LNode): void {
       isChanged = true;
     }
     if (mParent && chNode) {
-      const t = Math.max(
-        0,
-        Math.round(
-          (Tools.getDiskPosition(chNode.x) -
-            Tools.getDiskPosition(mParent.node.x)) /
-            GRID.x,
+      const t = Math.min(
+        2,
+        Math.max(
+          0,
+          Math.round(
+            (Tools.getDiskPosition(chNode.x) -
+              Tools.getDiskPosition(mParent.node.x)) /
+              GRID.x,
+          ),
         ),
       );
       if (chNode.list.tab !== t) {
@@ -216,7 +229,7 @@ export function setParent(
 
     t = Math.round((owner.x - parent.x) / GRID.x);
     if (t <= 0) {
-      let tt = 10;
+      let tt = 30;
       while (t <= 0) {
         if (!pnode?.list.parentNode) break;
 
@@ -253,7 +266,7 @@ export function setParent(
 
   const oldParentNode = list.parentNode;
   list.parentNode = parent;
-  list.tab = Math.max(0, tab);
+  list.tab = Math.min(2, Math.max(0, tab));
   // если изменился родитель
   if (oldParentNode != parent) {
     owner.refresh();
