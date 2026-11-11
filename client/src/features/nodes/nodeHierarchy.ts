@@ -9,6 +9,7 @@ import type { LNode_TextEdit } from "@features/nodes/LNode/LNode_TextEdit";
 import type VTextEdit from "@features/nodes/VNode/VTextEdit";
 import type { NodeManager } from "./NodeManager";
 import { getRectForNodes, gatherSubtree } from "./nodeTreeUtils";
+import { DropSlotService, type IDropSlot } from "./DropSlotService";
 
 export { initCloneLinks } from "./cloneHierarchy";
 
@@ -132,11 +133,6 @@ function findDropCandidate(
     const candRoot = cand.list.mainParent || cand;
     const targetRef = regularNodes[0] || selectedParentsNodes[0];
     if (!targetRef) return true;
-    const isSameTree = Boolean(refRoot && candRoot && refRoot === candRoot);
-    const isChild = Boolean(
-      targetRef.list.parentNode &&
-      (isSameTree || targetRef.list.parentNode === cand)
-    );
     const rootTab = Math.round((targetRef.x - candRoot.x) / GRID.x);
     if (rootTab < 0) return false;
 
@@ -147,7 +143,7 @@ function findDropCandidate(
     const expectedParent = isSibling ? cand.list.parentNode! : cand;
     const parentTab = Math.round((targetRef.x - expectedParent.x) / GRID.x);
     if (parentTab < 0) return false;
-    if (!isChild && parentTab > 2) return false;
+    if (parentTab > 2) return false;
     return true;
   });
 
@@ -163,36 +159,78 @@ function attachNodesToCandidate(
   overRect: DOMRect,
   _refRoot: LNode | null | undefined,
   isShift: boolean,
+  dropSlot?: IDropSlot | null,
 ): LNode[] {
   const willRefParent: LNode[] = [];
-  const baseIndex = byNode.list.index || 0;
   const refNode = regularNodes[0] || selectedParentsNodes[0];
   const candRoot = byNode.list.mainParent || byNode;
 
-  const isSiblingAfter =
-    byNode.list.parentNode && refNode && refNode.x <= byNode.x;
-  const isSibling = Boolean(
-    byNode.list.parentNode &&
-    (overRect.y < byNode.y || isSiblingAfter)
-  );
-  const targetParent = isSibling ? byNode.list.parentNode! : byNode;
+  regularNodes.forEach((node) => {
+    adoptChildren(node, isShift);
+    if (node.list.parentNode) {
+      const oldParent = node.list.parentNode;
+      oldParent.list.children?.delete(node);
+      oldParent.list.invalidateChildrenOrder();
+      oldParent.list.invalidateRectCache();
+      oldParent.vNode?.refreshListBtns?.();
+      willRefParent.push(oldParent);
+    }
+  });
 
-  if (refNode) {
-    const rawTab = Math.round((refNode.x - targetParent.x) / GRID.x);
-    if (rawTab > 2) {
-      const targetX = targetParent.x + 2 * GRID.x;
-      const deltaX = targetX - refNode.x;
-      movedNodes.forEach((node) => {
-        node.moveTo({ x: node.x + deltaX, y: node.y }, false);
-        node.vNode?.refreshBodyRect?.();
-      });
-    } else if (rawTab < 0 && refNode.x >= candRoot.x) {
-      const targetX = targetParent.x;
-      const deltaX = targetX - refNode.x;
-      movedNodes.forEach((node) => {
-        node.moveTo({ x: node.x + deltaX, y: node.y }, false);
-        node.vNode?.refreshBodyRect?.();
-      });
+  let targetParent: LNode;
+  let insertIndex: number;
+
+  if (dropSlot) {
+    targetParent = dropSlot.targetParent;
+    const sorted = targetParent.list.getSortedChildren();
+    let refInParent: LNode | null = null;
+    let curr: LNode | null = dropSlot.byNode;
+    while (curr && curr !== targetParent) {
+      if (curr.list.parentNode === targetParent) {
+        refInParent = curr;
+        break;
+      }
+      curr = curr.list.parentNode;
+    }
+    if (refInParent) {
+      const idx = sorted.indexOf(refInParent);
+      insertIndex =
+        idx !== -1
+          ? dropSlot.isBefore && refInParent === dropSlot.byNode
+            ? idx
+            : idx + 1
+          : sorted.length;
+    } else {
+      insertIndex = dropSlot.insertIndex;
+    }
+  } else {
+    const isSiblingAfter =
+      byNode.list.parentNode && refNode && refNode.x <= byNode.x;
+    const isSibling = Boolean(
+      byNode.list.parentNode &&
+      (overRect.y < byNode.y || isSiblingAfter)
+    );
+    targetParent = isSibling ? byNode.list.parentNode! : byNode;
+    const baseIndex = byNode.list.index || 0;
+    insertIndex = overRect.y < byNode.y ? baseIndex : baseIndex + 1;
+
+    if (refNode) {
+      const rawTab = Math.round((refNode.x - targetParent.x) / GRID.x);
+      if (rawTab > 2) {
+        const targetX = targetParent.x + 2 * GRID.x;
+        const deltaX = targetX - refNode.x;
+        movedNodes.forEach((node) => {
+          node.moveTo({ x: node.x + deltaX, y: node.y }, false);
+          node.vNode?.refreshBodyRect?.();
+        });
+      } else if (rawTab < 0 && refNode.x >= candRoot.x) {
+        const targetX = targetParent.x;
+        const deltaX = targetX - refNode.x;
+        movedNodes.forEach((node) => {
+          node.moveTo({ x: node.x + deltaX, y: node.y }, false);
+          node.vNode?.refreshBodyRect?.();
+        });
+      }
     }
   }
 
@@ -206,23 +244,10 @@ function attachNodesToCandidate(
       }
     }
 
-    adoptChildren(node, isShift);
-    if (overRect.y < byNode.y && byNode.list.parentNode) {
-      const parentNode = byNode.list.parentNode;
-      manager.ensureLID(parentNode);
-      willRefParent.push(
-        ...node.list.setParent(parentNode, baseIndex + i),
-      );
-    } else if (isSiblingAfter && byNode.list.parentNode) {
-      const parentNode = byNode.list.parentNode;
-      manager.ensureLID(parentNode);
-      willRefParent.push(
-        ...node.list.setParent(parentNode, baseIndex + 1 + i),
-      );
-    } else {
-      manager.ensureLID(byNode);
-      willRefParent.push(...node.list.setParent(byNode, i));
-    }
+    manager.ensureLID(targetParent);
+    willRefParent.push(
+      ...node.list.setParent(targetParent, insertIndex + i),
+    );
   });
 
   return willRefParent;
@@ -265,7 +290,9 @@ function detachOrKeepNodes(
           height: 30,
         };
         const toleranceY = 5;
+        const maxTabX = mainParent.x + 2 * GRID.x + GRID.x / 2;
         const isStillInList =
+          node.x <= maxTabX &&
           nodeRect.x + nodeRect.width > listRect.x - GRID.x &&
           nodeRect.y <= listRect.y + listRect.height + toleranceY &&
           nodeRect.y + nodeRect.height >= listRect.y - toleranceY;
@@ -378,19 +405,50 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
   const refNode = regularNodes[0] || selectedParentsNodes[0];
   const refRoot = refNode?.list?.mainParent;
 
-  const { byNode, overRect } = findDropCandidate(
-    movedNodes,
-    movedNodeRect,
-    refNode,
-    refRoot,
-    selectedParentsNodes,
-    regularNodes,
-  );
+  const dropSlot = DropSlotService.getInstance().consumeLastSlot();
+  let byNode: LNode | undefined;
+  let overRect: DOMRect;
+
+  if (dropSlot) {
+    byNode = dropSlot.byNode;
+    if (refNode) {
+      const targetX = dropSlot.indicatorX;
+      const targetY = dropSlot.slotY;
+      const deltaX = targetX - refNode.x;
+      const deltaY = targetY - refNode.y;
+      if (deltaX !== 0 || deltaY !== 0) {
+        movedNodes.forEach((node) => {
+          node.moveTo({ x: node.x + deltaX, y: node.y + deltaY }, false);
+          node.vNode?.refreshBodyRect?.();
+        });
+      }
+    }
+    overRect = {
+      x: dropSlot.indicatorX,
+      y: dropSlot.isBefore ? byNode.y - 1 : byNode.y + 1,
+      width: dropSlot.indicatorWidth,
+      height: 20,
+    } as DOMRect;
+  } else {
+    const res = findDropCandidate(
+      movedNodes,
+      movedNodeRect,
+      refNode,
+      refRoot,
+      selectedParentsNodes,
+      regularNodes,
+    );
+    byNode = res.byNode;
+    overRect = res.overRect;
+  }
 
   if (byNode) {
     captureMoveHistoryNodes([byNode]);
     if (byNode.list.parentNode) {
       captureMoveHistoryNodes([byNode.list.parentNode]);
+    }
+    if (dropSlot?.targetParent) {
+      captureMoveHistoryNodes([dropSlot.targetParent]);
     }
   }
   regularNodes.forEach((node) => {
@@ -416,6 +474,7 @@ export function handleSelectedNodesMoved(manager: NodeManager): void {
       overRect,
       refRoot,
       isShift,
+      dropSlot,
     );
     refreshModifiedTrees(willRefParent, wasRef, true);
   } else {

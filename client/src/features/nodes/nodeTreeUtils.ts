@@ -29,9 +29,7 @@ export function gatherSubtree(
 
   if (node.list.children) {
     for (const child of node.list.children) {
-      if (child.vNode) {
-        result.add(child);
-      }
+      result.add(child);
       gatherSubtree(child, visited, result);
     }
   }

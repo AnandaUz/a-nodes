@@ -6,6 +6,7 @@ import {
   commitMoveHistoryTransaction,
 } from "../commands/historyCommands";
 import type { LNode } from "@/features/nodes/LNode/LNode";
+import { DropSlotService } from "@/features/nodes/DropSlotService";
 
 export class TransformMove {
   private active = false;
@@ -102,6 +103,11 @@ export class TransformMove {
         node.list.setPositionForChildren(undefined, 0, 0, true, true);
       }
     });
+
+    DropSlotService.getInstance().update(
+      this.selectManager.selectedNodes,
+      isShift,
+    );
   }
 
   private renderMove = () => {
@@ -125,6 +131,7 @@ export class TransformMove {
     }
 
     Tools.stopEvent(e);
+    DropSlotService.getInstance().hideIndicator();
 
     const movedList: LNode[] = [];
     this.startPositions.forEach((_startPos, node) => {

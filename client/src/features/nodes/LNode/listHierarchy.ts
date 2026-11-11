@@ -4,7 +4,7 @@ import { core } from "@/features/core/core";
 import type { LNode } from "./LNode";
 import type TList from "./TList";
 
-function getNodeGlobalTab(node: LNode, root: LNode): number {
+export function getNodeGlobalTab(node: LNode, root: LNode): number {
   let total = 0;
   let curr: LNode | null | undefined = node;
   while (curr && curr !== root) {

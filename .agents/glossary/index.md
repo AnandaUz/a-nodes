@@ -23,3 +23,4 @@
 | `!выделение`, `!selectManager` | [.agents/glossary/select-manager.md](file:///a:/a-node_2.0/.agents/glossary/select-manager.md) |
 | `!трансформация`, `!transformMove` | [.agents/glossary/transform-move.md](file:///a:/a-node_2.0/.agents/glossary/transform-move.md) |
 | `!селектор`, `!selectionRect` | [.agents/glossary/selection-rect.md](file:///a:/a-node_2.0/.agents/glossary/selection-rect.md) |
+| `!линияИндикатор`, `!dropIndicator` | [.agents/glossary/drop-indicator.md](file:///a:/a-node_2.0/.agents/glossary/drop-indicator.md) |
