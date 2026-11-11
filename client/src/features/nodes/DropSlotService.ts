@@ -5,6 +5,8 @@ import { getNodeGlobalTab } from "./LNode/listHierarchy";
 import { getRectForNodes, gatherSubtree } from "./nodeTreeUtils";
 
 export const FIXED_DROP_INDICATOR_WIDTH = 120;
+/** Допустимый отступ снизу (в px) от нижнего края дерева/фрейма для зоны привязки */
+export const DROP_TREE_BOTTOM_MARGIN = 10;
 
 export interface IDropSlot {
   root: LNode;
@@ -117,10 +119,7 @@ export class DropSlotService {
     return this.lastSlot;
   }
 
-  calculateSlot(
-    movedNodes: Set<LNode>,
-    isShift: boolean,
-  ): IDropSlot | null {
+  calculateSlot(movedNodes: Set<LNode>, isShift: boolean): IDropSlot | null {
     if (movedNodes.size === 0 || isShift) {
       return null;
     }
@@ -189,10 +188,9 @@ export class DropSlotService {
       const rootRect = getTreeRect(refRoot);
       const paddingX = GRID.x * 2;
       const minX = rootRect.x - paddingX;
-      const maxX = rootRect.x + Math.max(rootRect.width, 200) + paddingX * 2;
+      const maxX = rootRect.x + rootRect.width;
       const minY = rootRect.y - 10;
-      const bottomMargin = Math.max(50, (refRoot.vNode?.height || 30) + 20);
-      const maxY = rootRect.y + rootRect.height + bottomMargin;
+      const maxY = rootRect.y + rootRect.height + DROP_TREE_BOTTOM_MARGIN;
 
       if (
         refNode.x >= minX &&
@@ -212,10 +210,9 @@ export class DropSlotService {
         const rootRect = getTreeRect(treeRoot);
         const paddingX = GRID.x * 2;
         const minX = rootRect.x - paddingX;
-        const maxX = rootRect.x + Math.max(rootRect.width, 200) + paddingX * 2;
+        const maxX = rootRect.x + rootRect.width;
         const minY = rootRect.y - 10;
-        const bottomMargin = Math.max(50, (treeRoot.vNode?.height || 30) + 20);
-        const maxY = rootRect.y + rootRect.height + bottomMargin;
+        const maxY = rootRect.y + rootRect.height + DROP_TREE_BOTTOM_MARGIN;
 
         if (
           refNode.x >= minX &&
@@ -239,7 +236,8 @@ export class DropSlotService {
     }
 
     const isFrame = Boolean(
-      (targetRoot as unknown as { frame?: { isFrame: boolean } }).frame?.isFrame,
+      (targetRoot as unknown as { frame?: { isFrame: boolean } }).frame
+        ?.isFrame,
     );
 
     // Собираем всех видимых потомков целевого дерева
@@ -247,7 +245,8 @@ export class DropSlotService {
     const gatherChildren = (node: LNode) => {
       if (!node.list.children) return;
       for (const child of node.list.children) {
-        if (effectiveMovedNodes.has(child) || child.hidden || child.hiddenBD) continue;
+        if (effectiveMovedNodes.has(child) || child.hidden || child.hiddenBD)
+          continue;
         visibleChildren.push(child);
         gatherChildren(child);
       }
@@ -399,11 +398,7 @@ export class DropSlotService {
     const slot = this.calculateSlot(movedNodes, isShift);
     this.lastSlot = slot;
     if (slot) {
-      this.showIndicator(
-        slot.indicatorX,
-        slot.indicatorY,
-        slot.indicatorWidth,
-      );
+      this.showIndicator(slot.indicatorX, slot.indicatorY, slot.indicatorWidth);
     } else {
       this.hideIndicator();
     }
