@@ -1,4 +1,4 @@
-﻿# a-nodes: AI Context Cheatsheet & Knowledge Base
+# a-nodes: AI Context Cheatsheet & Knowledge Base
 
 Этот документ предназначен для быстрого ввода AI-ассистента в контекст проекта `a-nodes` в будущих запросах.
 
@@ -79,3 +79,13 @@
 - `server/src/controllers/node.controller.ts` — загрузка, пакетное сохранение (`bulkWrite`) и удаление нод.
 - `server/src/models/Node.ts` — Mongoose-схема ноды.
 - `shared/types/INodeDB.ts` — упаковщики `TPackedData`, интерфейс `INodeDB`.
+
+---
+
+## 7. Cloud Run & Деплой (GCP)
+- **Проект GCP:** `liner-486905`
+- **Сервис Cloud Run:** `a-nodes`
+- **Регион:** `europe-west1`
+- **Публичный URL:** https://a-nodes-ey53cagdla-ew.a.run.app
+- **CI/CD:** Google Cloud Build триггер `rmgpgab-a-nodes-europe-west1-AnandaUz-a-nodes--mawhw` (срабатывает при пуше в ветку `main` репозитория `AnandaUz/a-nodes`). Сборка по `Dockerfile`.
+- **CLI путь:** `C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd`.
