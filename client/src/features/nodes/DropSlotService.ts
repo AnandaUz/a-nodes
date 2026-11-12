@@ -352,7 +352,7 @@ export class DropSlotService {
         }
       }
     } else if (!prevItem || prevItem === targetRoot) {
-      if (!isFrame && globalTab === 0) {
+      if (!isFrame && !prevItem) {
         return null;
       }
       targetParent = targetRoot;

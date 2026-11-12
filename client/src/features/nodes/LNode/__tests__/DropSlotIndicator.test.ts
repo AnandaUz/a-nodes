@@ -377,6 +377,43 @@ describe("DropSlotService и индикатор вставки", () => {
     expect(movingNode.list.parentNode).toBe(targetParent);
   });
 
+  it("перемещение ноды вровень в корневую ноду без детей отображает индикатор и делает её ребёнком с tab = 0", () => {
+    const targetParent = createTestTextNode({
+      lID: 270,
+      x: 500,
+      y: 100,
+      container: env.container,
+    });
+
+    const movingNode = createTestTextNode({
+      lID: 271,
+      x: 500,
+      y: 135,
+      container: env.container,
+    });
+
+    core.selectManager.clearSelection();
+    core.selectManager.selectNode(movingNode);
+
+    DropSlotService.getInstance().update(core.selectManager.selectedNodes, false);
+    const slot = DropSlotService.getInstance().getLastSlot();
+
+    expect(slot).not.toBeNull();
+    expect(slot?.targetParent).toBe(targetParent);
+    expect(slot?.globalTab).toBe(0);
+    expect(slot?.indicatorX).toBe(500);
+
+    const indicator = core.desk.nodesEl.querySelector(
+      ".dnd-drop-slot-indicator",
+    ) as SVGSVGElement | null;
+    expect(indicator?.style.display).toBe("block");
+
+    handleSelectedNodesMoved(core.nodeManager);
+
+    expect(movingNode.list.parentNode).toBe(targetParent);
+    expect(movingNode.list.tab).toBe(0);
+  });
+
   it("во фрейме перемещение ноды последним ребёнком в ноду делает её ребёнком", () => {
     const frame = createTestTextNode({
       lID: 266,
