@@ -20,7 +20,7 @@ export interface IDropSlot {
   indicatorWidth: number;
   isBefore: boolean;
 }
-
+//-----
 export class DropSlotService {
   private static instance: DropSlotService | null = null;
 
