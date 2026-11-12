@@ -18,14 +18,15 @@
 - `@путь/к/файлу` или `!<Класс.метод>`: переходить напрямую к файлу/методу без предварительного grep-поиска.
 - `/a-fix-bug` или `!баг`: запуск скилла `.agents/skills/a-fix-bug/SKILL.md`.
 - `/a-create-test` или `аСоздаёмТест <Класс|Модуль>`: запуск скилла `.agents/skills/a-create-test/SKILL.md`.
+- `/a-deploy` или `!деплой`: запуск скилла `.agents/skills/a-deploy/SKILL.md`.
 - `!найти <запрос>`: резолв `!<term>` через `.agents/glossary/`, затем точечный grep с фильтрами `Includes` и узким `SearchPath`. Вывод: только кликабельные ссылки на код.
 
 # Glossary Contribution Rules
 
 При добавлении или обновлении терминов:
+
 - Создавать/обновлять отдельный файл в `.agents/glossary/<term>.md` и регистрировать в `.agents/glossary/index.md`.
 - Формат заголовка: `## <Russian Term> / <English Term>`.
 - Однострочное определение назначения.
 - Компактный список маппинга сущностей (Logic, View, DB/Manager).
 - 3-5 шагов жизненного цикла (Lifecycle).
-

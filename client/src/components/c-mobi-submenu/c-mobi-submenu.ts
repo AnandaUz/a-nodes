@@ -9,6 +9,7 @@ class Btn {
   private onPointerUpCb: () => void;
 
   private handleDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
     Tools.stopEvent(e);
     this.el.setPointerCapture(e.pointerId); // держим события за элементом
     this.setActive();

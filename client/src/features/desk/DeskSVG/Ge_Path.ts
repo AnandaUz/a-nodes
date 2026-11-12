@@ -49,6 +49,7 @@ export class Ge_Path extends GElement {
     this.hit.style.pointerEvents = "stroke";
     this.hit.style.cursor = "pointer";
     this.hit.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       e.stopPropagation();
       e.preventDefault();
       onSelect(this);

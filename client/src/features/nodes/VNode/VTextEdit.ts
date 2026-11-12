@@ -51,14 +51,17 @@ export default class VTextEdit extends VNode {
     this.btnHidden = this.body.querySelector(".btn-hidden");
 
     this.btnOpen?.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       Tools.stopEvent(e);
       this.toggleListOpen();
     });
     this.btnRepeats?.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       Tools.stopEvent(e);
       this.toggleRepeatsOpen();
     });
     this.btnHidden?.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       Tools.stopEvent(e);
       this.toggleHiddenOpen();
     });

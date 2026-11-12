@@ -94,9 +94,11 @@ export class RepeatSection {
       daysBlock.appendChild(el);
 
       el.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
       });
       el.addEventListener("pointerup", (e) => {
+        if (e.button !== 0) return;
         if (e.pointerType === "mouse") {
           this.clearDayBtns();
         }
@@ -116,9 +118,11 @@ export class RepeatSection {
       hotBtnsBlock.appendChild(el);
 
       el.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
       });
       el.addEventListener("pointerup", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
         setSelectedNodesRepeatDelay(item.delay);
       });
@@ -132,9 +136,11 @@ export class RepeatSection {
       elHotDaysBlock.appendChild(el);
 
       el.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
       });
       el.addEventListener("pointerup", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
         const delay = calcDayDelay(targetDay);
         setSelectedNodesRepeatDelay(delay);

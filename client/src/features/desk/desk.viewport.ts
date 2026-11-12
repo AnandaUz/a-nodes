@@ -160,7 +160,7 @@ export class Viewport {
     if (e.button !== 1 && !this.isSpaceDown) return;
 
     const target = e.target as HTMLElement;
-    if (target.closest("a") || target.closest(".btn-el")) {
+    if (this.isSpaceDown && target.closest("a")) {
       return;
     }
 

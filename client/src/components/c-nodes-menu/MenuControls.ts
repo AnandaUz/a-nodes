@@ -114,9 +114,11 @@ export class Btn {
 
     this.handler = handler;
     el.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       Tools.stopEvent(e);
     });
     el.addEventListener("pointerup", (e) => {
+      if (e.button !== 0) return;
       Tools.stopEvent(e);
       this.handler();
     });

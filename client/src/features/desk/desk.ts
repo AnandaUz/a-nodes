@@ -69,7 +69,10 @@ export class Desk {
     // клик по пустому месту снимает выделение связи
     window.addEventListener(
       "pointerdown",
-      () => this.selectPath(null),
+      (e) => {
+        if (e.button !== 0) return;
+        this.selectPath(null);
+      },
       { capture: true, signal: this.abortController.signal },
     );
 

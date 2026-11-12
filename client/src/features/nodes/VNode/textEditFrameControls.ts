@@ -96,6 +96,7 @@ export function addFramePowerBtn(
   bl.appendChild(btn);
 
   btn.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
     Tools.stopEvent(e);
     if (btn.classList.contains("active")) {
       callbackOff();
@@ -130,6 +131,7 @@ export function turnOn_frameMode(view: VTextEdit): void {
   const frameBlock = document.createElement("div");
   frameBlock.classList.add("el-frame-btn");
   frameBlock.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
     Tools.stopEvent(e);
   });
   view.body.appendChild(frameBlock);
@@ -140,6 +142,7 @@ export function turnOn_frameMode(view: VTextEdit): void {
   frameBlock.appendChild(btnAdd);
 
   btnAdd.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
     Tools.stopEvent(e);
     (view.node as LNode_TextEdit).frame.addFrame();
   });

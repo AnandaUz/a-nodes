@@ -11,6 +11,7 @@ export class VPage extends VTextEdit {
     const btnEl = this.body.querySelector(".btn-el") as HTMLElement;
     if (btnEl) {
       btnEl.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
       });
       btnEl.addEventListener("touchstart", (e) => {
@@ -58,6 +59,7 @@ export class VPage extends VTextEdit {
       };
 
       btnEl.addEventListener("pointerup", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
         if (
           core.mode.isPinching ||
@@ -66,14 +68,7 @@ export class VPage extends VTextEdit {
           return;
         }
 
-        switch (e.button) {
-          case 0:
-            navigateToPage(false);
-            break;
-          case 1:
-            navigateToPage(true);
-            break;
-        }
+        navigateToPage(false);
       });
 
       btnEl.addEventListener("click", (e) => {
@@ -91,6 +86,7 @@ export class VPage extends VTextEdit {
     const btnPutInto = this.body.querySelector(".btn-put-into") as HTMLElement;
     if (btnPutInto) {
       btnPutInto.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
         Tools.stopEvent(e);
       });
       btnPutInto.addEventListener("touchstart", (e) => {
