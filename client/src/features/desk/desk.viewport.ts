@@ -23,6 +23,7 @@ export class Viewport {
   private panStart = { x: 0, y: 0 };
   private panOrigin = { x: 0, y: 0 };
   private gestureController: ViewportGestureController;
+  private urlSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
   onDoubleTap?: (clientX: number, clientY: number) => void;
 
@@ -61,18 +62,26 @@ export class Viewport {
         );
         this.applyTransform();
         core.viewportCuller?.scheduleUpdate();
+        viewportStore.saveViewport(core.mode.deskId, this.state);
+        this.scheduleUrlSync(300);
       },
       getOnDoubleTap: () => this.onDoubleTap,
     });
 
     this.bindEvents();
-    this.applyTransform();
 
-    const st = viewportStore.getViewport(core.mode.deskId);
-    if (st) {
-      this.state = st;
-      this.applyTransform();
+    const fromUrl = this.readViewportFromUrl();
+    if (fromUrl) {
+      this.state = fromUrl;
+      viewportStore.saveViewport(core.mode.deskId, this.state);
+    } else {
+      const st = viewportStore.getViewport(core.mode.deskId);
+      if (st) {
+        this.state = st;
+      }
     }
+    this.applyTransform();
+    this.scheduleUrlSync(0);
   }
 
   // ─── Transform ───────────────────────────────────────────────
@@ -80,6 +89,65 @@ export class Viewport {
   private applyTransform() {
     applyViewportTransform(this.el, this.scene, this.state, this.gridSize);
   }
+
+  private readViewportFromUrl(): ViewportState | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const xStr = params.get("x");
+      const yStr = params.get("y");
+      const zStr = params.get("z") ?? params.get("zoom") ?? params.get("scale");
+
+      if (xStr !== null && yStr !== null) {
+        const x = parseFloat(xStr);
+        const y = parseFloat(yStr);
+        if (!Number.isNaN(x) && !Number.isNaN(y)) {
+          let scale = 1;
+          if (zStr !== null) {
+            const parsedScale = parseFloat(zStr);
+            if (!Number.isNaN(parsedScale)) {
+              scale = Math.min(this.maxScale, Math.max(this.minScale, parsedScale));
+            }
+          }
+          return { x, y, scale };
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  private scheduleUrlSync(delay = 300) {
+    if (typeof window === "undefined") return;
+    if (this.urlSyncTimer !== null) {
+      clearTimeout(this.urlSyncTimer);
+    }
+    this.urlSyncTimer = setTimeout(() => {
+      this.urlSyncTimer = null;
+      this.syncUrl();
+    }, delay);
+  }
+
+  private syncUrl() {
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("x", Math.round(this.state.x).toString());
+      url.searchParams.set("y", Math.round(this.state.y).toString());
+      url.searchParams.set("z", Number(this.state.scale.toFixed(2)).toString());
+
+      window.history.replaceState(window.history.state, "", url);
+    } catch {}
+  }
+
+  private onPopState = () => {
+    const fromUrl = this.readViewportFromUrl();
+    if (fromUrl) {
+      this.state = fromUrl;
+      this.applyTransform();
+      viewportStore.saveViewport(core.mode.deskId, this.state);
+      core.viewportCuller?.scheduleUpdate();
+    }
+  };
 
   getState(): Readonly<ViewportState> {
     return { ...this.state };
@@ -111,6 +179,8 @@ export class Viewport {
     this.isPanning = false;
     this.el.classList.remove("is-panning");
     core.viewportCuller?.update();
+    viewportStore.saveViewport(core.mode.deskId, this.state);
+    this.scheduleUrlSync(0);
   }
 
   private movePan(clientX: number, clientY: number) {
@@ -131,6 +201,7 @@ export class Viewport {
     );
     this.applyTransform();
     core.viewportCuller?.scheduleUpdate();
+    this.scheduleUrlSync(300);
   };
 
   private flushPan() {
@@ -181,8 +252,6 @@ export class Viewport {
     if (!this.isPanning) return;
     this.stopPan();
     this.scene.style.cursor = this.isSpaceDown ? "grab" : "";
-
-    viewportStore.saveViewport(core.mode.deskId, this.state);
   };
 
   private onWheel = (e: WheelEvent) => {
@@ -193,6 +262,7 @@ export class Viewport {
     this.applyZoom(factor, e.clientX - rect.left, e.clientY - rect.top);
 
     viewportStore.saveViewport(core.mode.deskId, this.state);
+    this.scheduleUrlSync(300);
   };
 
   private applyZoom(factor: number, originX: number, originY: number) {
@@ -251,10 +321,15 @@ export class Viewport {
 
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
+    window.addEventListener("popstate", this.onPopState);
   }
 
   destroy() {
     this.el.classList.remove("is-panning");
+    if (this.urlSyncTimer !== null) {
+      clearTimeout(this.urlSyncTimer);
+      this.urlSyncTimer = null;
+    }
     if (this.rafPanId !== null) {
       cancelAnimationFrame(this.rafPanId);
       this.rafPanId = null;
@@ -271,5 +346,6 @@ export class Viewport {
 
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
+    window.removeEventListener("popstate", this.onPopState);
   }
 }
