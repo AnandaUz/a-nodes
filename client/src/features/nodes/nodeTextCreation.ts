@@ -97,18 +97,27 @@ export async function addTextEditNodeByEnter(
     return;
   }
 
-  const selection = window.getSelection();
-  if (!selection?.rangeCount) return;
+  const isDividerInput = title === "-" || title === "---" || title === "—";
+  let leftText: string;
+  let rightText: string;
 
-  const range = selection.getRangeAt(0);
-  const cursorIndex = Tools.getCursorIndex(vNode.titleEl, range);
+  if (isDividerInput) {
+    leftText = "-";
+    rightText = "";
+  } else {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return;
 
-  const leftText = rawTitle.slice(0, cursorIndex).trimEnd();
-  const rightText = rawTitle.slice(cursorIndex).trimStart();
+    const range = selection.getRangeAt(0);
+    const cursorIndex = Tools.getCursorIndex(vNode.titleEl, range);
+
+    leftText = rawTitle.slice(0, cursorIndex).trimEnd();
+    rightText = rawTitle.slice(cursorIndex).trimStart();
+  }
 
   vNode.title = leftText;
-  vNode.refreshBodyRect();
   vNode.render();
+  vNode.refreshBodyRect();
   manager.ensureLID(node);
 
   node.turnOff_EditTitleMode();

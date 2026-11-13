@@ -28,6 +28,7 @@ export default class VTextEdit extends VNode {
   btnOpen?: HTMLElement | null;
   btnRepeats?: HTMLElement | null;
   btnHidden?: HTMLElement | null;
+  dividerEl: HTMLElement | null = null;
 
   constructor(node: LNode, container: HTMLElement) {
     super(node, container);
@@ -44,11 +45,22 @@ export default class VTextEdit extends VNode {
     this.titleEl.addEventListener("blur", () => {
       (this.node as LNode_TextEdit).turnOff_EditTitleMode();
     });
+  }
 
-    this.elListBtns = this.body.querySelector(".el-list-btns");
-    this.btnOpen = this.body.querySelector(".btn-open");
-    this.btnRepeats = this.body.querySelector(".btn-repeats");
-    this.btnHidden = this.body.querySelector(".btn-hidden");
+  ensureListBtns(): void {
+    if (this.elListBtns) return;
+
+    const el = document.createElement("div");
+    el.className = "el-list-btns";
+    el.innerHTML = `            
+      <div class="bt btn-open" title="Показать/скрыть список"></div>
+      <div class="bt btn-repeats" title="Отложенные задачи"></div>
+      <div class="bt btn-hidden" title="Спрятанные ноды"></div>             
+    `;
+
+    this.btnOpen = el.querySelector(".btn-open");
+    this.btnRepeats = el.querySelector(".btn-repeats");
+    this.btnHidden = el.querySelector(".btn-hidden");
 
     this.btnOpen?.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
@@ -65,6 +77,18 @@ export default class VTextEdit extends VNode {
       Tools.stopEvent(e);
       this.toggleHiddenOpen();
     });
+
+    this.body.appendChild(el);
+    this.elListBtns = el;
+  }
+
+  removeListBtns(): void {
+    if (!this.elListBtns) return;
+    this.elListBtns.remove();
+    this.elListBtns = null;
+    this.btnOpen = null;
+    this.btnRepeats = null;
+    this.btnHidden = null;
   }
 
   onDoubleClick(e: PointerEvent): void {
@@ -78,12 +102,7 @@ export default class VTextEdit extends VNode {
   bodyInit() {
     super.bodyInit();
     this.body.innerHTML += `            
-            <div class="el-title"></div>
-            <div class="el-list-btns">            
-              <div class="bt btn-open" title="Показать/скрыть список"></div>
-              <div class="bt btn-repeats" title="Отложенные задачи"></div>
-              <div class="bt btn-hidden" title="Спрятанные ноды"></div>             
-            </div>                                     
+            <div class="el-title"></div>                                   
 `;
   }
 
@@ -142,6 +161,18 @@ export default class VTextEdit extends VNode {
       }
     }
     this.refreshListBtns();
+    const isDivider = Boolean(this.node.isDivider);
+    this.body.classList.toggle("is-divider", isDivider);
+    if (isDivider) {
+      if (!this.dividerEl) {
+        this.dividerEl = document.createElement("div");
+        this.dividerEl.className = "el-divider";
+        this.body.appendChild(this.dividerEl);
+      }
+    } else if (this.dividerEl) {
+      this.dividerEl.remove();
+      this.dividerEl = null;
+    }
     this.body.classList.toggle("out-group-header", Boolean(this.node.isOutGroupHeader));
     (this.node as LNode_TextEdit).frame?.updateIoClasses();
     if (measure) {
@@ -166,6 +197,11 @@ export default class VTextEdit extends VNode {
   }
 
   remove(): void {
+    if (this.dividerEl) {
+      this.dividerEl.remove();
+      this.dividerEl = null;
+    }
+    this.removeListBtns();
     removeFramePowerBtn(this);
     super.remove();
   }

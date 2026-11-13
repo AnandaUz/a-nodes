@@ -1,0 +1,11 @@
+<svg width="435" height="37" viewBox="0 0 435 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(15, 9)">
+    <path d="M13 9.5H192.5" stroke="#D5D5D5"/>
+    <path d="M175 6.5H197C212 6.5 208 15.5 199 15.5H194.5" stroke="#D5D5D5"/>
+  </g>
+  <g transform="translate(416.5, 28) rotate(180)">
+    <path d="M13 9.5H192.5" stroke="#D5D5D5"/>
+    <path d="M175 6.5H197C212 6.5 208 15.5 199 15.5H194.5" stroke="#D5D5D5"/>
+  </g>
+</svg>
+

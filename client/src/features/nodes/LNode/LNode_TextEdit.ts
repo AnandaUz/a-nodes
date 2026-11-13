@@ -66,6 +66,7 @@ export class LNode_TextEdit extends LNode {
     // this.elMove.turnOff()
     const vNode = this.vNode as VTextEdit;
     if (vNode) {
+      vNode.body.classList.add("is-editing");
       vNode.titleEl.contentEditable = "true";
       vNode.titleEl.focus();
       document.addEventListener("keydown", this.turnOf_edit_byEsc);
@@ -88,8 +89,10 @@ export class LNode_TextEdit extends LNode {
 
     const vNode = this.vNode as VTextEdit;
     if (vNode) {
+      vNode.body.classList.remove("is-editing");
       vNode.titleEl.contentEditable = "false";
       const oldH = vNode.height;
+      vNode.render(false);
       vNode.refreshBodyRect();
       if (oldH !== vNode.height) {
         const main = this.list.mainParent;

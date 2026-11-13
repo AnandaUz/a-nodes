@@ -34,6 +34,10 @@ export class LNode implements ILNode {
   set title(v: string | undefined) {
     this._title = v;
   }
+  get isDivider(): boolean {
+    const t = this._title?.trim();
+    return t === "-" || t === "---" || t === "—";
+  }
   isSelected = false;
   list = new TList(this);
 

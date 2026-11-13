@@ -248,6 +248,66 @@
     grid-template-columns: 0px [title] 40px [ind] auto [p-end] auto [end] auto [s-end];
     grid-template-rows: auto auto [title] auto [p-end] 0 [end];
 
+    .el-divider {
+        display: none;
+    }
+
+    &.is-divider {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 435px;
+        min-width: 435px;
+        max-width: 435px;
+        height: 37px;
+        min-height: 37px;
+        background: transparent;
+        border-bottom: none;
+        box-shadow: none;
+        padding: 0;
+        cursor: grab;
+
+        &:hover {
+            border-bottom: none;
+            .el-divider {
+                opacity: 0.85;
+            }
+        }
+
+        &.is-selected {
+            border-bottom: none;
+            .el-divider {
+                filter: drop-shadow(0 0 1px var(--orange-color, #d45500));
+            }
+        }
+
+        .el-title {
+            display: none;
+        }
+
+        .el-list-btns {
+            display: none !important;
+        }
+
+        .el-divider {
+            display: block;
+            width: 435px;
+            height: 37px;
+            background: url("@assets/divider-line.svg") no-repeat center / 435px 37px;
+            pointer-events: none;
+        }
+
+        &.is-editing {
+            .el-title {
+                display: block;
+                min-width: 60px;
+            }
+            .el-divider {
+                display: none;
+            }
+        }
+    }
+
 
     &.frame {
         background-color: #b8e9dd;

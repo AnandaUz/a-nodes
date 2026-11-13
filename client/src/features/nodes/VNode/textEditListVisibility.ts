@@ -156,12 +156,16 @@ export function toggleHiddenOpen(view: VTextEdit): void {
 }
 
 export function refreshListBtns(view: VTextEdit): void {
-  if (!view.elListBtns) return;
   const list = view.node.list;
-  if (!list.hasChildren) {
-    view.elListBtns.style.display = "none";
+  const isDivider = Boolean(view.node.isDivider);
+
+  if (!list.hasChildren || isDivider) {
+    view.removeListBtns();
     return;
   }
+
+  view.ensureListBtns();
+  if (!view.elListBtns) return;
 
   view.elListBtns.style.display = "flex";
 
